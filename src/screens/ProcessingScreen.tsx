@@ -30,10 +30,10 @@ export function ProcessingScreen({ navigation }: Props) {
   const montado = useRef(true);
   // A analise ja foi disparada na captura, para aproveitar tambem o tempo em que
   // a folha de confirmacao ficou na tela. Aqui a gente so observa o resultado.
-  const { modoAoVivo, analiseAoVivo, analisando } = useFlow();
+  const { modoAoVivo, classificacao, analisando } = useFlow();
   const statusAoVivo = !modoAoVivo
     ? 'off'
-    : analiseAoVivo !== null
+    : classificacao !== null
       ? 'ok'
       : analisando
         ? 'analisando'

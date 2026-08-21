@@ -22,11 +22,11 @@ const MS_ENTRE_BULLETS = 150;
 export function SummaryScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const reduzir = useReduzirMovimento();
-  const { salvarResumo, analiseAoVivo } = useFlow();
-  const conteudo = analiseAoVivo ?? conteudoIdentificado;
-  // Se a analise real trouxe resumo proprio, ele vence o simulado.
+  const { salvarResumo, classificacao, transcricao } = useFlow();
+  const conteudo = classificacao ?? conteudoIdentificado;
+  // Se a transcricao real trouxe resumo proprio, ele vence o simulado.
   const bullets =
-    analiseAoVivo !== null && analiseAoVivo.resumo.length > 0 ? analiseAoVivo.resumo : resumoIA;
+    transcricao !== null && transcricao.resumo.length > 0 ? transcricao.resumo : resumoIA;
   const [aviso, setAviso] = useState<string | null>(null);
 
   // Um valor por bullet: a revelacao em cascata simula a geracao sem chamar API.

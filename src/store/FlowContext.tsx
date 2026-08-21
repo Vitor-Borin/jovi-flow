@@ -2,7 +2,7 @@ import type { ReactNode } from 'react';
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { caminhoSalvar, conteudoIdentificado, plataformas, subModos } from '../data/mock';
-import type { ConteudoReconhecido } from '../services/analiseAoVivo';
+import type { ClassificacaoAoVivo, TranscricaoAoVivo } from '../services/analiseAoVivo';
 
 const CONECTADAS_PADRAO = plataformas.filter((p) => p.conectadaPorPadrao).map((p) => p.id);
 const SUBMODO_PADRAO = subModos[0]?.id ?? 'lousa';
@@ -28,9 +28,13 @@ export type FlowState = {
   modoAoVivo: boolean;
   /** Imagem capturada em base64, usada apenas pelo modo ao vivo. */
   fotoBase64: string | null;
-  /** Conteudo reconhecido de verdade. Nulo = usar o conteudo simulado. */
-  analiseAoVivo: ConteudoReconhecido | null;
-  /** Ha uma analise em andamento neste momento. */
+  /** Materia, tema e topico lidos da foto. Nulo = usar o exemplo.
+   *  Chega rapido (~2s) porque a saida e curta. */
+  classificacao: ClassificacaoAoVivo | null;
+  /** Transcricao e resumo lidos da foto. Chega depois (~8s), e tudo bem:
+   *  e o que aparece embaixo da tela e nas telas seguintes. */
+  transcricao: TranscricaoAoVivo | null;
+  /** Ha alguma das duas chamadas em andamento. */
   analisando: boolean;
   ativarFlow: (v: boolean) => void;
   definirFoto: (uri: string | null) => void;
@@ -41,7 +45,8 @@ export type FlowState = {
   marcarApresentacaoVista: () => void;
   alternarModoAoVivo: () => void;
   definirFotoBase64: (b64: string | null) => void;
-  definirAnalise: (c: ConteudoReconhecido | null) => void;
+  definirClassificacao: (c: ClassificacaoAoVivo | null) => void;
+  definirTranscricao: (t: TranscricaoAoVivo | null) => void;
   definirAnalisando: (v: boolean) => void;
   salvarResumo: () => void;
   /** Volta ao estado inicial. Permite refazer o pitch varias vezes sem fechar o app. */
@@ -61,7 +66,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   const [jaApresentouModoAula, setJaApresentou] = useState(false);
   const [modoAoVivo, setModoAoVivo] = useState(false);
   const [fotoBase64, setFotoBase64] = useState<string | null>(null);
-  const [analiseAoVivo, setAnalise] = useState<ConteudoReconhecido | null>(null);
+  const [classificacao, setClassificacao] = useState<ClassificacaoAoVivo | null>(null);
+  const [transcricao, setTranscricao] = useState<TranscricaoAoVivo | null>(null);
   const [analisando, setAnalisando] = useState(false);
 
   const ativarFlow = useCallback((v: boolean) => setFlowAtivo(v), []);
@@ -72,7 +78,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   const marcarApresentacaoVista = useCallback(() => setJaApresentou(true), []);
   const alternarModoAoVivo = useCallback(() => setModoAoVivo((v) => !v), []);
   const definirFotoBase64 = useCallback((b64: string | null) => setFotoBase64(b64), []);
-  const definirAnalise = useCallback((c: ConteudoReconhecido | null) => setAnalise(c), []);
+  const definirClassificacao = useCallback((c: ClassificacaoAoVivo | null) => setClassificacao(c), []);
+  const definirTranscricao = useCallback((t: TranscricaoAoVivo | null) => setTranscricao(t), []);
   const definirAnalisando = useCallback((v: boolean) => setAnalisando(v), []);
   const salvarResumo = useCallback(() => setResumoSalvo(true), []);
 
@@ -92,7 +99,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     setPlataformasConectadas(CONECTADAS_PADRAO);
     setJaApresentou(false);
     setFotoBase64(null);
-    setAnalise(null);
+    setClassificacao(null);
+    setTranscricao(null);
     setAnalisando(false);
     // modoAoVivo nao e limpo de proposito: e uma escolha do apresentador, e nao
     // parte do estado da captura. Reiniciar a demo nao deve desligar a API.
@@ -110,7 +118,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       jaApresentouModoAula,
       modoAoVivo,
       fotoBase64,
-      analiseAoVivo,
+      classificacao,
+      transcricao,
       analisando,
       ativarFlow,
       definirFoto,
@@ -121,7 +130,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       marcarApresentacaoVista,
       alternarModoAoVivo,
       definirFotoBase64,
-      definirAnalise,
+      definirClassificacao,
+      definirTranscricao,
       definirAnalisando,
       salvarResumo,
       reiniciar,
@@ -137,7 +147,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       jaApresentouModoAula,
       modoAoVivo,
       fotoBase64,
-      analiseAoVivo,
+      classificacao,
+      transcricao,
       analisando,
       ativarFlow,
       definirFoto,
@@ -148,7 +159,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       marcarApresentacaoVista,
       alternarModoAoVivo,
       definirFotoBase64,
-      definirAnalise,
+      definirClassificacao,
+      definirTranscricao,
       definirAnalisando,
       salvarResumo,
       reiniciar,

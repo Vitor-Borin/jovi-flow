@@ -31,9 +31,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Actions'>;
 export function ActionsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const reduzir = useReduzirMovimento();
-  const { destino, textoExtraido, definirTexto, resumoSalvo, plataformasConectadas, analiseAoVivo } =
+  const { destino, textoExtraido, definirTexto, resumoSalvo, plataformasConectadas, classificacao } =
     useFlow();
-  const conteudo = analiseAoVivo ?? conteudoIdentificado;
+  const conteudo = classificacao ?? conteudoIdentificado;
   const [editando, setEditando] = useState(false);
 
   const conectadas = plataformas.filter((p) => plataformasConectadas.includes(p.id));

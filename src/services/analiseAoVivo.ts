@@ -1,178 +1,171 @@
 /**
- * Modo ao vivo: manda a foto capturada para a API da Anthropic e devolve o
- * conteudo realmente reconhecido, em vez do conteudo simulado.
+ * Modo ao vivo: le a foto capturada de verdade, em vez de usar o conteudo
+ * simulado. Este e o UNICO ponto do aplicativo que toca a rede.
  *
- * Este e o UNICO ponto do aplicativo que toca a rede. Todo o resto continua
- * offline por decisao de projeto. Se qualquer coisa aqui falhar — sem chave,
- * sem internet, resposta lenta, JSON invalido — a funcao devolve um resultado
- * de falha e quem chama volta para o conteudo simulado, sem quebrar a demo.
+ * ARQUITETURA — duas chamadas paralelas, e nao uma
+ *
+ * Medido contra a API real, sobre a mesma lousa:
+ *
+ *   so classificar (49 tokens de saida)     Sonnet 5   2,1s
+ *   transcrever tudo (682 tokens de saida)  Sonnet 5   8,2s
+ *
+ * O gargalo e a GERACAO da resposta, nao a rede. E a parte cara de gerar — a
+ * transcricao inteira — e justamente a que aparece embaixo da tela, num card com
+ * rolagem. Materia, tema e topico ficam no topo e sao os primeiros que alguem le.
+ *
+ * Entao o trabalho e dividido:
+ *
+ *   classificar   imagem de 768px  (~21 KB)   ~1,7s   -> preenche o topo da tela
+ *   transcrever   imagem de 1568px (~250 KB)  ~8,2s   -> preenche o texto extraido
+ *
+ * A classificacao usa imagem pequena de proposito: medido, ela acerta igual com
+ * 768px e com 1568px, e 21 KB sobem mesmo num wifi congestionado de campus. A
+ * parte que depende de banda boa e a que ninguem esta olhando ainda.
+ *
+ * Se qualquer uma falhar, aquela parte cai no conteudo de exemplo sem quebrar a
+ * demonstracao. As duas sao independentes.
  *
  * Por que fetch e nao o SDK oficial: o SDK da Anthropic e feito para Node e
  * navegador, e adiciona-lo ao bundle do Expo Go traria risco de resolucao de
- * modulo no Metro a poucos dias da apresentacao. O fetch e nativo, tem zero
- * dependencia e permite controlar o tempo limite com precisao.
+ * modulo no Metro. O fetch e nativo, nao custa dependencia e deixa controlar o
+ * tempo limite com precisao.
  */
 
 import { SaveFormat, manipulateAsync } from 'expo-image-manipulator';
 
 const ENDPOINT = 'https://api.anthropic.com/v1/messages';
 const VERSAO_API = '2023-06-01';
-const MODELO = 'claude-opus-5';
 
-/**
- * Teto absoluto da chamada.
- *
- * A animacao de processamento dura cerca de 6,4s e a chamada roda escondida
- * atras dela, entao o modo ao vivo nunca adiciona espera percebida. O teto e
- * maior que a animacao de proposito: se a resposta chegar depois, ela ainda
- * substitui o conteudo de exemplo na tela seguinte, em vez de ser descartada.
- */
-export const LIMITE_MS = 15000;
+/** Sonnet 5 e o ponto de equilibrio medido: classifica em ~2s e transcreve em
+ *  ~8s, contra ~5s e ~11,5s do Opus 5, com a mesma leitura correta. */
+const MODELO = 'claude-sonnet-5';
 
-/** Lado maior da imagem enviada, em pixels. A API de visao ja reduz para essa
- *  faixa internamente — mandar mais nao melhora a leitura, so pesa o upload. */
-const LADO_MAIOR_PX = 1568;
+/** Teto de cada chamada. Generoso de proposito: nenhuma delas bloqueia a
+ *  navegacao, entao esperar mais so aumenta a chance de o conteudo real chegar. */
+export const LIMITE_CLASSIFICACAO_MS = 12000;
+export const LIMITE_TRANSCRICAO_MS = 20000;
 
-/** Qualidade do JPEG enviado. Alta de proposito: o ganho de tamanho ja veio do
- *  redimensionamento, e artefato de compressao prejudica a leitura do texto. */
+/** Lado maior de cada imagem. A de transcricao usa 1568px porque e a faixa para
+ *  a qual a API de visao ja reduz internamente — mandar mais nao melhora nada. */
+const PX_CLASSIFICACAO = 768;
+const PX_TRANSCRICAO = 1568;
 const QUALIDADE_ENVIO = 0.82;
 
-export type ConteudoReconhecido = {
+export type ClassificacaoAoVivo = {
   materia: string;
   tema: string;
   topico: string;
+};
+
+export type TranscricaoAoVivo = {
   textoExtraido: string;
   resumo: string[];
 };
 
-export type ResultadoAnalise =
-  | { estado: 'ok'; conteudo: ConteudoReconhecido; ms: number }
+export type Resultado<T> =
+  | { estado: 'ok'; dados: T; ms: number }
   | { estado: 'sem-chave' }
   | { estado: 'sem-foto' }
   | { estado: 'tempo-esgotado' }
   | { estado: 'falha'; motivo: string };
 
-const INSTRUCAO = [
-  'Você recebe a foto de uma lousa, slide, caderno ou folha que um estudante',
-  'universitário brasileiro acabou de fotografar em aula.',
+const PROMPT_CLASSIFICACAO = [
+  'Olhe esta foto de lousa, slide ou caderno de um estudante universitário brasileiro.',
   '',
-  'Responda SOMENTE com um objeto JSON válido, sem cercas de código e sem',
-  'nenhum texto antes ou depois, no formato:',
-  '{"materia":"...","tema":"...","topico":"...","textoExtraido":"...","resumo":["...","..."]}',
+  'Responda SOMENTE com JSON válido, sem cercas de código e sem texto ao redor:',
+  '{"materia":"...","tema":"...","topico":"..."}',
   '',
-  '- materia: a área de estudo, em uma ou duas palavras. Ex.: Design, Matemática, Programação.',
-  '- tema: a disciplina ou assunto maior. Ex.: "Front-End Design — Layout".',
-  '- topico: o assunto específico da imagem, em uma linha.',
-  '- textoExtraido: a transcrição fiel do que está escrito, preservando quebras de linha.',
-  '- resumo: de 4 a 6 frases curtas resumindo o conteúdo, cada uma completa em si.',
+  '- materia: a área de estudo em uma ou duas palavras. Ex.: Design, Programação, Matemática.',
+  '- tema: a disciplina ou assunto maior.',
+  '- topico: o assunto específico da imagem, em uma linha curta.',
   '',
-  'Escreva tudo em português do Brasil. Se a imagem estiver ilegível, preencha',
-  'os campos com o que for possível deduzir e não invente conteúdo que não existe.',
+  'Tudo em português do Brasil.',
+].join('\n');
+
+const PROMPT_TRANSCRICAO = [
+  'Transcreva fielmente todo o texto desta foto de lousa, slide ou caderno e resuma o conteúdo.',
+  '',
+  'Responda SOMENTE com JSON válido, sem cercas de código e sem texto ao redor:',
+  '{"textoExtraido":"...","resumo":["...","..."]}',
+  '',
+  '- textoExtraido: a transcrição fiel, preservando as quebras de linha do original.',
+  '- resumo: de 4 a 6 frases curtas, cada uma completa em si.',
+  '',
+  'Tudo em português do Brasil. Não invente conteúdo que não está na imagem.',
 ].join('\n');
 
 type BlocoTexto = { type: string; text?: string };
 type RespostaApi = { content?: BlocoTexto[] };
 
+export function temChaveConfigurada(): boolean {
+  const c = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;
+  return typeof c === 'string' && c.length > 0;
+}
+
 /**
- * Prepara a foto para envio: reduz o lado maior para LADO_MAIOR_PX e recodifica
- * em JPEG.
- *
- * Nao e so economia de banda. A API de visao ja reduz internamente qualquer
- * imagem para essa faixa, entao mandar 4032px de largura sobe muito byte a mais
- * para chegar exatamente no mesmo lugar. Redimensionar aqui deixa o upload
- * varias vezes menor E preserva mais detalhe do texto do que simplesmente
- * comprimir a foto inteira com qualidade baixa — artefato de compressao em
- * resolucao alta atrapalha a leitura do traco fino de caneta.
+ * Reduz a foto e devolve em base64. `ladoMaior` menor = upload menor: e o que
+ * torna a classificacao viavel mesmo com rede ruim.
  */
 export async function prepararImagem(
   uri: string,
   largura: number,
-  altura: number
+  altura: number,
+  ladoMaior: number
 ): Promise<string | null> {
   try {
     const maior = Math.max(largura, altura);
     const acoes =
-      maior > LADO_MAIOR_PX
-        ? [
-            largura >= altura
-              ? { resize: { width: LADO_MAIOR_PX } }
-              : { resize: { height: LADO_MAIOR_PX } },
-          ]
+      maior > ladoMaior
+        ? [largura >= altura ? { resize: { width: ladoMaior } } : { resize: { height: ladoMaior } }]
         : [];
 
-    const resultado = await manipulateAsync(uri, acoes, {
+    const r = await manipulateAsync(uri, acoes, {
       base64: true,
       compress: QUALIDADE_ENVIO,
       format: SaveFormat.JPEG,
     });
-
-    return resultado.base64 ?? null;
+    return r.base64 ?? null;
   } catch (erro) {
     console.log('[JOVI Flow] falha ao preparar a imagem:', erro);
     return null;
   }
 }
 
-export function temChaveConfigurada(): boolean {
-  return typeof process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY === 'string'
-    && process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY.length > 0;
-}
+export const PX = { classificacao: PX_CLASSIFICACAO, transcricao: PX_TRANSCRICAO };
 
-/** Extrai o primeiro objeto JSON da resposta, tolerando texto ao redor. */
+/** Extrai o primeiro objeto JSON da resposta, tolerando texto em volta. */
 function extrairJson(bruto: string): unknown {
-  const inicio = bruto.indexOf('{');
-  const fim = bruto.lastIndexOf('}');
-  if (inicio === -1 || fim === -1 || fim <= inicio) return null;
+  const i = bruto.indexOf('{');
+  const f = bruto.lastIndexOf('}');
+  if (i === -1 || f === -1 || f <= i) return null;
   try {
-    return JSON.parse(bruto.slice(inicio, fim + 1));
+    return JSON.parse(bruto.slice(i, f + 1));
   } catch {
     return null;
   }
 }
 
-function textoDe(valor: unknown): string {
-  return typeof valor === 'string' ? valor.trim() : '';
+function texto(v: unknown): string {
+  return typeof v === 'string' ? v.trim() : '';
 }
 
-function validar(dados: unknown): ConteudoReconhecido | null {
-  if (typeof dados !== 'object' || dados === null) return null;
-  const d = dados as Record<string, unknown>;
-
-  const materia = textoDe(d.materia);
-  const tema = textoDe(d.tema);
-  const topico = textoDe(d.topico);
-  const textoExtraido = textoDe(d.textoExtraido);
-
-  const resumo = Array.isArray(d.resumo)
-    ? d.resumo.map(textoDe).filter((linha) => linha.length > 0)
-    : [];
-
-  // Sem materia ou sem texto, a tela seguinte ficaria vazia: melhor cair no simulado.
-  if (materia === '' || textoExtraido === '') return null;
-
-  return {
-    materia,
-    tema: tema === '' ? materia : tema,
-    topico: topico === '' ? tema : topico,
-    textoExtraido,
-    resumo,
-  };
-}
-
-export async function analisarCaptura(
-  fotoBase64: string | null,
-  limiteMs: number = LIMITE_MS
-): Promise<ResultadoAnalise> {
+/** Uma tentativa de chamada. O retry fica na camada de cima. */
+async function chamarUmaVez(
+  b64: string,
+  prompt: string,
+  maxTokens: number,
+  limiteMs: number
+): Promise<{ ok: true; texto: string } | { ok: false; resultado: Resultado<never> }> {
   const chave = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;
-  if (typeof chave !== 'string' || chave.length === 0) return { estado: 'sem-chave' };
-  if (fotoBase64 === null || fotoBase64.length === 0) return { estado: 'sem-foto' };
+  if (typeof chave !== 'string' || chave.length === 0) {
+    return { ok: false, resultado: { estado: 'sem-chave' } };
+  }
 
   const controlador = new AbortController();
   const relogio = setTimeout(() => controlador.abort(), limiteMs);
-  const inicio = Date.now();
 
   try {
-    const resposta = await fetch(ENDPOINT, {
+    const r = await fetch(ENDPOINT, {
       method: 'POST',
       signal: controlador.signal,
       headers: {
@@ -182,44 +175,135 @@ export async function analisarCaptura(
       },
       body: JSON.stringify({
         model: MODELO,
-        max_tokens: 2000,
-        // Esforco baixo: a tarefa e transcrever e classificar, nao raciocinar.
-        // Mantem a resposta rapida o bastante para caber atras da animacao.
+        max_tokens: maxTokens,
+        // A tarefa e ler e classificar, nao raciocinar. Esforco baixo corta
+        // varios segundos sem prejudicar a leitura — medido.
         output_config: { effort: 'low' },
         messages: [
           {
             role: 'user',
             content: [
-              {
-                type: 'image',
-                source: { type: 'base64', media_type: 'image/jpeg', data: fotoBase64 },
-              },
-              { type: 'text', text: INSTRUCAO },
+              { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: b64 } },
+              { type: 'text', text: prompt },
             ],
           },
         ],
       }),
     });
 
-    if (!resposta.ok) {
-      const corpo = await resposta.text();
-      return { estado: 'falha', motivo: `HTTP ${resposta.status}: ${corpo.slice(0, 180)}` };
+    if (!r.ok) {
+      const corpo = await r.text();
+      return {
+        ok: false,
+        resultado: { estado: 'falha', motivo: `HTTP ${r.status}: ${corpo.slice(0, 160)}` },
+      };
     }
 
-    const json = (await resposta.json()) as RespostaApi;
-    const texto = (json.content ?? [])
-      .filter((b) => b.type === 'text')
-      .map((b) => b.text ?? '')
-      .join('\n');
-
-    const conteudo = validar(extrairJson(texto));
-    if (conteudo === null) return { estado: 'falha', motivo: 'resposta fora do formato esperado' };
-
-    return { estado: 'ok', conteudo, ms: Date.now() - inicio };
+    const json = (await r.json()) as RespostaApi;
+    return {
+      ok: true,
+      texto: (json.content ?? [])
+        .filter((b) => b.type === 'text')
+        .map((b) => b.text ?? '')
+        .join('\n'),
+    };
   } catch (erro) {
-    if (erro instanceof Error && erro.name === 'AbortError') return { estado: 'tempo-esgotado' };
-    return { estado: 'falha', motivo: erro instanceof Error ? erro.message : 'erro desconhecido' };
+    if (erro instanceof Error && erro.name === 'AbortError') {
+      return { ok: false, resultado: { estado: 'tempo-esgotado' } };
+    }
+    return {
+      ok: false,
+      resultado: {
+        estado: 'falha',
+        motivo: erro instanceof Error ? erro.message : 'erro desconhecido',
+      },
+    };
   } finally {
     clearTimeout(relogio);
   }
+}
+
+/**
+ * Chama com uma repeticao em caso de falha de rede. Wifi de campus derruba
+ * conexao com frequencia, e uma segunda tentativa imediata costuma passar —
+ * mas nao repete quando o problema e de chave ou de formato, que repetir nao
+ * resolve.
+ */
+async function chamarComRetentativa(
+  b64: string,
+  prompt: string,
+  maxTokens: number,
+  limiteMs: number
+): Promise<{ ok: true; texto: string; ms: number } | { ok: false; resultado: Resultado<never> }> {
+  const inicio = Date.now();
+  const primeira = await chamarUmaVez(b64, prompt, maxTokens, limiteMs);
+  if (primeira.ok) return { ...primeira, ms: Date.now() - inicio };
+
+  const estado = primeira.resultado.estado;
+  if (estado === 'sem-chave' || estado === 'sem-foto') return primeira;
+
+  console.log('[JOVI Flow] primeira tentativa falhou, repetindo uma vez:', estado);
+  const segunda = await chamarUmaVez(b64, prompt, maxTokens, limiteMs);
+  if (segunda.ok) return { ...segunda, ms: Date.now() - inicio };
+  return segunda;
+}
+
+export async function classificarCaptura(
+  b64: string | null
+): Promise<Resultado<ClassificacaoAoVivo>> {
+  if (b64 === null || b64.length === 0) return { estado: 'sem-foto' };
+
+  const r = await chamarComRetentativa(
+    b64,
+    PROMPT_CLASSIFICACAO,
+    300,
+    LIMITE_CLASSIFICACAO_MS
+  );
+  if (!r.ok) return r.resultado;
+
+  const d = extrairJson(r.texto);
+  if (typeof d !== 'object' || d === null) {
+    return { estado: 'falha', motivo: 'resposta fora do formato' };
+  }
+  const o = d as Record<string, unknown>;
+
+  const materia = texto(o.materia);
+  if (materia === '') return { estado: 'falha', motivo: 'materia ausente' };
+
+  const tema = texto(o.tema);
+  const topico = texto(o.topico);
+
+  return {
+    estado: 'ok',
+    ms: r.ms,
+    dados: {
+      materia,
+      tema: tema === '' ? materia : tema,
+      topico: topico === '' ? tema : topico,
+    },
+  };
+}
+
+export async function transcreverCaptura(
+  b64: string | null
+): Promise<Resultado<TranscricaoAoVivo>> {
+  if (b64 === null || b64.length === 0) return { estado: 'sem-foto' };
+
+  const r = await chamarComRetentativa(b64, PROMPT_TRANSCRICAO, 2000, LIMITE_TRANSCRICAO_MS);
+  if (!r.ok) return r.resultado;
+
+  const d = extrairJson(r.texto);
+  if (typeof d !== 'object' || d === null) {
+    return { estado: 'falha', motivo: 'resposta fora do formato' };
+  }
+  const o = d as Record<string, unknown>;
+
+  const textoExtraido = texto(o.textoExtraido);
+  if (textoExtraido === '') return { estado: 'falha', motivo: 'transcricao vazia' };
+
+  const resumo = Array.isArray(o.resumo)
+    ? o.resumo.map(texto).filter((l) => l.length > 0)
+    : [];
+
+  return { estado: 'ok', ms: r.ms, dados: { textoExtraido, resumo } };
 }

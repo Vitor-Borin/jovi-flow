@@ -22,7 +22,12 @@ import { WhiteboardFallback } from '../components/WhiteboardFallback';
 import type { Chip, SubModo } from '../data/mock';
 import { subModos } from '../data/mock';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
-import { analisarCaptura, prepararImagem } from '../services/analiseAoVivo';
+import {
+  PX,
+  classificarCaptura,
+  prepararImagem,
+  transcreverCaptura,
+} from '../services/analiseAoVivo';
 import type { RootStackParamList } from '../navigation/types';
 import { useFlow } from '../store/FlowContext';
 import { TOQUE_MIN, colors, font, fontDado, radius, shadow, spacing } from '../theme';
@@ -52,7 +57,8 @@ export function CameraScreen({ navigation }: Props) {
     marcarApresentacaoVista,
     modoAoVivo,
     definirFotoBase64,
-    definirAnalise,
+    definirClassificacao,
+    definirTranscricao,
     definirAnalisando,
     definirTexto,
   } = useFlow();
@@ -135,36 +141,55 @@ export function CameraScreen({ navigation }: Props) {
           console.log('[JOVI Flow] foto capturada:', foto.uri);
         }
 
-        definirAnalise(null);
+        // Zera o resultado anterior: cada captura comeca do exemplo e so e
+        // substituida quando a leitura real chegar.
+        definirClassificacao(null);
+        definirTranscricao(null);
         definirFotoBase64(null);
 
         if (modoAoVivo && foto?.uri) {
-          const b64 = await prepararImagem(foto.uri, foto.width, foto.height);
-          definirFotoBase64(b64);
-          const kb = Math.round((b64?.length ?? 0) / 1024);
-          console.log(
-            `[JOVI Flow] modo ao vivo: ${foto.width}x${foto.height} reduzida para envio, ${kb} KB`
-          );
-
-          // Dispara JA, sem esperar a folha de confirmacao nem a tela de
-          // processamento. A analise passa a correr tambem durante o tempo em
-          // que o usuario le a folha, o que costuma ser o suficiente para o
-          // conteudo real chegar antes da tela seguinte aparecer.
           const seq = capturaAtual.current + 1;
           capturaAtual.current = seq;
           definirAnalisando(true);
 
-          void analisarCaptura(b64).then((r) => {
-            // Captura mais nova ja em andamento: este resultado esta velho.
+          // Duas imagens, dois tamanhos, cada uma dimensionada para a tarefa.
+          // A pequena e o que garante a leitura mesmo com rede ruim.
+          const [pequena, grande] = await Promise.all([
+            prepararImagem(foto.uri, foto.width, foto.height, PX.classificacao),
+            prepararImagem(foto.uri, foto.width, foto.height, PX.transcricao),
+          ]);
+          definirFotoBase64(grande);
+
+          const kb = (b: string | null) => Math.round((b?.length ?? 0) / 1024);
+          console.log(
+            `[JOVI Flow] ao vivo: ${foto.width}x${foto.height} -> classificacao ${kb(pequena)} KB, transcricao ${kb(grande)} KB`
+          );
+
+          // As duas correm em paralelo e sao independentes: se uma falhar, so
+          // aquela parte da tela cai no exemplo.
+          const pClass = classificarCaptura(pequena).then((r) => {
             if (capturaAtual.current !== seq) return;
             if (r.estado === 'ok') {
-              definirAnalise(r.conteudo);
-              definirTexto(r.conteudo.textoExtraido);
-              console.log(`[JOVI Flow] analise ao vivo OK em ${r.ms}ms: ${r.conteudo.topico}`);
+              definirClassificacao(r.dados);
+              console.log(`[JOVI Flow] classificacao em ${r.ms}ms: ${r.dados.topico}`);
             } else {
-              console.log('[JOVI Flow] analise indisponivel, seguindo com o exemplo:', r.estado);
+              console.log('[JOVI Flow] classificacao indisponivel:', r.estado);
             }
-            definirAnalisando(false);
+          });
+
+          const pTrans = transcreverCaptura(grande).then((r) => {
+            if (capturaAtual.current !== seq) return;
+            if (r.estado === 'ok') {
+              definirTranscricao(r.dados);
+              definirTexto(r.dados.textoExtraido);
+              console.log(`[JOVI Flow] transcricao em ${r.ms}ms`);
+            } else {
+              console.log('[JOVI Flow] transcricao indisponivel:', r.estado);
+            }
+          });
+
+          void Promise.all([pClass, pTrans]).then(() => {
+            if (capturaAtual.current === seq) definirAnalisando(false);
           });
         }
       }
@@ -183,7 +208,8 @@ export function CameraScreen({ navigation }: Props) {
     definirFoto,
     modoAoVivo,
     definirFotoBase64,
-    definirAnalise,
+    definirClassificacao,
+    definirTranscricao,
     definirAnalisando,
     definirTexto,
   ]);
