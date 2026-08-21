@@ -11,6 +11,7 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import type { NomeIcone } from '../data/mock';
 import { conteudoIdentificado, ganhosCaptura, slotAtual } from '../data/mock';
 import type { RootStackParamList } from '../navigation/types';
+import { useFlow } from '../store/FlowContext';
 import { colors, font, fontDado, fontMono, radius, spacing } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Identified'>;
@@ -29,6 +30,8 @@ const ALTURA_TEXTO_EXTRAIDO = 180;
 
 export function IdentifiedScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
+  // Vem do contexto, e nao do mock: a tela de Acoes permite editar este texto.
+  const { textoExtraido } = useFlow();
 
   // Calculado uma vez: a data exibida nao pode mudar no meio da apresentacao.
   const { slot, aoVivo, dataFormatada } = useMemo(() => {
@@ -122,7 +125,7 @@ export function IdentifiedScreen({ navigation }: Props) {
             nestedScrollEnabled
             showsVerticalScrollIndicator
           >
-            <Text style={styles.textoExtraido}>{conteudoIdentificado.textoExtraido}</Text>
+            <Text style={styles.textoExtraido}>{textoExtraido}</Text>
           </ScrollView>
         </Card>
 

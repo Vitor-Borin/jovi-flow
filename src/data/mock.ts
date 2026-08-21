@@ -171,6 +171,21 @@ export const questoes: Questao[] = [
 ];
 
 export type Aula = { id: string; titulo: string; data: string; hora: string; novo?: boolean };
+
+/** A aula que o usuario acabou de capturar, com a data e a hora reais do momento.
+ *  Usada na arvore de destino e no topo de Meus Estudos, com o selo de nova. */
+export function aulaCapturada(agora = new Date()): Aula {
+  const dois = (n: number) => String(n).padStart(2, '0');
+  const dia = dois(agora.getDate());
+  const mes = dois(agora.getMonth() + 1);
+  return {
+    id: 'nova',
+    titulo: `Função — Aula ${dia}/${mes}`,
+    data: `${dia}/${mes}/${agora.getFullYear()}`,
+    hora: `${dois(agora.getHours())}:${dois(agora.getMinutes())}`,
+    novo: true,
+  };
+}
 export type Subpasta = { nome: string; aulas: Aula[] };
 export type Pasta = { nome: string; icone: NomeIcone; subpastas: Subpasta[] };
 
