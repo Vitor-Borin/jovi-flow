@@ -13,13 +13,29 @@
  * dependencia e permite controlar o tempo limite com precisao.
  */
 
+import { SaveFormat, manipulateAsync } from 'expo-image-manipulator';
+
 const ENDPOINT = 'https://api.anthropic.com/v1/messages';
 const VERSAO_API = '2023-06-01';
 const MODELO = 'claude-opus-5';
 
-/** Teto absoluto. A animacao da tela de processamento dura cerca de 6,4s, entao
- *  na pratica a chamada roda escondida atras dela e nao atrasa nada. */
-export const LIMITE_MS = 8000;
+/**
+ * Teto absoluto da chamada.
+ *
+ * A animacao de processamento dura cerca de 6,4s e a chamada roda escondida
+ * atras dela, entao o modo ao vivo nunca adiciona espera percebida. O teto e
+ * maior que a animacao de proposito: se a resposta chegar depois, ela ainda
+ * substitui o conteudo de exemplo na tela seguinte, em vez de ser descartada.
+ */
+export const LIMITE_MS = 15000;
+
+/** Lado maior da imagem enviada, em pixels. A API de visao ja reduz para essa
+ *  faixa internamente — mandar mais nao melhora a leitura, so pesa o upload. */
+const LADO_MAIOR_PX = 1568;
+
+/** Qualidade do JPEG enviado. Alta de proposito: o ganho de tamanho ja veio do
+ *  redimensionamento, e artefato de compressao prejudica a leitura do texto. */
+const QUALIDADE_ENVIO = 0.82;
 
 export type ConteudoReconhecido = {
   materia: string;
@@ -56,6 +72,46 @@ const INSTRUCAO = [
 
 type BlocoTexto = { type: string; text?: string };
 type RespostaApi = { content?: BlocoTexto[] };
+
+/**
+ * Prepara a foto para envio: reduz o lado maior para LADO_MAIOR_PX e recodifica
+ * em JPEG.
+ *
+ * Nao e so economia de banda. A API de visao ja reduz internamente qualquer
+ * imagem para essa faixa, entao mandar 4032px de largura sobe muito byte a mais
+ * para chegar exatamente no mesmo lugar. Redimensionar aqui deixa o upload
+ * varias vezes menor E preserva mais detalhe do texto do que simplesmente
+ * comprimir a foto inteira com qualidade baixa — artefato de compressao em
+ * resolucao alta atrapalha a leitura do traco fino de caneta.
+ */
+export async function prepararImagem(
+  uri: string,
+  largura: number,
+  altura: number
+): Promise<string | null> {
+  try {
+    const maior = Math.max(largura, altura);
+    const acoes =
+      maior > LADO_MAIOR_PX
+        ? [
+            largura >= altura
+              ? { resize: { width: LADO_MAIOR_PX } }
+              : { resize: { height: LADO_MAIOR_PX } },
+          ]
+        : [];
+
+    const resultado = await manipulateAsync(uri, acoes, {
+      base64: true,
+      compress: QUALIDADE_ENVIO,
+      format: SaveFormat.JPEG,
+    });
+
+    return resultado.base64 ?? null;
+  } catch (erro) {
+    console.log('[JOVI Flow] falha ao preparar a imagem:', erro);
+    return null;
+  }
+}
 
 export function temChaveConfigurada(): boolean {
   return typeof process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY === 'string'

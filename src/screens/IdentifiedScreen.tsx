@@ -66,6 +66,15 @@ export function IdentifiedScreen({ navigation }: Props) {
       >
         <Text style={styles.titulo}>Conteúdo identificado</Text>
 
+        {/* Deixa visivel na tela quando o conteudo veio da foto real, e nao do
+            exemplo. E o que separa a demonstracao de um mockup. */}
+        {analiseAoVivo !== null ? (
+          <View style={styles.seloAoVivo}>
+            <MaterialCommunityIcons name="access-point" size={14} color={colors.primaryHi} />
+            <Text style={styles.textoSeloAoVivo}>LIDO DA SUA FOTO, AGORA</Text>
+          </View>
+        ) : null}
+
         {/* [D2] O diferencial mais forte da tela: o Flow nao adivinha a materia,
             ele confirma com a grade horaria do estudante. */}
         <View style={styles.cardGrade}>
@@ -155,6 +164,25 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginTop: spacing(2),
     marginBottom: spacing(5),
+  },
+
+  seloAoVivo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    gap: spacing(1.5),
+    borderWidth: 1,
+    borderColor: colors.primaryEdge,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.pill,
+    paddingVertical: spacing(1.5),
+    paddingHorizontal: spacing(3),
+    marginTop: -spacing(2),
+    marginBottom: spacing(4),
+  },
+  textoSeloAoVivo: {
+    ...fontDado.rotulo,
+    color: colors.primaryHi,
   },
 
   cardGrade: {

@@ -50,16 +50,21 @@ export function ProcessingScreen({ navigation }: Props) {
     let vivo = true;
 
     void analisarCaptura(fotoBase64).then((r) => {
-      if (!vivo || !montado.current) return;
+      if (!vivo) return;
+
       if (r.estado === 'ok') {
+        // Escrever no contexto e seguro mesmo se esta tela ja saiu: quem exibe e
+        // a tela seguinte. Uma resposta que chega tarde ainda substitui o
+        // conteudo de exemplo, em vez de ser jogada fora.
         definirAnalise(r.conteudo);
         definirTexto(r.conteudo.textoExtraido);
-        setStatusAoVivo('ok');
         console.log(`[JOVI Flow] analise ao vivo OK em ${r.ms}ms: ${r.conteudo.topico}`);
       } else {
-        setStatusAoVivo('simulado');
         console.log('[JOVI Flow] analise ao vivo indisponivel, usando conteudo simulado:', r.estado);
       }
+
+      // O indicador e estado local: so atualiza se a tela ainda estiver viva.
+      if (montado.current) setStatusAoVivo(r.estado === 'ok' ? 'ok' : 'simulado');
     });
 
     return () => {

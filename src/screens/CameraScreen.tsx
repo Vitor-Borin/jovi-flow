@@ -22,6 +22,7 @@ import { WhiteboardFallback } from '../components/WhiteboardFallback';
 import type { Chip, SubModo } from '../data/mock';
 import { subModos } from '../data/mock';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
+import { prepararImagem } from '../services/analiseAoVivo';
 import type { RootStackParamList } from '../navigation/types';
 import { useFlow } from '../store/FlowContext';
 import { TOQUE_MIN, colors, font, fontDado, radius, shadow, spacing } from '../theme';
@@ -121,21 +122,24 @@ export function CameraScreen({ navigation }: Props) {
     try {
       if (mostrarCamera && cameraRef.current) {
         // A foto real e tirada ANTES da folha subir: as telas seguintes usam ela.
-        // Base64 so no modo ao vivo: e o que sobe para a API, e gerar a string
-        // quando ninguem vai usar so gastaria memoria e tempo.
-        const foto = await cameraRef.current.takePictureAsync({
-          quality: modoAoVivo ? 0.3 : 0.7,
-          base64: modoAoVivo,
-        });
+        // Qualidade alta na captura: o arquivo fica no aparelho, e serve de fonte
+        // para o redimensionamento do modo ao vivo.
+        const foto = await cameraRef.current.takePictureAsync({ quality: 0.85 });
         if (foto?.uri) {
           definirFoto(foto.uri);
           console.log('[JOVI Flow] foto capturada:', foto.uri);
         }
+
         definirAnalise(null);
-        definirFotoBase64(foto?.base64 ?? null);
-        if (modoAoVivo) {
-          const kb = Math.round((foto?.base64?.length ?? 0) / 1024);
-          console.log(`[JOVI Flow] modo ao vivo: imagem de ${kb} KB pronta para envio`);
+        definirFotoBase64(null);
+
+        if (modoAoVivo && foto?.uri) {
+          const b64 = await prepararImagem(foto.uri, foto.width, foto.height);
+          definirFotoBase64(b64);
+          const kb = Math.round((b64?.length ?? 0) / 1024);
+          console.log(
+            `[JOVI Flow] modo ao vivo: ${foto.width}x${foto.height} reduzida para envio, ${kb} KB`
+          );
         }
       }
     } catch (erro) {
