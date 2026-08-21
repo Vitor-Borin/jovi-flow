@@ -5,6 +5,8 @@
  * direto no componente ou na tela. Se faltar um token, adicione aqui.
  */
 
+import { Platform } from 'react-native';
+
 export const colors = {
   bg: '#0B0F0D',
   bgElev: '#111815',
@@ -54,6 +56,18 @@ export const font = {
   bodyMed: { fontSize: 14, fontWeight: '600' as const },
   small: { fontSize: 12, fontWeight: '400' as const },
   tiny: { fontSize: 11, fontWeight: '600' as const, letterSpacing: 0.3 },
+};
+
+/** Monoespacado nativo das duas plataformas — sem dependencia de fonte externa.
+ *  Usado em numero, porcentagem, angulo, horario e contador, no estilo de um
+ *  visor de camera. Ver DESIGN.md. */
+export const fontMono = Platform.select({ ios: 'Menlo', default: 'monospace' });
+
+/** Rotulo tecnico em caixa alta, acompanhando o numeral monoespacado. */
+export const fontDado = {
+  valor: { fontSize: 20, fontWeight: '600' as const, fontFamily: fontMono, letterSpacing: -0.5 },
+  valorGrande: { fontSize: 28, fontWeight: '700' as const, fontFamily: fontMono, letterSpacing: -1 },
+  rotulo: { fontSize: 10, fontWeight: '600' as const, letterSpacing: 1, textTransform: 'uppercase' as const },
 };
 
 export const shadow = {
