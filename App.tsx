@@ -1,34 +1,41 @@
 import { StatusBar } from 'expo-status-bar';
 import { StyleSheet, Text, View } from 'react-native';
+import { SafeAreaProvider, SafeAreaView } from 'react-native-safe-area-context';
 
-// Esqueleto da Fase 0: valida apenas que o app abre no Expo Go com o fundo escuro.
-// As cores passam a vir de src/theme.ts na Fase 1.
+import { colors, font, spacing } from './src/theme';
+
+// A navegacao raiz entra aqui na Fase 3. Ate la, tela minima so para o app abrir.
 export default function App() {
   return (
-    <View style={styles.container}>
-      <Text style={styles.titulo}>JOVI Flow</Text>
-      <Text style={styles.subtitulo}>Fase 0 — ambiente pronto</Text>
-      <StatusBar style="light" />
-    </View>
+    <SafeAreaProvider>
+      <SafeAreaView style={styles.area}>
+        <View style={styles.centro}>
+          <Text style={styles.titulo}>JOVI Flow</Text>
+          <Text style={styles.subtitulo}>Fundacao visual pronta</Text>
+        </View>
+        <StatusBar style="light" />
+      </SafeAreaView>
+    </SafeAreaProvider>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  area: {
     flex: 1,
-    backgroundColor: '#0B0F0D',
+    backgroundColor: colors.bg,
+  },
+  centro: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
   titulo: {
-    color: '#F1F5F3',
-    fontSize: 26,
-    fontWeight: '700',
-    letterSpacing: -0.5,
+    ...font.h1,
+    color: colors.text,
   },
   subtitulo: {
-    color: '#93A29B',
-    fontSize: 14,
-    marginTop: 8,
+    ...font.small,
+    color: colors.textDim,
+    marginTop: spacing(2),
   },
 });
