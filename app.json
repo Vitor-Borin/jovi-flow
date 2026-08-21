@@ -27,7 +27,8 @@
         {
           "cameraPermission": "O JOVI Flow usa a câmera para capturar o conteúdo das suas aulas."
         }
-      ]
+      ],
+      "expo-font"
     ]
   }
 }
