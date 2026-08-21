@@ -15,31 +15,46 @@ export type Slot = {
   dia: number; // 0 = domingo
   inicio: string;
   fim: string;
+  /** Area de estudo. E o primeiro nivel da arvore de pastas. */
   materia: string;
+  /** Nome da disciplina como aparece no cronograma da faculdade. */
   disciplina: string;
   sala: string;
+  /** Aula remota nao tem sala fisica. */
+  remoto?: boolean;
 };
 
 /** Diferencial: a grade horaria do estudante da contexto a camera.
  *  O Flow nao adivinha a materia — ele confirma com o horario. */
+/**
+ * Grade real do Vitor — Engenharia de Software, FIAP Paulista, noturno.
+ * Copiada do cronograma de aulas da faculdade, sem inventar horario nem sala.
+ * E o que torna a confirmacao por contexto verificavel por qualquer pessoa na
+ * sala no dia da apresentacao.
+ */
 export const gradeHoraria: Slot[] = [
-  { dia: 1, inicio: '19:00', fim: '22:40', materia: 'Computação', disciplina: 'Estruturas de Dados', sala: 'B-204' },
-  { dia: 2, inicio: '19:00', fim: '22:40', materia: 'Matemática', disciplina: 'Cálculo I', sala: 'A-312' },
-  { dia: 3, inicio: '19:00', fim: '22:40', materia: 'Física', disciplina: 'Mecânica Geral', sala: 'C-101' },
-  { dia: 4, inicio: '19:00', fim: '22:40', materia: 'Matemática', disciplina: 'Cálculo I', sala: 'A-312' },
-  { dia: 5, inicio: '19:00', fim: '22:40', materia: 'Engenharia de Software', disciplina: 'Arquitetura de Sistemas', sala: 'D-408' },
+  { dia: 1, inicio: '19:20', fim: '21:00', materia: 'Negócios', disciplina: 'Storytelling e Inspiração Empreendedora', sala: 'Remoto', remoto: true },
+  { dia: 1, inicio: '21:15', fim: '22:55', materia: 'Engenharia de Software', disciplina: 'Software & Total Experience Design', sala: 'Remoto', remoto: true },
+
+  { dia: 2, inicio: '19:20', fim: '21:00', materia: 'Desenvolvimento', disciplina: 'Web Development', sala: 'LAB 405' },
+  { dia: 2, inicio: '21:15', fim: '22:55', materia: 'Sistemas', disciplina: 'Edge Computing & Computer Systems', sala: 'LAB 405' },
+
+  { dia: 3, inicio: '19:20', fim: '21:00', materia: 'Matemática', disciplina: 'Differentiated Problem Solving', sala: 'LAB 302' },
+  { dia: 3, inicio: '21:15', fim: '22:55', materia: 'Programação', disciplina: 'Computational Thinking with Python', sala: 'LAB 302' },
+
+  { dia: 4, inicio: '19:20', fim: '21:00', materia: 'Design', disciplina: 'Front-End Design', sala: 'LAB 402' },
+  { dia: 4, inicio: '21:15', fim: '22:55', materia: 'Programação', disciplina: 'Computational Thinking with Python', sala: 'LAB 402' },
 ];
 
-/** Slot usado fora de horario de aula. Quinta, Calculo I — mesmo dia e mesma
- *  disciplina da apresentacao, para o card de contexto seguir coerente com o
- *  conteudo capturado mesmo se o horario escorregar. */
+/** Slot usado fora de horario de aula: quinta, Front-End Design — o mesmo da
+ *  apresentacao, para o card seguir coerente se o horario escorregar. */
 const SLOT_PADRAO: Slot = {
   dia: 4,
-  inicio: '19:00',
-  fim: '22:40',
-  materia: 'Matemática',
-  disciplina: 'Cálculo I',
-  sala: 'A-312',
+  inicio: '19:20',
+  fim: '21:00',
+  materia: 'Design',
+  disciplina: 'Front-End Design',
+  sala: 'LAB 402',
 };
 
 /** Sempre devolve um slot para a demo funcionar em qualquer dia/hora. */

@@ -78,7 +78,8 @@ export function IdentifiedScreen({ navigation }: Props) {
           </View>
 
           <Text style={styles.detalheGrade}>
-            {DIAS_SEMANA[slot.dia]}, {slot.inicio} — {slot.disciplina} · Sala {slot.sala}
+            {DIAS_SEMANA[slot.dia]}, {slot.inicio} — {slot.disciplina} ·{' '}
+            {slot.remoto ? 'aula remota' : slot.sala}
           </Text>
 
           <Text style={styles.rodapeGrade}>

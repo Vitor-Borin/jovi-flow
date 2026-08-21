@@ -89,8 +89,12 @@ export function HomeScreen() {
               </Text>
             </View>
             <View style={styles.itemMeta}>
-              <MaterialCommunityIcons name="map-marker-outline" size={15} color={colors.textDim} />
-              <Text style={styles.textoMeta}>Sala {slot.sala}</Text>
+              <MaterialCommunityIcons
+                name={slot.remoto ? 'laptop' : 'map-marker-outline'}
+                size={15}
+                color={colors.textDim}
+              />
+              <Text style={styles.textoMeta}>{slot.remoto ? 'Aula remota' : slot.sala}</Text>
             </View>
           </View>
         </Card>

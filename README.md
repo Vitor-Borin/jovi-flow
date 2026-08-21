@@ -97,8 +97,3 @@ O código não usa `any` nem `@ts-ignore`, e nenhuma cor é escrita fora de `src
 
 **Acessibilidade:** áreas tocáveis de no mínimo 44×44 pt, `accessibilityRole` e `accessibilityLabel` em todo elemento acionável, estado nunca comunicado apenas por cor, e animações reduzidas quando o sistema pede menos movimento.
 
----
-
-## Integrantes
-
-Ver [`INTEGRANTES.TXT`](INTEGRANTES.TXT).
