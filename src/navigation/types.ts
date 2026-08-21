@@ -11,7 +11,12 @@ export type RootStackParamList = {
   /** Aceita parametro para permitir pular direto para uma aba especifica,
    *  como a tela de Acoes faz ao mandar o usuario para Revisao ou Estudos. */
   Tabs: NavigatorScreenParams<MainTabParamList> | undefined;
+  /** Rota inicial. O JOVI Flow vive dentro da camera do aparelho, entao o
+   *  aplicativo abre no visor, e nao numa tela de menu. */
   Camera: undefined;
+  /** Viabilidade tecnica: quais APIs abertas do Google sustentam cada
+   *  diferencial. E um dos entregaveis pedidos no brief da JOVI. */
+  Feasibility: undefined;
   Processing: undefined;
   Identified: undefined;
   Organize: undefined;

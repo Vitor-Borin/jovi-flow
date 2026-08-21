@@ -8,30 +8,34 @@
 import { Platform } from 'react-native';
 
 export const colors = {
-  bg: '#0B0F0D',
-  bgElev: '#111815',
-  surface: '#151D19',
-  surfaceAlt: '#1B2521',
-  surfaceHi: '#222E28',
-  border: '#28352F',
-  borderSoft: '#1F2A25',
+  // Neutros com vies azul, alinhados a marca. Antes tinham vies verde.
+  bg: '#0A0D14',
+  bgElev: '#0F131C',
+  surface: '#141926',
+  surfaceAlt: '#1A2030',
+  surfaceHi: '#232B3D',
+  border: '#2A3347',
+  borderSoft: '#1E2536',
 
-  primary: '#12A150',
-  primaryHi: '#16C060',
-  primaryDim: '#0C6E37',
-  primarySoft: 'rgba(18,161,80,0.14)',
-  primaryEdge: 'rgba(18,161,80,0.45)',
+  // Azul da JOVI, extraido do material oficial da marca.
+  // primary e cor de PREENCHIMENTO: sobre fundo escuro tem contraste 2.84 e
+  // reprovaria como texto. Para texto e icone use primaryHi (6.29).
+  primary: '#1E46E6',
+  primaryHi: '#6E8BFF',
+  primaryDim: '#1536B0',
+  primarySoft: 'rgba(30,70,230,0.16)',
+  primaryEdge: 'rgba(30,70,230,0.50)',
 
-  text: '#F1F5F3',
-  textDim: '#93A29B',
-  textFaint: '#5D6B64',
+  text: '#EEF1F7',
+  textDim: '#9AA4BC',
+  textFaint: '#5F6980',
 
   warn: '#F0B429',
-  danger: '#E5484D',
-  info: '#3B82F6',
+  danger: '#FF6B6B',
+  info: '#5B9BFF',
 
-  overlay: 'rgba(5,8,7,0.82)',
-  scrim: 'rgba(0,0,0,0.55)',
+  overlay: 'rgba(6,9,16,0.84)',
+  scrim: 'rgba(0,0,0,0.58)',
 
   // --- Tokens acrescentados (nao constam na secao 4.1 do plano) ---
   // Necessarios porque o plano pede texto branco sobre o botao primario e um

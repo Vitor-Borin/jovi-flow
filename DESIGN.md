@@ -4,6 +4,39 @@
 > Onde este arquivo conflitar com o plano de build ou com o board de telas do
 > grupo (`Image.jpg`), **este arquivo vence**. Decidido com o Vitor em 21/08/2026.
 
+## Identidade da marca
+
+A cor da JOVI e o **azul eletrico `#1E46E6`**, extraido do material oficial do
+Challenge. A marca aparece em branco sobre esse azul, com layout minimalista e
+muito respiro.
+
+**Atencao:** o magenta `#EE1065` que aparece no material **e da FIAP**, nao da
+JOVI. Usar magenta no aplicativo seria errar a marca do cliente.
+
+Contraste verificado antes de adotar a paleta:
+
+| Uso | Cor | Contraste sobre o fundo | Veredito |
+|---|---|---|---|
+| Preenchimento de botao | `#1E46E6` com texto branco | 6.83 | aprovado |
+| Texto e icone sobre escuro | `#6E8BFF` (`primaryHi`) | 6.29 | aprovado |
+| `#1E46E6` como texto sobre escuro | — | 2.84 | **reprovado** |
+
+Ou seja: `primary` e cor de **preenchimento**. Para texto e icone sobre o tema
+escuro, sempre `primaryHi`.
+
+## O Flow vive dentro da camera
+
+O JOVI Flow **nao e um aplicativo de loja** — e uma funcionalidade da camera do
+aparelho. Isso e o que a propria entrega da Sprint 1 do grupo afirma, e e a tese
+do pitch.
+
+Por isso o aplicativo **abre no visor da camera**, e nao numa tela de menu. As
+demais telas sao o que o Flow produziu, alcancaveis a partir da camera — como a
+galeria e alcancavel de dentro de qualquer camera nativa.
+
+Regra pratica: nenhuma tela pode sugerir que isso e um aplicativo separado que o
+estudante precisaria baixar.
+
 ## Regra zero
 
 O aplicativo **nao pode parecer gerado por IA**.

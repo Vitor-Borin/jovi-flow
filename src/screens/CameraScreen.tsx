@@ -143,10 +143,12 @@ export function CameraScreen({ navigation }: Props) {
 
   return (
     <View style={[styles.tela, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
+      {/* A camera e a raiz do app: "sair" nao volta, avanca para as demais
+          superficies do Flow — como a galeria numa camera nativa. */}
       <BarraSuperior
         flashLigado={flashLigado}
         onAlternarFlash={() => setFlashLigado((v) => !v)}
-        onFechar={() => navigation.goBack()}
+        onFechar={() => navigation.navigate('Tabs')}
       />
 
       <View style={styles.areaVisor}>
@@ -218,6 +220,7 @@ export function CameraScreen({ navigation }: Props) {
         reduzir={reduzir}
         onCapturar={() => void aoTocarObturador()}
         onInverter={() => setLente((v) => (v === 'back' ? 'front' : 'back'))}
+        onAbrirEstudos={() => navigation.navigate('Tabs', { screen: 'Estudos' })}
       />
 
       {permissao !== null && !permissao.granted ? (
@@ -504,12 +507,14 @@ function LinhaObturador({
   reduzir,
   onCapturar,
   onInverter,
+  onAbrirEstudos,
 }: {
   modoAula: boolean;
   capturando: boolean;
   reduzir: boolean;
   onCapturar: () => void;
   onInverter: () => void;
+  onAbrirEstudos: () => void;
 }) {
   const pulso = useRef(new Animated.Value(0)).current;
 
@@ -532,9 +537,14 @@ function LinhaObturador({
 
   return (
     <View style={styles.linhaObturador}>
-      <View style={styles.miniatura}>
-        <Ionicons name="images-outline" size={18} color={colors.textFaint} />
-      </View>
+      <Pressable
+        onPress={onAbrirEstudos}
+        accessibilityRole="button"
+        accessibilityLabel="Abrir Meus Estudos"
+        style={({ pressed }) => [styles.miniatura, pressed && styles.miniaturaPressionada]}
+      >
+        <Ionicons name="images-outline" size={18} color={colors.textDim} />
+      </Pressable>
 
       <Animated.View style={{ transform: [{ scale: escala }] }}>
         <Pressable
@@ -881,6 +891,10 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  miniaturaPressionada: {
+    borderColor: colors.primaryEdge,
+    backgroundColor: colors.surfaceHi,
   },
   obturador: {
     width: TAMANHO_OBTURADOR,

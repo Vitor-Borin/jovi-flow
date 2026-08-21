@@ -1,12 +1,15 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GhostButton } from '../components/GhostButton';
 import { ScreenHeader } from '../components/ScreenHeader';
 import type { NomeIcone } from '../data/mock';
+import type { RootStackParamList } from '../navigation/types';
 import { useFlow } from '../store/FlowContext';
 import { TOQUE_MIN, colors, font, fontDado, radius, spacing } from '../theme';
 
@@ -17,7 +20,6 @@ const ITENS: { id: string; titulo: string; icone: NomeIcone }[] = [
   { id: 'grade', titulo: 'Grade horária', icone: 'calendar-month-outline' },
   { id: 'plataformas', titulo: 'Plataformas conectadas', icone: 'link-variant' },
   { id: 'preferencias', titulo: 'Preferências do Modo Aula', icone: 'camera-outline' },
-  { id: 'sobre', titulo: 'Sobre', icone: 'information-outline' },
 ];
 
 function iniciais(nome: string): string {
@@ -29,6 +31,7 @@ function iniciais(nome: string): string {
 
 export function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { reiniciar } = useFlow();
   const [reiniciado, setReiniciado] = useState(false);
 
@@ -61,6 +64,23 @@ export function ProfileScreen() {
               <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
             </View>
           ))}
+
+          {/* Unico item navegavel da lista: sustenta o entregavel de viabilidade
+              tecnica pedido no brief da JOVI. */}
+          <Pressable
+            onPress={() => navigation.navigate('Feasibility')}
+            accessibilityRole="button"
+            accessibilityLabel="Viabilidade técnica: as APIs que sustentam o Flow"
+            style={({ pressed }) => [styles.item, pressed && styles.itemPressionado]}
+          >
+            <MaterialCommunityIcons
+              name="api"
+              size={20}
+              color={colors.primaryHi}
+            />
+            <Text style={[styles.tituloItem, styles.tituloItemAtivo]}>Viabilidade técnica</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.primaryHi} />
+          </Pressable>
         </View>
 
         {/* Existe para o fluxo poder ser refeito varias vezes durante o pitch
@@ -133,10 +153,16 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.borderSoft,
   },
+  itemPressionado: {
+    opacity: 0.6,
+  },
   tituloItem: {
     ...font.body,
     color: colors.text,
     flex: 1,
+  },
+  tituloItemAtivo: {
+    color: colors.primaryHi,
   },
 
   blocoDemo: {
