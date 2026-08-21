@@ -22,11 +22,15 @@ const MS_ENTRE_BULLETS = 150;
 export function SummaryScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const reduzir = useReduzirMovimento();
-  const { salvarResumo } = useFlow();
+  const { salvarResumo, analiseAoVivo } = useFlow();
+  const conteudo = analiseAoVivo ?? conteudoIdentificado;
+  // Se a analise real trouxe resumo proprio, ele vence o simulado.
+  const bullets =
+    analiseAoVivo !== null && analiseAoVivo.resumo.length > 0 ? analiseAoVivo.resumo : resumoIA;
   const [aviso, setAviso] = useState<string | null>(null);
 
   // Um valor por bullet: a revelacao em cascata simula a geracao sem chamar API.
-  const valores = useRef(resumoIA.map(() => new Animated.Value(0))).current;
+  const valores = useRef(bullets.map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
     if (reduzir) {
@@ -50,7 +54,7 @@ export function SummaryScreen({ navigation }: Props) {
   const compartilhar = async () => {
     try {
       await Share.share({
-        message: `Resumo — ${conteudoIdentificado.tema}\n\n${resumoIA.map((b) => `• ${b}`).join('\n\n')}`,
+        message: `Resumo — ${conteudo.tema}\n\n${bullets.map((b) => `• ${b}`).join('\n\n')}`,
       });
     } catch {
       // O usuario fechou a folha de compartilhamento.
@@ -69,10 +73,10 @@ export function SummaryScreen({ navigation }: Props) {
 
       <ScrollView contentContainerStyle={styles.conteudo}>
         <Text style={styles.titulo}>Resumo gerado com IA</Text>
-        <Text style={styles.subtitulo}>{conteudoIdentificado.tema}</Text>
+        <Text style={styles.subtitulo}>{conteudo.tema}</Text>
 
         <Card style={styles.cartao}>
-          {resumoIA.map((bullet, indice) => {
+          {bullets.map((bullet, indice) => {
             const valor = valores[indice];
             if (!valor) return null;
             const subida = valor.interpolate({ inputRange: [0, 1], outputRange: [spacing(2), 0] });

@@ -8,52 +8,65 @@ type Props = {
 };
 
 /**
- * Lousa da aula de Funcao desenhada apenas com View e Text — nenhum arquivo de imagem.
+ * Lousa da aula de Front-End Design desenhada apenas com View e Text — nenhum
+ * arquivo de imagem.
  *
  * Motivo: entra no lugar do visor quando a permissao de camera e negada ou o app
  * roda em emulador. Garante que a demonstracao funcione em qualquer situacao,
  * sem nunca deixar a tela preta.
+ *
+ * O conteudo e Flexbox de proposito: e o que a disciplina em que a apresentacao
+ * acontece esta ensinando, e o que o proprio brief da Sprint 2 exige.
  */
 export function WhiteboardFallback({ style }: Props) {
   return (
     <View
       style={[styles.quadro, style]}
       accessible
-      accessibilityLabel="Lousa da aula de Funcao, com definicao, exemplos e tipos de funcao."
+      accessibilityLabel="Lousa da aula de Front-End Design, sobre Flexbox: eixos, alinhamento e propriedades dos itens."
     >
-      <Text style={styles.titulo}>FUNÇÃO</Text>
+      <Text style={styles.titulo}>FLEXBOX</Text>
       <View style={styles.sublinhadoTitulo} />
+
+      <View style={styles.caixaCodigo}>
+        <Text style={styles.codigo}>.container {'{'} display: flex; {'}'}</Text>
+      </View>
 
       <View style={styles.colunas}>
         <View style={styles.coluna}>
-          <Text style={styles.secaoVermelha}>DEFINIÇÃO</Text>
-          <Text style={styles.corpo}>
-            É uma relação que associa cada elemento de um conjunto A exatamente a um elemento de um
-            conjunto B.
-          </Text>
-          <View style={styles.caixaFormula}>
-            <Text style={styles.formula}>f : A → B</Text>
-            <Text style={styles.formulaIndentada}>x ↦ f(x)</Text>
-          </View>
+          <Text style={styles.secaoVermelha}>EIXO PRINCIPAL</Text>
+          <Text style={styles.corpo}>justify-content</Text>
+          <Text style={styles.valor}>flex-start</Text>
+          <Text style={styles.valor}>center</Text>
+          <Text style={styles.valor}>space-between</Text>
         </View>
 
         <View style={styles.divisorVertical} />
 
         <View style={styles.coluna}>
-          <Text style={styles.secaoAzul}>EXEMPLOS</Text>
-          <Text style={styles.formula}>① f(x) = 2x + 1</Text>
-          <Text style={styles.formula}>② f(x) = x² − 4</Text>
-          <Text style={styles.formula}>③ f(x) = 1/x , x ≠ 0</Text>
+          <Text style={styles.secaoAzul}>EIXO CRUZADO</Text>
+          <Text style={styles.corpo}>align-items</Text>
+          <Text style={styles.valor}>stretch</Text>
+          <Text style={styles.valor}>center</Text>
+          <Text style={styles.valor}>baseline</Text>
         </View>
       </View>
 
+      {/* Desenho do container com tres itens, como um professor rascunharia. */}
+      <View style={styles.demo}>
+        <View style={styles.demoItem} />
+        <View style={styles.demoItem} />
+        <View style={styles.demoItem} />
+      </View>
+      <Text style={styles.legendaDemo}>row · space-between</Text>
+
       <View style={styles.divisorHorizontal} />
 
-      <Text style={styles.secaoAzul}>TIPOS DE FUNÇÕES</Text>
-      <Text style={styles.item}>• Função Afim: f(x) = ax + b  (a ≠ 0)</Text>
-      <Text style={styles.item}>• Função Quadrática: f(x) = ax² + bx + c  (a ≠ 0)</Text>
-      <Text style={styles.item}>• Função Constante: f(x) = c</Text>
-      <Text style={styles.item}>• Função Identidade: f(x) = x</Text>
+      <Text style={styles.secaoAzul}>NOS ITENS</Text>
+      <Text style={styles.item}>• flex-grow → cresce se sobrar espaço</Text>
+      <Text style={styles.item}>• flex-shrink → encolhe se faltar</Text>
+      <Text style={styles.item}>• flex-basis → tamanho de partida</Text>
+      <Text style={styles.itemDestaque}>flex: 1 == flex: 1 1 0%</Text>
     </View>
   );
 }
@@ -69,17 +82,30 @@ const styles = StyleSheet.create({
   titulo: {
     fontSize: 22,
     fontWeight: '700',
-    letterSpacing: 2,
+    letterSpacing: 3,
     textAlign: 'center',
     color: colors.boardBlue,
   },
   sublinhadoTitulo: {
     height: 2,
-    width: '42%',
+    width: '38%',
     alignSelf: 'center',
     backgroundColor: colors.boardBlue,
     marginTop: spacing(0.5),
+    marginBottom: spacing(2.5),
+  },
+  caixaCodigo: {
+    borderWidth: 1,
+    borderColor: colors.boardRed,
+    borderRadius: radius.sm,
+    paddingVertical: spacing(1.5),
+    paddingHorizontal: spacing(2.5),
+    alignSelf: 'center',
     marginBottom: spacing(3),
+  },
+  codigo: {
+    fontSize: 12,
+    color: colors.boardInk,
   },
   colunas: {
     flexDirection: 'row',
@@ -89,56 +115,70 @@ const styles = StyleSheet.create({
   },
   divisorVertical: {
     width: 1,
-    backgroundColor: colors.boardRed,
+    backgroundColor: colors.boardLine,
     marginHorizontal: spacing(3),
   },
   divisorHorizontal: {
     height: 1,
     backgroundColor: colors.boardRed,
-    marginVertical: spacing(3),
+    marginVertical: spacing(2.5),
   },
   secaoVermelha: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.8,
     color: colors.boardRed,
     marginBottom: spacing(1.5),
   },
   secaoAzul: {
-    fontSize: 13,
+    fontSize: 11,
     fontWeight: '700',
     letterSpacing: 0.8,
     color: colors.boardBlue,
     marginBottom: spacing(1.5),
   },
   corpo: {
-    fontSize: 11,
-    lineHeight: 16,
+    fontSize: 12,
+    fontWeight: '600',
+    color: colors.boardInk,
+    marginBottom: spacing(1),
+  },
+  valor: {
+    fontSize: 10,
+    lineHeight: 15,
     color: colors.boardInk,
   },
-  caixaFormula: {
+  demo: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     borderWidth: 1,
-    borderColor: colors.boardRed,
+    borderColor: colors.boardInk,
     borderRadius: radius.sm,
-    paddingVertical: spacing(1.5),
-    paddingHorizontal: spacing(2.5),
-    marginTop: spacing(2),
-    alignSelf: 'flex-start',
+    padding: spacing(1.5),
+    marginTop: spacing(3),
   },
-  formula: {
-    fontSize: 12,
-    lineHeight: 20,
-    color: colors.boardInk,
+  demoItem: {
+    width: spacing(7),
+    height: spacing(5),
+    borderRadius: 2,
+    backgroundColor: colors.boardBlue,
+    opacity: 0.75,
   },
-  formulaIndentada: {
-    fontSize: 12,
-    lineHeight: 20,
+  legendaDemo: {
+    fontSize: 9,
     color: colors.boardInk,
-    marginLeft: spacing(3),
+    textAlign: 'center',
+    marginTop: spacing(1),
   },
   item: {
     fontSize: 11,
-    lineHeight: 18,
+    lineHeight: 17,
     color: colors.boardInk,
+  },
+  itemDestaque: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: colors.boardRed,
+    marginTop: spacing(1),
   },
 });

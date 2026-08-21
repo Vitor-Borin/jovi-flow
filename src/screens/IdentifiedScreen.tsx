@@ -31,7 +31,9 @@ const ALTURA_TEXTO_EXTRAIDO = 180;
 export function IdentifiedScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   // Vem do contexto, e nao do mock: a tela de Acoes permite editar este texto.
-  const { textoExtraido } = useFlow();
+  const { textoExtraido, analiseAoVivo } = useFlow();
+  // O conteudo reconhecido de verdade tem precedencia sobre o simulado.
+  const conteudo = analiseAoVivo ?? conteudoIdentificado;
 
   // Calculado uma vez: a data exibida nao pode mudar no meio da apresentacao.
   const { slot, aoVivo, dataFormatada } = useMemo(() => {
@@ -46,9 +48,9 @@ export function IdentifiedScreen({ navigation }: Props) {
   }, []);
 
   const campos: { rotulo: string; valor: string; icone: NomeIcone }[] = [
-    { rotulo: 'Matéria', valor: conteudoIdentificado.materia, icone: 'function-variant' },
-    { rotulo: 'Tema', valor: conteudoIdentificado.tema, icone: 'sigma' },
-    { rotulo: 'Tópico', valor: conteudoIdentificado.topico, icone: 'bookmark-outline' },
+    { rotulo: 'Matéria', valor: conteudo.materia, icone: 'function-variant' },
+    { rotulo: 'Tema', valor: conteudo.tema, icone: 'sigma' },
+    { rotulo: 'Tópico', valor: conteudo.topico, icone: 'bookmark-outline' },
     { rotulo: 'Data', valor: dataFormatada, icone: 'calendar-blank-outline' },
   ];
 

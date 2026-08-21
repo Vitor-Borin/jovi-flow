@@ -75,6 +75,12 @@ const GRUPOS: Grupo[] = [
         api: 'Gemini API, ou Gemini Nano no aparelho',
         onde: 'nuvem',
       },
+      {
+        id: 'prototipo',
+        o_que: 'No protótipo, a leitura real é feita por um modelo multimodal',
+        api: 'Claude (Anthropic) — demonstra o conceito ponta a ponta',
+        onde: 'nuvem',
+      },
     ],
   },
   {
@@ -186,8 +192,10 @@ export function FeasibilityScreen({ navigation }: Props) {
         </View>
 
         <Text style={styles.rodape}>
-          Este protótipo simula todas as etapas localmente, sem chamar nenhuma API, para que a
-          demonstração não dependa da rede.
+          Por padrão o protótipo simula todas as etapas localmente, para que a demonstração não
+          dependa da rede. O modo de análise ao vivo, no Perfil, liga a leitura real da foto por um
+          modelo multimodal — e volta sozinho para o conteúdo de exemplo se a rede falhar. Numa
+          JOVI de verdade, esse papel seria do Gemini Nano, rodando no próprio aparelho.
         </Text>
       </ScrollView>
     </View>

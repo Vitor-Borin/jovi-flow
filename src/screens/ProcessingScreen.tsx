@@ -11,6 +11,7 @@ import { WhiteboardFallback } from '../components/WhiteboardFallback';
 import { etapasCamera, etapasIA } from '../data/mock';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
 import type { RootStackParamList } from '../navigation/types';
+import { analisarCaptura } from '../services/analiseAoVivo';
 import { useFlow } from '../store/FlowContext';
 import { colors, font, fontDado, radius, shadow, spacing } from '../theme';
 
@@ -28,6 +29,10 @@ export function ProcessingScreen({ navigation }: Props) {
   const [momento, setMomento] = useState<Momento>('camera');
   const [indice, setIndice] = useState(0);
   const montado = useRef(true);
+  const { modoAoVivo, fotoBase64, definirAnalise, definirTexto } = useFlow();
+  const [statusAoVivo, setStatusAoVivo] = useState<'off' | 'analisando' | 'ok' | 'simulado'>(
+    modoAoVivo ? 'analisando' : 'off'
+  );
 
   useEffect(() => {
     montado.current = true;
@@ -35,6 +40,32 @@ export function ProcessingScreen({ navigation }: Props) {
       montado.current = false;
     };
   }, []);
+
+  // A analise real roda EM PARALELO com a animacao, que dura cerca de 6,4s.
+  // Como a chamada se esconde atras dela, o modo ao vivo nao adiciona nenhuma
+  // espera percebida: ou a resposta chega dentro da janela, ou o app segue com o
+  // conteudo simulado sem que ninguem note.
+  useEffect(() => {
+    if (!modoAoVivo) return;
+    let vivo = true;
+
+    void analisarCaptura(fotoBase64).then((r) => {
+      if (!vivo || !montado.current) return;
+      if (r.estado === 'ok') {
+        definirAnalise(r.conteudo);
+        definirTexto(r.conteudo.textoExtraido);
+        setStatusAoVivo('ok');
+        console.log(`[JOVI Flow] analise ao vivo OK em ${r.ms}ms: ${r.conteudo.topico}`);
+      } else {
+        setStatusAoVivo('simulado');
+        console.log('[JOVI Flow] analise ao vivo indisponivel, usando conteudo simulado:', r.estado);
+      }
+    });
+
+    return () => {
+      vivo = false;
+    };
+  }, [modoAoVivo, fotoBase64, definirAnalise, definirTexto]);
 
   // Toda a coreografia e agendada de uma vez e limpa junto. Timer sobrevivendo ao
   // unmount e a causa numero 1 de crash aleatorio em demonstracao.
@@ -99,6 +130,15 @@ export function ProcessingScreen({ navigation }: Props) {
       </View>
 
       <View style={styles.rodape}>
+        {statusAoVivo !== 'off' ? (
+          <Text style={styles.selo}>
+            {statusAoVivo === 'analisando'
+              ? 'ANÁLISE AO VIVO EM ANDAMENTO'
+              : statusAoVivo === 'ok'
+                ? 'CONTEÚDO LIDO DA SUA FOTO'
+                : 'SEM RESPOSTA A TEMPO — USANDO EXEMPLO'}
+          </Text>
+        ) : null}
         <GhostButton label="Cancelar" variant="outline" onPress={() => navigation.goBack()} />
       </View>
     </View>
@@ -225,6 +265,12 @@ const styles = StyleSheet.create({
   rodape: {
     paddingHorizontal: spacing(6),
     paddingBottom: spacing(4),
+  },
+  selo: {
+    ...fontDado.rotulo,
+    color: colors.textFaint,
+    textAlign: 'center',
+    marginBottom: spacing(3),
   },
 
   fase: {

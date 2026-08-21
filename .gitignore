@@ -30,7 +30,10 @@ yarn-error.*
 .DS_Store
 *.pem
 
-# local env files
+# local env files — a chave da API NAO pode ser commitada
+.env
+.env.*
+!.env.example
 .env*.local
 
 # typescript

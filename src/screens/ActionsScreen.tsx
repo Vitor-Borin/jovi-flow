@@ -31,7 +31,9 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Actions'>;
 export function ActionsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const reduzir = useReduzirMovimento();
-  const { destino, textoExtraido, definirTexto, resumoSalvo, plataformasConectadas } = useFlow();
+  const { destino, textoExtraido, definirTexto, resumoSalvo, plataformasConectadas, analiseAoVivo } =
+    useFlow();
+  const conteudo = analiseAoVivo ?? conteudoIdentificado;
   const [editando, setEditando] = useState(false);
 
   const conectadas = plataformas.filter((p) => plataformasConectadas.includes(p.id));
@@ -40,7 +42,7 @@ export function ActionsScreen({ navigation }: Props) {
   const compartilhar = async () => {
     try {
       await Share.share({
-        message: `${conteudoIdentificado.tema} — ${conteudoIdentificado.topico}\n\n${textoExtraido}`,
+        message: `${conteudo.tema} — ${conteudo.topico}\n\n${textoExtraido}`,
       });
     } catch {
       // O usuario fechou a folha de compartilhamento. Nao ha o que tratar.

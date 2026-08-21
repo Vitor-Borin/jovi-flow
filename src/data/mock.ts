@@ -155,88 +155,86 @@ export const ganhosCaptura = [
 ];
 
 export const conteudoIdentificado = {
-  materia: 'Matemática',
-  tema: 'Cálculo — Função',
-  topico: 'Definição e tipos de função',
+  materia: 'Design',
+  tema: 'Front-End Design — Layout',
+  topico: 'Flexbox: eixos, alinhamento e distribuição',
   textoExtraido: [
-    '1. Definição',
-    'É uma relação que associa cada elemento de um conjunto A a exatamente um elemento de um conjunto B.',
+    'FLEXBOX — layout em uma dimensão',
     '',
-    'f: A → B',
-    'x ↦ f(x)',
+    '1. Ativando',
+    '.container { display: flex; }',
+    'O elemento pai vira flex container.',
+    'Os filhos diretos viram flex items.',
     '',
-    '2. Exemplos',
-    'f(x) = 2x + 1',
-    'f(x) = x² - 4',
-    'f(x) = 1/x , x ≠ 0',
+    '2. Os dois eixos',
+    'flex-direction: row     -> eixo principal na horizontal',
+    'flex-direction: column  -> eixo principal na vertical',
     '',
-    '3. Tipos de função',
-    '• Função Afim:       f(x) = ax + b   (a ≠ 0)',
-    '• Função Quadrática: f(x) = ax² + bx + c  (a ≠ 0)',
-    '• Função Constante:  f(x) = c',
-    '• Função Identidade: f(x) = x',
+    'O eixo cruzado é sempre perpendicular ao principal.',
+    'Trocar a direção troca o papel das duas propriedades abaixo.',
+    '',
+    '3. Alinhamento',
+    'justify-content -> distribui no eixo PRINCIPAL',
+    '   flex-start | center | space-between | space-around | space-evenly',
+    '',
+    'align-items     -> alinha no eixo CRUZADO',
+    '   stretch | flex-start | center | baseline',
+    '',
+    '4. Nos itens',
+    'flex-grow   -> quanto o item cresce se sobrar espaço',
+    'flex-shrink -> quanto encolhe se faltar espaço',
+    'flex-basis  -> tamanho de partida antes de crescer/encolher',
+    '',
+    'atalho: flex: 1  ==  flex: 1 1 0%',
+    '',
+    '5. Cuidado',
+    'gap: 16px  substitui margin nos filhos',
+    'flex-wrap: wrap  permite quebrar em várias linhas',
   ].join('\n'),
 };
 
-export const caminhoSalvar = ['Matemática', 'Cálculo', 'Funções'];
+export const caminhoSalvar = ['Design', 'Front-End Design', 'Layout'];
 
 export const resumoIA = [
-  'Função é uma relação que associa cada elemento de um conjunto A a exatamente um elemento de um conjunto B.',
-  'Representação: f: A → B  e  x ↦ f(x).',
-  'Função Afim: f(x) = ax + b, com a ≠ 0 — gráfico é uma reta.',
-  'Função Quadrática: f(x) = ax² + bx + c, com a ≠ 0 — gráfico é uma parábola.',
-  'Função Constante: f(x) = c — valor de saída não depende de x.',
-  'Função Identidade: f(x) = x — cada entrada devolve ela mesma.',
+  'Flexbox é um modelo de layout de uma dimensão: você organiza os itens em linha ou em coluna, nunca nas duas ao mesmo tempo.',
+  'display: flex transforma o elemento em container, e todos os filhos diretos passam a ser itens flexíveis.',
+  'flex-direction define qual é o eixo principal: row deixa na horizontal, column na vertical.',
+  'justify-content distribui os itens no eixo principal; align-items alinha no eixo cruzado. Trocar a direção troca o papel das duas.',
+  'Nos itens, flex-grow controla o quanto cresce, flex-shrink o quanto encolhe e flex-basis o tamanho de partida.',
+  'gap cria espaçamento entre os itens sem precisar de margin, e flex-wrap permite quebrar em várias linhas.',
 ];
 
 export type Flashcard = { p: string; r: string };
 
 export const flashcards: Flashcard[] = [
-  {
-    p: 'O que é uma função?',
-    r: 'Uma relação que associa cada elemento de um conjunto A a exatamente um elemento de um conjunto B.',
-  },
-  { p: 'Qual a forma geral da função afim?', r: 'f(x) = ax + b, com a ≠ 0. O gráfico é uma reta.' },
-  {
-    p: 'Qual a forma geral da função quadrática?',
-    r: 'f(x) = ax² + bx + c, com a ≠ 0. O gráfico é uma parábola.',
-  },
-  {
-    p: 'O que caracteriza a função constante?',
-    r: 'f(x) = c — a saída é sempre a mesma, independente de x.',
-  },
-  { p: 'O que é a função identidade?', r: 'f(x) = x — cada entrada devolve ela mesma.' },
-  {
-    p: 'Na notação f: A → B, o que é A?',
-    r: 'A é o domínio: o conjunto de todas as entradas possíveis.',
-  },
-  {
-    p: 'Por que f(x) = 1/x exige x ≠ 0?',
-    r: 'Porque a divisão por zero não é definida, então 0 fica fora do domínio.',
-  },
-  {
-    p: 'O gráfico de f(x) = ax + b é o quê?',
-    r: 'Uma reta, com inclinação dada por a e intercepto em b.',
-  },
-  { p: 'O que significa x ↦ f(x)?', r: 'Que o elemento x é levado (mapeado) ao elemento f(x).' },
-  {
-    p: 'Uma função pode levar um x a dois valores diferentes?',
-    r: 'Não. Cada elemento do domínio tem exatamente uma imagem.',
-  },
+  { p: 'O que display: flex faz?', r: 'Transforma o elemento em flex container. Todos os filhos diretos viram flex items.' },
+  { p: 'Flexbox trabalha em quantas dimensões?', r: 'Uma. Linha ou coluna. Para as duas ao mesmo tempo existe o Grid.' },
+  { p: 'O que flex-direction define?', r: 'Qual é o eixo principal: row deixa horizontal, column deixa vertical.' },
+  { p: 'justify-content atua em qual eixo?', r: 'No eixo principal — o mesmo que flex-direction definiu.' },
+  { p: 'align-items atua em qual eixo?', r: 'No eixo cruzado, sempre perpendicular ao principal.' },
+  { p: 'O que acontece com justify-content se eu mudar para column?', r: 'Ele passa a distribuir na vertical, porque o eixo principal mudou.' },
+  { p: 'Para que serve flex-grow?', r: 'Define o quanto o item cresce quando sobra espaço no container.' },
+  { p: 'O que significa flex: 1?', r: 'É o atalho de flex: 1 1 0% — cresce, encolhe e parte do tamanho zero.' },
+  { p: 'Qual a diferença entre gap e margin no Flexbox?', r: 'gap cria espaço entre os itens sem afetar as bordas externas; margin afeta cada item individualmente.' },
+  { p: 'O que faz flex-wrap: wrap?', r: 'Permite que os itens quebrem para a linha seguinte quando não couberem.' },
 ];
 
 export type Questao = { q: string; alt: string[]; certa: number };
 
 export const questoes: Questao[] = [
-  { q: 'Dada f(x) = 2x + 1, calcule f(3).', alt: ['5', '7', '6', '8'], certa: 1 },
   {
-    q: 'Qual dessas é uma função quadrática?',
-    alt: ['f(x) = 3x + 2', 'f(x) = x² - 4', 'f(x) = 5', 'f(x) = x'],
+    q: 'Com flex-direction: column, qual propriedade distribui os itens na vertical?',
+    alt: ['align-items', 'justify-content', 'flex-wrap', 'align-content'],
     certa: 1,
   },
   {
-    q: 'Para f(x) = 1/x, qual valor NÃO pertence ao domínio?',
-    alt: ['1', '-1', '0', '2'],
+    q: 'O que flex: 1 significa por extenso?',
+    alt: ['flex: 1 0 auto', 'flex: 1 1 0%', 'flex: 0 1 100%', 'flex: 1 1 auto'],
+    certa: 1,
+  },
+  {
+    q: 'Qual delas NÃO é um valor válido de justify-content?',
+    alt: ['space-between', 'space-evenly', 'baseline', 'center'],
     certa: 2,
   },
 ];
@@ -251,7 +249,7 @@ export function aulaCapturada(agora = new Date()): Aula {
   const mes = dois(agora.getMonth() + 1);
   return {
     id: 'nova',
-    titulo: `Função — Aula ${dia}/${mes}`,
+    titulo: `Flexbox — Aula ${dia}/${mes}`,
     data: `${dia}/${mes}/${agora.getFullYear()}`,
     hora: `${dois(agora.getHours())}:${dois(agora.getMinutes())}`,
     novo: true,
@@ -262,41 +260,39 @@ export type Pasta = { nome: string; icone: NomeIcone; subpastas: Subpasta[] };
 
 export const biblioteca: Pasta[] = [
   {
+    nome: 'Design',
+    icone: 'palette-outline',
+    subpastas: [
+      {
+        nome: 'Front-End Design',
+        aulas: [
+          { id: 'a1', titulo: 'Grid e Bento Layout — Aula 14/08', data: '14/08/2026', hora: '19:38' },
+          { id: 'a2', titulo: 'Tipografia e escala — Aula 07/08', data: '07/08/2026', hora: '19:26' },
+        ],
+      },
+    ],
+  },
+  {
+    nome: 'Programação',
+    icone: 'language-python',
+    subpastas: [
+      {
+        nome: 'Computational Thinking with Python',
+        aulas: [
+          { id: 'b1', titulo: 'Listas e repetição — Aula 20/08', data: '20/08/2026', hora: '21:32' },
+          { id: 'b2', titulo: 'Estruturas de decisão — Aula 19/08', data: '19/08/2026', hora: '21:28' },
+        ],
+      },
+    ],
+  },
+  {
     nome: 'Matemática',
     icone: 'function-variant',
     subpastas: [
       {
-        nome: 'Cálculo',
+        nome: 'Differentiated Problem Solving',
         aulas: [
-          { id: 'a1', titulo: 'Função — Aula 18/08', data: '18/08/2026', hora: '10:32' },
-          { id: 'a2', titulo: 'Função Afim — Aula 11/08', data: '11/08/2026', hora: '09:15' },
-          { id: 'a3', titulo: 'Limites — Aula 04/08', data: '04/08/2026', hora: '10:20' },
-        ],
-      },
-    ],
-  },
-  {
-    nome: 'Física',
-    icone: 'atom-variant',
-    subpastas: [
-      {
-        nome: 'Mecânica Geral',
-        aulas: [
-          { id: 'b1', titulo: 'Torque — Aula 19/08', data: '19/08/2026', hora: '20:40' },
-          { id: 'b2', titulo: 'Momento de inércia — Aula 12/08', data: '12/08/2026', hora: '20:35' },
-        ],
-      },
-    ],
-  },
-  {
-    nome: 'Computação',
-    icone: 'code-braces',
-    subpastas: [
-      {
-        nome: 'Estruturas de Dados',
-        aulas: [
-          { id: 'c1', titulo: 'Listas encadeadas — Aula 17/08', data: '17/08/2026', hora: '19:22' },
-          { id: 'c2', titulo: 'Complexidade — Aula 10/08', data: '10/08/2026', hora: '19:18' },
+          { id: 'c1', titulo: 'Modelagem de problemas — Aula 19/08', data: '19/08/2026', hora: '19:41' },
         ],
       },
     ],

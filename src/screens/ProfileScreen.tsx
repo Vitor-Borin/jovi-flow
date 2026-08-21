@@ -10,6 +10,7 @@ import { GhostButton } from '../components/GhostButton';
 import { ScreenHeader } from '../components/ScreenHeader';
 import type { NomeIcone } from '../data/mock';
 import type { RootStackParamList } from '../navigation/types';
+import { temChaveConfigurada } from '../services/analiseAoVivo';
 import { useFlow } from '../store/FlowContext';
 import { TOQUE_MIN, colors, font, fontDado, radius, spacing } from '../theme';
 
@@ -31,7 +32,8 @@ function iniciais(nome: string): string {
 export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
-  const { reiniciar } = useFlow();
+  const { reiniciar, modoAoVivo, alternarModoAoVivo } = useFlow();
+  const chaveOk = temChaveConfigurada();
   const [reiniciado, setReiniciado] = useState(false);
 
   const aoReiniciar = () => {
@@ -90,6 +92,45 @@ export function ProfileScreen() {
             <Text style={[styles.tituloItem, styles.tituloItemAtivo]}>Viabilidade técnica</Text>
             <Ionicons name="chevron-forward" size={18} color={colors.primaryHi} />
           </Pressable>
+        </View>
+
+        {/* O unico ponto do app que toca a rede. Desligado, tudo roda offline. */}
+        <View style={styles.blocoDemo}>
+          <Text style={styles.rotuloDemo}>Análise ao vivo</Text>
+
+          <Pressable
+            onPress={chaveOk ? alternarModoAoVivo : undefined}
+            disabled={!chaveOk}
+            accessibilityRole="switch"
+            accessibilityLabel="Analisar a foto com IA de verdade"
+            accessibilityState={{ checked: modoAoVivo, disabled: !chaveOk }}
+            style={({ pressed }) => [
+              styles.linhaAoVivo,
+              modoAoVivo && styles.linhaAoVivoLigada,
+              !chaveOk && styles.linhaAoVivoBloqueada,
+              pressed && chaveOk && styles.itemPressionado,
+            ]}
+          >
+            <MaterialCommunityIcons
+              name={modoAoVivo ? 'access-point' : 'access-point-off'}
+              size={20}
+              color={modoAoVivo ? colors.primaryHi : colors.textFaint}
+            />
+            <Text style={[styles.tituloItem, modoAoVivo && styles.tituloItemAtivo]}>
+              {modoAoVivo ? 'Ligada' : 'Desligada'}
+            </Text>
+            <View style={[styles.trilho, modoAoVivo && styles.trilhoLigado]}>
+              <View style={[styles.botaoTrilho, modoAoVivo && styles.botaoTrilhoLigado]} />
+            </View>
+          </Pressable>
+
+          <Text style={styles.explicacaoDemo}>
+            {chaveOk
+              ? modoAoVivo
+                ? 'A foto capturada é lida de verdade por IA. Se a rede falhar ou demorar mais que 8 segundos, o app usa o conteúdo de exemplo sem interromper a demonstração.'
+                : 'Desligada, o aplicativo funciona inteiramente offline, com o conteúdo de exemplo.'
+              : 'Nenhuma chave configurada. Defina EXPO_PUBLIC_ANTHROPIC_API_KEY no arquivo .env e reinicie o servidor para habilitar.'}
+          </Text>
         </View>
 
         {/* Existe para o fluxo poder ser refeito varias vezes durante o pitch
@@ -176,6 +217,45 @@ const styles = StyleSheet.create({
 
   blocoDemo: {
     marginTop: spacing(9),
+  },
+  linhaAoVivo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing(3),
+    minHeight: TOQUE_MIN + spacing(2),
+    paddingHorizontal: spacing(4),
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
+  },
+  linhaAoVivoLigada: {
+    borderColor: colors.primaryEdge,
+    backgroundColor: colors.primarySoft,
+  },
+  linhaAoVivoBloqueada: {
+    opacity: 0.5,
+  },
+  trilho: {
+    width: spacing(11),
+    height: spacing(6),
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceHi,
+    padding: spacing(0.75),
+    justifyContent: 'center',
+  },
+  trilhoLigado: {
+    backgroundColor: colors.primary,
+  },
+  botaoTrilho: {
+    width: spacing(4.5),
+    height: spacing(4.5),
+    borderRadius: radius.pill,
+    backgroundColor: colors.textDim,
+  },
+  botaoTrilhoLigado: {
+    backgroundColor: colors.onPrimary,
+    alignSelf: 'flex-end',
   },
   rotuloDemo: {
     ...fontDado.rotulo,

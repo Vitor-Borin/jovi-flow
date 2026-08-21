@@ -49,6 +49,9 @@ export function CameraScreen({ navigation }: Props) {
     definirSubModo,
     jaApresentouModoAula,
     marcarApresentacaoVista,
+    modoAoVivo,
+    definirFotoBase64,
+    definirAnalise,
   } = useFlow();
 
   const modoAtual: SubModo = subModos.find((m) => m.id === subModo) ?? subModos[0];
@@ -118,10 +121,21 @@ export function CameraScreen({ navigation }: Props) {
     try {
       if (mostrarCamera && cameraRef.current) {
         // A foto real e tirada ANTES da folha subir: as telas seguintes usam ela.
-        const foto = await cameraRef.current.takePictureAsync({ quality: 0.7 });
+        // Base64 so no modo ao vivo: e o que sobe para a API, e gerar a string
+        // quando ninguem vai usar so gastaria memoria e tempo.
+        const foto = await cameraRef.current.takePictureAsync({
+          quality: modoAoVivo ? 0.3 : 0.7,
+          base64: modoAoVivo,
+        });
         if (foto?.uri) {
           definirFoto(foto.uri);
           console.log('[JOVI Flow] foto capturada:', foto.uri);
+        }
+        definirAnalise(null);
+        definirFotoBase64(foto?.base64 ?? null);
+        if (modoAoVivo) {
+          const kb = Math.round((foto?.base64?.length ?? 0) / 1024);
+          console.log(`[JOVI Flow] modo ao vivo: imagem de ${kb} KB pronta para envio`);
         }
       }
     } catch (erro) {
@@ -133,7 +147,7 @@ export function CameraScreen({ navigation }: Props) {
         setEtapa('confirmar');
       }
     }
-  }, [capturando, mostrarCamera, definirFoto]);
+  }, [capturando, mostrarCamera, definirFoto, modoAoVivo, definirFotoBase64, definirAnalise]);
 
   const alternarFlow = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

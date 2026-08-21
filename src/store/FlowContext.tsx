@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { caminhoSalvar, conteudoIdentificado, plataformas, subModos } from '../data/mock';
+import type { ConteudoReconhecido } from '../services/analiseAoVivo';
 
 const CONECTADAS_PADRAO = plataformas.filter((p) => p.conectadaPorPadrao).map((p) => p.id);
 const SUBMODO_PADRAO = subModos[0]?.id ?? 'lousa';
@@ -23,6 +24,12 @@ export type FlowState = {
   /** O Modo Aula ja se apresentou nesta sessao? A pesquisa do grupo mostrou que
    *  recurso que nao se apresenta e recurso que ninguem descobre. */
   jaApresentouModoAula: boolean;
+  /** Liga a analise real pela API. Desligado, o app continua 100% offline. */
+  modoAoVivo: boolean;
+  /** Imagem capturada em base64, usada apenas pelo modo ao vivo. */
+  fotoBase64: string | null;
+  /** Conteudo reconhecido de verdade. Nulo = usar o conteudo simulado. */
+  analiseAoVivo: ConteudoReconhecido | null;
   ativarFlow: (v: boolean) => void;
   definirFoto: (uri: string | null) => void;
   definirDestino: (d: string[]) => void;
@@ -30,6 +37,9 @@ export type FlowState = {
   definirSubModo: (id: string) => void;
   alternarPlataforma: (id: string) => void;
   marcarApresentacaoVista: () => void;
+  alternarModoAoVivo: () => void;
+  definirFotoBase64: (b64: string | null) => void;
+  definirAnalise: (c: ConteudoReconhecido | null) => void;
   salvarResumo: () => void;
   /** Volta ao estado inicial. Permite refazer o pitch varias vezes sem fechar o app. */
   reiniciar: () => void;
@@ -46,6 +56,9 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   const [subModo, setSubModo] = useState(SUBMODO_PADRAO);
   const [plataformasConectadas, setPlataformasConectadas] = useState<string[]>(CONECTADAS_PADRAO);
   const [jaApresentouModoAula, setJaApresentou] = useState(false);
+  const [modoAoVivo, setModoAoVivo] = useState(false);
+  const [fotoBase64, setFotoBase64] = useState<string | null>(null);
+  const [analiseAoVivo, setAnalise] = useState<ConteudoReconhecido | null>(null);
 
   const ativarFlow = useCallback((v: boolean) => setFlowAtivo(v), []);
   const definirFoto = useCallback((uri: string | null) => setFotoUri(uri), []);
@@ -53,6 +66,9 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   const definirTexto = useCallback((t: string) => setTextoExtraido(t), []);
   const definirSubModo = useCallback((id: string) => setSubModo(id), []);
   const marcarApresentacaoVista = useCallback(() => setJaApresentou(true), []);
+  const alternarModoAoVivo = useCallback(() => setModoAoVivo((v) => !v), []);
+  const definirFotoBase64 = useCallback((b64: string | null) => setFotoBase64(b64), []);
+  const definirAnalise = useCallback((c: ConteudoReconhecido | null) => setAnalise(c), []);
   const salvarResumo = useCallback(() => setResumoSalvo(true), []);
 
   const alternarPlataforma = useCallback((id: string) => {
@@ -70,6 +86,10 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     setSubModo(SUBMODO_PADRAO);
     setPlataformasConectadas(CONECTADAS_PADRAO);
     setJaApresentou(false);
+    setFotoBase64(null);
+    setAnalise(null);
+    // modoAoVivo nao e limpo de proposito: e uma escolha do apresentador, e nao
+    // parte do estado da captura. Reiniciar a demo nao deve desligar a API.
   }, []);
 
   const valor = useMemo<FlowState>(
@@ -82,6 +102,9 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       subModo,
       plataformasConectadas,
       jaApresentouModoAula,
+      modoAoVivo,
+      fotoBase64,
+      analiseAoVivo,
       ativarFlow,
       definirFoto,
       definirDestino,
@@ -89,6 +112,9 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       definirSubModo,
       alternarPlataforma,
       marcarApresentacaoVista,
+      alternarModoAoVivo,
+      definirFotoBase64,
+      definirAnalise,
       salvarResumo,
       reiniciar,
     }),
@@ -101,6 +127,9 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       subModo,
       plataformasConectadas,
       jaApresentouModoAula,
+      modoAoVivo,
+      fotoBase64,
+      analiseAoVivo,
       ativarFlow,
       definirFoto,
       definirDestino,
@@ -108,6 +137,9 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       definirSubModo,
       alternarPlataforma,
       marcarApresentacaoVista,
+      alternarModoAoVivo,
+      definirFotoBase64,
+      definirAnalise,
       salvarResumo,
       reiniciar,
     ]
