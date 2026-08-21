@@ -9,7 +9,7 @@ import { Badge } from '../components/Badge';
 import { Card } from '../components/Card';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
-import { biblioteca, slotAtual } from '../data/mock';
+import { biblioteca, economiaFormatada, slotAtual } from '../data/mock';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
 import type { RootStackParamList } from '../navigation/types';
 import { TOQUE_MIN, colors, font, fontDado, radius, shadow, spacing } from '../theme';
@@ -30,6 +30,7 @@ export function HomeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const insets = useSafeAreaInsets();
   const reduzir = useReduzirMovimento();
+  const eco = economiaFormatada();
 
   const { slot, aoVivo, ola } = useMemo(() => {
     const agora = new Date();
@@ -128,6 +129,21 @@ export function HomeScreen() {
             </Card>
           ))}
         </ScrollView>
+
+        {/* A pesquisa do grupo aponta falta de espaco no celular como dor real.
+            Este e o numero que o pitch pode citar. */}
+        <View style={styles.cardEconomia}>
+          <MaterialCommunityIcons name="database-check-outline" size={20} color={colors.primaryHi} />
+          <View style={styles.textosEconomia}>
+            <Text style={styles.tituloEconomia}>
+              Um semestre inteiro cabe em {eco.semestre}
+            </Text>
+            <Text style={styles.detalheEconomia}>
+              Sem o Flow, as mesmas {eco.capturas} capturas ocupariam {eco.semestreSemFlow} em
+              fotos de quadro.
+            </Text>
+          </View>
+        </View>
 
         <View style={styles.faixaStats}>
           {ESTATISTICAS.map((stat, indice) => (
@@ -268,13 +284,38 @@ const styles = StyleSheet.create({
     color: colors.textFaint,
   },
 
+  cardEconomia: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing(3),
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.primaryEdge,
+    borderRadius: radius.md,
+    padding: spacing(4),
+    marginTop: spacing(9),
+  },
+  textosEconomia: {
+    flex: 1,
+  },
+  tituloEconomia: {
+    ...font.bodyMed,
+    color: colors.text,
+  },
+  detalheEconomia: {
+    ...font.small,
+    color: colors.textDim,
+    lineHeight: 17,
+    marginTop: spacing(1.5),
+  },
+
   faixaStats: {
     flexDirection: 'row',
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: colors.borderSoft,
     paddingVertical: spacing(5),
-    marginTop: spacing(9),
+    marginTop: spacing(5),
   },
   blocoStat: {
     flex: 1,

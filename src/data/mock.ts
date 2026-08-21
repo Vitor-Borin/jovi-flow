@@ -23,19 +23,20 @@ export type Slot = {
 /** Diferencial: a grade horaria do estudante da contexto a camera.
  *  O Flow nao adivinha a materia — ele confirma com o horario. */
 export const gradeHoraria: Slot[] = [
-  { dia: 1, inicio: '08:00', fim: '09:40', materia: 'Física', disciplina: 'Mecânica II', sala: 'B-204' },
-  { dia: 2, inicio: '10:00', fim: '11:40', materia: 'Matemática', disciplina: 'Cálculo I', sala: 'A-312' },
-  { dia: 3, inicio: '08:00', fim: '09:40', materia: 'Química', disciplina: 'Orgânica I', sala: 'C-101' },
-  { dia: 4, inicio: '10:00', fim: '11:40', materia: 'Matemática', disciplina: 'Cálculo I', sala: 'A-312' },
-  { dia: 5, inicio: '14:00', fim: '15:40', materia: 'Física', disciplina: 'Mecânica II', sala: 'B-204' },
+  { dia: 1, inicio: '19:00', fim: '22:40', materia: 'Computação', disciplina: 'Estruturas de Dados', sala: 'B-204' },
+  { dia: 2, inicio: '19:00', fim: '22:40', materia: 'Matemática', disciplina: 'Cálculo I', sala: 'A-312' },
+  { dia: 3, inicio: '19:00', fim: '22:40', materia: 'Física', disciplina: 'Mecânica Geral', sala: 'C-101' },
+  { dia: 4, inicio: '19:00', fim: '22:40', materia: 'Matemática', disciplina: 'Cálculo I', sala: 'A-312' },
+  { dia: 5, inicio: '19:00', fim: '22:40', materia: 'Engenharia de Software', disciplina: 'Arquitetura de Sistemas', sala: 'D-408' },
 ];
 
-/** Slot usado fora de horario de aula. Terca, 10:00, Calculo I — o cenario que o
- *  pitch demonstra. Declarado a parte para nunca depender de indice solto. */
+/** Slot usado fora de horario de aula. Quinta, Calculo I — mesmo dia e mesma
+ *  disciplina da apresentacao, para o card de contexto seguir coerente com o
+ *  conteudo capturado mesmo se o horario escorregar. */
 const SLOT_PADRAO: Slot = {
-  dia: 2,
-  inicio: '10:00',
-  fim: '11:40',
+  dia: 4,
+  inicio: '19:00',
+  fim: '22:40',
   materia: 'Matemática',
   disciplina: 'Cálculo I',
   sala: 'A-312',
@@ -65,6 +66,61 @@ export const etapasCamera: Etapa[] = [
   { id: 'reflexo', label: 'Suprimindo reflexo', detalhe: 'Remove brilho do quadro' },
   { id: 'deskew', label: 'Corrigindo perspectiva', detalhe: 'Deixa a lousa reta' },
   { id: 'texto', label: 'Realçando traço de caneta', detalhe: 'Contraste otimizado' },
+];
+
+export type Chip = { id: string; icone: NomeIcone; label: string };
+
+export type SubModo = {
+  id: string;
+  nome: string;
+  icone: NomeIcone;
+  /** O problema optico especifico que este sub-modo resolve. */
+  problema: string;
+  chips: Chip[];
+};
+
+/**
+ * [D1] Lousa, slide e caderno sao problemas opticos opostos: a lousa reflete a
+ * janela, o slide e uma fonte de luz numa sala escura e o caderno tem sombra da
+ * propria mao. Um "modo documento" generico trata os tres igual e falha nos tres.
+ */
+export const subModos: SubModo[] = [
+  {
+    id: 'lousa',
+    nome: 'Lousa',
+    icone: 'presentation',
+    problema: 'Reflexo da janela e giz apagado, capturados de lado',
+    chips: [
+      { id: 'reflexo', icone: 'flare', label: 'Anti-reflexo' },
+      { id: 'perspectiva', icone: 'perspective-less', label: 'Perspectiva' },
+      { id: 'traco', icone: 'fountain-pen-tip', label: 'Traço realçado' },
+      { id: 'frames', icone: 'layers-triple-outline', label: '4 frames' },
+    ],
+  },
+  {
+    id: 'slide',
+    nome: 'Slide',
+    icone: 'projector-screen-outline',
+    problema: 'Projeção estourada em sala escura, com cintilação',
+    chips: [
+      { id: 'contraste', icone: 'contrast-box', label: 'Brilho compensado' },
+      { id: 'cintilacao', icone: 'flash-off', label: 'Anti-cintilação' },
+      { id: 'recorte', icone: 'crop', label: 'Recorte da tela' },
+      { id: 'fonte', icone: 'format-size', label: 'Texto pequeno' },
+    ],
+  },
+  {
+    id: 'caderno',
+    nome: 'Caderno',
+    icone: 'notebook-outline',
+    problema: 'Sombra da própria mão e papel curvado sobre a mesa',
+    chips: [
+      { id: 'sombra', icone: 'gradient-vertical', label: 'Sombra removida' },
+      { id: 'curva', icone: 'vector-curve', label: 'Papel achatado' },
+      { id: 'dedo', icone: 'eraser', label: 'Dedo removido' },
+      { id: 'manuscrito', icone: 'signature-freehand', label: 'Manuscrito' },
+    ],
+  },
 ];
 
 /** Etapas de leitura/IA (depois da camera). */
@@ -209,24 +265,114 @@ export const biblioteca: Pasta[] = [
     icone: 'atom-variant',
     subpastas: [
       {
-        nome: 'Mecânica II',
+        nome: 'Mecânica Geral',
         aulas: [
-          { id: 'b1', titulo: 'Torque — Aula 17/08', data: '17/08/2026', hora: '08:40' },
-          { id: 'b2', titulo: 'Momento de inércia — Aula 10/08', data: '10/08/2026', hora: '08:35' },
+          { id: 'b1', titulo: 'Torque — Aula 19/08', data: '19/08/2026', hora: '20:40' },
+          { id: 'b2', titulo: 'Momento de inércia — Aula 12/08', data: '12/08/2026', hora: '20:35' },
         ],
       },
     ],
   },
   {
-    nome: 'Química',
-    icone: 'flask-outline',
+    nome: 'Computação',
+    icone: 'code-braces',
     subpastas: [
       {
-        nome: 'Orgânica I',
+        nome: 'Estruturas de Dados',
         aulas: [
-          { id: 'c1', titulo: 'Hidrocarbonetos — Aula 19/08', data: '19/08/2026', hora: '08:12' },
+          { id: 'c1', titulo: 'Listas encadeadas — Aula 17/08', data: '17/08/2026', hora: '19:22' },
+          { id: 'c2', titulo: 'Complexidade — Aula 10/08', data: '10/08/2026', hora: '19:18' },
         ],
       },
     ],
   },
 ];
+
+/* ------------------------------------------------------------ integracoes */
+
+export type Plataforma = {
+  id: string;
+  nome: string;
+  icone: NomeIcone;
+  papel: string;
+  conectadaPorPadrao: boolean;
+};
+
+/** A missao do Flow e facilitar a vida do estudante, e boa parte disso e nao
+ *  obrigar ele a reabrir o conteudo em outro lugar. Estas sao as plataformas que
+ *  um universitario de engenharia ja usa no dia a dia. */
+export const plataformas: Plataforma[] = [
+  {
+    id: 'drive',
+    nome: 'Google Drive',
+    icone: 'google-drive',
+    papel: 'Salva a aula na pasta da disciplina',
+    conectadaPorPadrao: true,
+  },
+  {
+    id: 'classroom',
+    nome: 'Google Classroom',
+    icone: 'google-classroom',
+    papel: 'Publica o material para a turma',
+    conectadaPorPadrao: true,
+  },
+  {
+    id: 'github',
+    nome: 'GitHub',
+    icone: 'github',
+    papel: 'Commita anotações no repositório da matéria',
+    conectadaPorPadrao: true,
+  },
+  {
+    id: 'notion',
+    nome: 'Notion',
+    icone: 'note-text-outline',
+    papel: 'Cria a página de estudo já formatada',
+    conectadaPorPadrao: false,
+  },
+  {
+    id: 'teams',
+    nome: 'Microsoft Teams',
+    icone: 'microsoft-teams',
+    papel: 'Envia para o canal da disciplina',
+    conectadaPorPadrao: false,
+  },
+];
+
+/* ------------------------------------------------- economia de armazenamento */
+
+/** Uma das dores levantadas na pesquisa do grupo e a falta de espaco no celular.
+ *  O Flow guarda texto e uma imagem tratada, e nao a foto original de 12 MP. */
+export const economia = {
+  /** Tamanho tipico de uma foto de 12 MP, em MB. */
+  fotoOriginalMb: 4.2,
+  /** Texto reconhecido mais miniatura tratada, em KB. */
+  salvoKb: 38,
+  /**
+   * Capturas de um semestre. Base do calculo: 5 aulas por semana, 16 semanas,
+   * e cerca de 5 fotos de quadro por aula. Numero conservador de proposito —
+   * inflar aqui seria facil e destruiria a credibilidade se a banca perguntar.
+   */
+  capturasPorSemestre: 400,
+};
+
+/** Formata em MB ou GB conforme a grandeza, com virgula decimal. */
+function tamanho(mb: number): string {
+  if (mb >= 1024) return `${(mb / 1024).toFixed(1).replace('.', ',')} GB`;
+  return `${Math.round(mb)} MB`;
+}
+
+export function economiaFormatada() {
+  const fotoKb = economia.fotoOriginalMb * 1024;
+  const fator = Math.round(fotoKb / economia.salvoKb);
+  const comFlowMb = (economia.salvoKb * economia.capturasPorSemestre) / 1024;
+  const semFlowMb = economia.fotoOriginalMb * economia.capturasPorSemestre;
+  return {
+    fator,
+    capturas: economia.capturasPorSemestre,
+    porAula: `${economia.salvoKb} KB`,
+    porAulaSemFlow: `${economia.fotoOriginalMb.toFixed(1).replace('.', ',')} MB`,
+    semestre: tamanho(comFlowMb),
+    semestreSemFlow: tamanho(semFlowMb),
+  };
+}

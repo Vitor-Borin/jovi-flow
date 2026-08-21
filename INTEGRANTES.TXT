@@ -1,14 +1,18 @@
 JOVI Flow — Challenge FIAP x JOVI 2026
-Apresentacao: 27/08/2026
+Engenharia de Software
 
 INTEGRANTES DO GRUPO
 ====================
 
-[PREENCHER] Nome completo - RM000000
-[PREENCHER] Nome completo - RM000000
-[PREENCHER] Nome completo - RM000000
-[PREENCHER] Nome completo - RM000000
-[PREENCHER] Nome completo - RM000000
+Beatriz          - RM[PREENCHER]
+Nicole Figueiredo - RM[PREENCHER]
+Robert           - RM[PREENCHER]
+Ryan Maick       - RM[PREENCHER]
+Vitor Borin      - RM[PREENCHER]
 
-ATENCAO: arquivo obrigatorio da FIAP. Substituir todas as linhas [PREENCHER]
-pelo nome completo e o RM de cada integrante antes da entrega (Fase 8).
+Nomes extraidos da entrega da Sprint 1 do grupo (JOVI_MOBIX.pdf).
+
+O Vitor informou que esta apresentacao e apenas demonstracao no celular, sem
+entrega de arquivos, entao os RMs nao sao necessarios por enquanto. O arquivo
+fica aqui porque, se em algum momento houver entrega formal, ele e exigido pela
+FIAP — e o custo de manter e zero.

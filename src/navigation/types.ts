@@ -17,6 +17,9 @@ export type RootStackParamList = {
   /** Viabilidade tecnica: quais APIs abertas do Google sustentam cada
    *  diferencial. E um dos entregaveis pedidos no brief da JOVI. */
   Feasibility: undefined;
+  /** Plataformas que recebem o conteudo capturado. Facilitar a vida do estudante
+   *  passa por nao obrigar ele a reabrir o conteudo em outro lugar. */
+  Platforms: undefined;
   Processing: undefined;
   Identified: undefined;
   Organize: undefined;

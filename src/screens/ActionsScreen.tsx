@@ -20,19 +20,22 @@ import { GhostButton } from '../components/GhostButton';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
 import type { NomeIcone } from '../data/mock';
-import { conteudoIdentificado } from '../data/mock';
+import { conteudoIdentificado, economiaFormatada, plataformas } from '../data/mock';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
 import type { RootStackParamList } from '../navigation/types';
 import { useFlow } from '../store/FlowContext';
-import { colors, font, fontMono, radius, spacing } from '../theme';
+import { colors, font, fontDado, fontMono, radius, spacing } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Actions'>;
 
 export function ActionsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const reduzir = useReduzirMovimento();
-  const { destino, textoExtraido, definirTexto, resumoSalvo } = useFlow();
+  const { destino, textoExtraido, definirTexto, resumoSalvo, plataformasConectadas } = useFlow();
   const [editando, setEditando] = useState(false);
+
+  const conectadas = plataformas.filter((p) => plataformasConectadas.includes(p.id));
+  const eco = economiaFormatada();
 
   const compartilhar = async () => {
     try {
@@ -110,6 +113,32 @@ export function ActionsScreen({ navigation }: Props) {
         <Text style={styles.caminho} numberOfLines={1} ellipsizeMode="middle">
           {destino.join(' › ')}
         </Text>
+
+        {/* O conteudo ja saiu para as ferramentas que o estudante usa: e o
+            diferencial que a entrega da Sprint 1 do grupo prometia. */}
+        {conectadas.length > 0 ? (
+          <View style={styles.blocoEnvio}>
+            <Text style={styles.rotuloEnvio}>ENVIADO TAMBÉM PARA</Text>
+            <View style={styles.linhaPlataformas}>
+              {conectadas.map((p) => (
+                <View key={p.id} style={styles.chipPlataforma}>
+                  <MaterialCommunityIcons name={p.icone} size={14} color={colors.primaryHi} />
+                  <Text style={styles.textoPlataforma}>{p.nome}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : null}
+
+        {/* Uma das dores da pesquisa do grupo era falta de espaco no celular. */}
+        <View style={styles.blocoEconomia}>
+          <MaterialCommunityIcons name="database-check-outline" size={18} color={colors.primaryHi} />
+          <Text style={styles.textoEconomia}>
+            Guardado como <Text style={styles.destaqueEconomia}>{eco.porAula}</Text> de texto, e
+            não como uma foto de {eco.porAulaSemFlow}.{' '}
+            <Text style={styles.destaqueEconomia}>{eco.fator}× menos espaço.</Text>
+          </Text>
+        </View>
 
         <Text style={styles.subtitulo}>O que deseja fazer agora?</Text>
 
@@ -265,11 +294,67 @@ const styles = StyleSheet.create({
     marginTop: spacing(2),
     maxWidth: '100%',
   },
+  blocoEnvio: {
+    alignSelf: 'stretch',
+    alignItems: 'center',
+    marginTop: spacing(6),
+  },
+  rotuloEnvio: {
+    ...fontDado.rotulo,
+    color: colors.textFaint,
+    marginBottom: spacing(2.5),
+  },
+  linhaPlataformas: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: spacing(2),
+  },
+  chipPlataforma: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing(1.5),
+    borderWidth: 1,
+    borderColor: colors.primaryEdge,
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.pill,
+    paddingVertical: spacing(1.5),
+    paddingHorizontal: spacing(2.5),
+  },
+  textoPlataforma: {
+    ...font.tiny,
+    color: colors.primaryHi,
+  },
+
+  blocoEconomia: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing(2.5),
+    alignSelf: 'stretch',
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing(3.5),
+    marginTop: spacing(5),
+  },
+  textoEconomia: {
+    ...font.small,
+    color: colors.textDim,
+    lineHeight: 18,
+    flex: 1,
+  },
+  destaqueEconomia: {
+    ...font.bodyMed,
+    fontSize: 12,
+    color: colors.text,
+  },
+
   subtitulo: {
     ...font.body,
     color: colors.textDim,
     textAlign: 'center',
-    marginTop: spacing(6),
+    marginTop: spacing(7),
     marginBottom: spacing(5),
   },
 

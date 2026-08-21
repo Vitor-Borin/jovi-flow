@@ -18,7 +18,6 @@ const CURSO = 'Engenharia de Software — FIAP';
 
 const ITENS: { id: string; titulo: string; icone: NomeIcone }[] = [
   { id: 'grade', titulo: 'Grade horária', icone: 'calendar-month-outline' },
-  { id: 'plataformas', titulo: 'Plataformas conectadas', icone: 'link-variant' },
   { id: 'preferencias', titulo: 'Preferências do Modo Aula', icone: 'camera-outline' },
 ];
 
@@ -65,8 +64,18 @@ export function ProfileScreen() {
             </View>
           ))}
 
-          {/* Unico item navegavel da lista: sustenta o entregavel de viabilidade
-              tecnica pedido no brief da JOVI. */}
+          <Pressable
+            onPress={() => navigation.navigate('Platforms')}
+            accessibilityRole="button"
+            accessibilityLabel="Plataformas conectadas"
+            style={({ pressed }) => [styles.item, pressed && styles.itemPressionado]}
+          >
+            <MaterialCommunityIcons name="link-variant" size={20} color={colors.primaryHi} />
+            <Text style={[styles.tituloItem, styles.tituloItemAtivo]}>Plataformas conectadas</Text>
+            <Ionicons name="chevron-forward" size={18} color={colors.primaryHi} />
+          </Pressable>
+
+          {/* Sustenta o entregavel de viabilidade tecnica pedido no brief. */}
           <Pressable
             onPress={() => navigation.navigate('Feasibility')}
             accessibilityRole="button"

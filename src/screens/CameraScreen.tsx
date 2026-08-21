@@ -19,7 +19,8 @@ import { Badge } from '../components/Badge';
 import { GhostButton } from '../components/GhostButton';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { WhiteboardFallback } from '../components/WhiteboardFallback';
-import type { NomeIcone } from '../data/mock';
+import type { Chip, SubModo } from '../data/mock';
+import { subModos } from '../data/mock';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
 import type { RootStackParamList } from '../navigation/types';
 import { useFlow } from '../store/FlowContext';
@@ -28,15 +29,6 @@ import { TOQUE_MIN, colors, font, fontDado, radius, shadow, spacing } from '../t
 type Props = NativeStackScreenProps<RootStackParamList, 'Camera'>;
 
 type Etapa = 'inativo' | 'ativo' | 'confirmar';
-
-/** [D1] O Modo Aula muda como a CAMERA captura, nao so o destino da foto.
- *  Estes chips sao a prova visual disso — sao o coracao do diferencial. */
-const CHIPS_OTIMIZACAO: { id: string; icone: NomeIcone; label: string }[] = [
-  { id: 'reflexo', icone: 'flare', label: 'Anti-reflexo' },
-  { id: 'perspectiva', icone: 'perspective-less', label: 'Perspectiva' },
-  { id: 'traco', icone: 'fountain-pen-tip', label: 'Traço realçado' },
-  { id: 'frames', icone: 'layers-triple-outline', label: '4 frames' },
-];
 
 const MODOS = ['Noite', 'Retrato', 'Foto', 'Vídeo', 'Mais'];
 
@@ -50,7 +42,16 @@ export function CameraScreen({ navigation }: Props) {
   const { width, height } = useWindowDimensions();
   const insets = useSafeAreaInsets();
   const reduzir = useReduzirMovimento();
-  const { definirFoto, ativarFlow } = useFlow();
+  const {
+    definirFoto,
+    ativarFlow,
+    subModo,
+    definirSubModo,
+    jaApresentouModoAula,
+    marcarApresentacaoVista,
+  } = useFlow();
+
+  const modoAtual: SubModo = subModos.find((m) => m.id === subModo) ?? subModos[0];
 
   const [etapa, setEtapa] = useState<Etapa>('inativo');
   const [flashLigado, setFlashLigado] = useState(false);
@@ -194,8 +195,14 @@ export function CameraScreen({ navigation }: Props) {
           {flowLigado ? (
             <View style={styles.blocoDeteccao}>
               <PilulaDeteccao reduzir={reduzir} />
-              <ChipsOtimizacao reduzir={reduzir} />
+              <ChipsOtimizacao key={modoAtual.id} chips={modoAtual.chips} reduzir={reduzir} />
             </View>
+          ) : null}
+
+          {/* A pesquisa do grupo mostrou que o scan da Samsung existe e ninguem
+              descobre. O Modo Aula se apresenta uma vez, no momento em que liga. */}
+          {flowLigado && !jaApresentouModoAula ? (
+            <CartaoDescoberta reduzir={reduzir} onFechar={marcarApresentacaoVista} />
           ) : null}
 
           <View style={styles.rodapeVisor}>
@@ -212,7 +219,20 @@ export function CameraScreen({ navigation }: Props) {
         </View>
       </View>
 
-      <CarrosselModos selecionado={modo} onSelecionar={setModo} />
+      {/* Quando o Flow liga, a propria regua de modos da camera muda: sai a lista
+          generica e entra a escolha do tipo de superficie a capturar. E outro
+          sinal de que a CAMERA entrou em outro modo, e nao so o destino da foto. */}
+      {flowLigado ? (
+        <SeletorSubModo selecionado={modoAtual.id} onSelecionar={definirSubModo} />
+      ) : (
+        <CarrosselModos selecionado={modo} onSelecionar={setModo} />
+      )}
+
+      {flowLigado ? (
+        <Text style={styles.problemaModo} numberOfLines={1}>
+          {modoAtual.problema}
+        </Text>
+      ) : null}
 
       <LinhaObturador
         modoAula={flowLigado}
@@ -378,8 +398,8 @@ function PilulaDeteccao({ reduzir }: { reduzir: boolean }) {
 
 /* ------------------------------------------------------ chips de otimizacao [D1] */
 
-function ChipsOtimizacao({ reduzir }: { reduzir: boolean }) {
-  const valores = useRef(CHIPS_OTIMIZACAO.map(() => new Animated.Value(0))).current;
+function ChipsOtimizacao({ chips, reduzir }: { chips: Chip[]; reduzir: boolean }) {
+  const valores = useRef(chips.map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
     if (reduzir) {
@@ -402,7 +422,7 @@ function ChipsOtimizacao({ reduzir }: { reduzir: boolean }) {
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={styles.listaChips}
     >
-      {CHIPS_OTIMIZACAO.map((chip, indice) => {
+      {chips.map((chip, indice) => {
         const valor = valores[indice];
         if (!valor) return null;
         const deslocamento = valor.interpolate({
@@ -458,6 +478,105 @@ function ToggleCapturaContinua({
         </Text>
       ) : null}
     </View>
+  );
+}
+
+/* ------------------------------------------------ seletor de sub-modo [D1] */
+
+function SeletorSubModo({
+  selecionado,
+  onSelecionar,
+}: {
+  selecionado: string;
+  onSelecionar: (id: string) => void;
+}) {
+  return (
+    <View style={styles.seletor}>
+      {subModos.map((m) => {
+        const ativo = m.id === selecionado;
+        return (
+          <Pressable
+            key={m.id}
+            onPress={() => {
+              void Haptics.selectionAsync();
+              onSelecionar(m.id);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`Modo ${m.nome}. ${m.problema}`}
+            accessibilityState={{ selected: ativo }}
+            style={({ pressed }) => [
+              styles.itemSeletor,
+              ativo && styles.itemSeletorAtivo,
+              pressed && styles.itemSeletorPressionado,
+            ]}
+          >
+            <MaterialCommunityIcons
+              name={m.icone}
+              size={16}
+              color={ativo ? colors.primaryHi : colors.textDim}
+            />
+            <Text style={[styles.textoSeletor, ativo && styles.textoSeletorAtivo]}>
+              {m.nome}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/* ------------------------------------------------- cartao de descoberta [D1] */
+
+/** Aparece uma unica vez, no instante em que o Modo Aula liga sozinho. Existe
+ *  porque recurso que nao se apresenta e recurso que ninguem usa. */
+function CartaoDescoberta({
+  reduzir,
+  onFechar,
+}: {
+  reduzir: boolean;
+  onFechar: () => void;
+}) {
+  const entrada = useRef(new Animated.Value(reduzir ? 1 : 0)).current;
+
+  useEffect(() => {
+    if (reduzir) {
+      entrada.setValue(1);
+      return;
+    }
+    const anim = Animated.timing(entrada, {
+      toValue: 1,
+      duration: 300,
+      delay: 420,
+      useNativeDriver: true,
+    });
+    anim.start();
+    return () => anim.stop();
+  }, [reduzir, entrada]);
+
+  const subida = entrada.interpolate({ inputRange: [0, 1], outputRange: [spacing(4), 0] });
+
+  return (
+    <Animated.View
+      style={[styles.descoberta, { opacity: entrada, transform: [{ translateY: subida }] }]}
+    >
+      <View style={styles.topoDescoberta}>
+        <MaterialCommunityIcons name="auto-fix" size={16} color={colors.primaryHi} />
+        <Text style={styles.tituloDescoberta}>O Modo Aula ligou sozinho</Text>
+        <Pressable
+          onPress={onFechar}
+          accessibilityRole="button"
+          accessibilityLabel="Entendi, fechar o aviso"
+          hitSlop={spacing(3)}
+          style={styles.fecharDescoberta}
+        >
+          <Ionicons name="close" size={16} color={colors.textDim} />
+        </Pressable>
+      </View>
+      <Text style={styles.textoDescoberta}>
+        A câmera reconheceu uma lousa e sua agenda confirma que você está em aula. A captura foi
+        ajustada para texto, não para rosto.
+      </Text>
+    </Animated.View>
   );
 }
 
@@ -852,6 +971,81 @@ const styles = StyleSheet.create({
     fontWeight: '400',
     color: colors.textDim,
     paddingBottom: spacing(1),
+  },
+
+  seletor: {
+    height: ALTURA_CARROSSEL,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing(2),
+    paddingHorizontal: spacing(4),
+  },
+  itemSeletor: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing(1.5),
+    minHeight: spacing(9),
+    paddingHorizontal: spacing(3.5),
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  itemSeletorAtivo: {
+    borderColor: colors.primaryEdge,
+    backgroundColor: colors.primarySoft,
+  },
+  itemSeletorPressionado: {
+    opacity: 0.6,
+  },
+  textoSeletor: {
+    ...font.tiny,
+    color: colors.textDim,
+  },
+  textoSeletorAtivo: {
+    color: colors.primaryHi,
+  },
+  problemaModo: {
+    ...font.small,
+    color: colors.textFaint,
+    textAlign: 'center',
+    paddingHorizontal: spacing(6),
+    marginTop: -spacing(1),
+  },
+
+  descoberta: {
+    position: 'absolute',
+    left: spacing(3),
+    right: spacing(3),
+    top: spacing(16),
+    backgroundColor: colors.overlay,
+    borderWidth: 1,
+    borderColor: colors.primaryEdge,
+    borderRadius: radius.md,
+    padding: spacing(3.5),
+    ...shadow.card,
+  },
+  topoDescoberta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing(2),
+    marginBottom: spacing(2),
+  },
+  tituloDescoberta: {
+    ...font.bodyMed,
+    color: colors.text,
+    flex: 1,
+  },
+  fecharDescoberta: {
+    width: spacing(6),
+    height: spacing(6),
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  textoDescoberta: {
+    ...font.small,
+    color: colors.textDim,
+    lineHeight: 17,
   },
 
   carrosselContainer: {

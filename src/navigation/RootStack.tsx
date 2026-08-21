@@ -5,6 +5,7 @@ import { CameraScreen } from '../screens/CameraScreen';
 import { FeasibilityScreen } from '../screens/FeasibilityScreen';
 import { IdentifiedScreen } from '../screens/IdentifiedScreen';
 import { OrganizeScreen } from '../screens/OrganizeScreen';
+import { PlatformsScreen } from '../screens/PlatformsScreen';
 import { ProcessingScreen } from '../screens/ProcessingScreen';
 import { QuestionsScreen } from '../screens/QuestionsScreen';
 import { SummaryScreen } from '../screens/SummaryScreen';
@@ -69,6 +70,11 @@ export function RootStack() {
       <Stack.Screen
         name="Feasibility"
         component={FeasibilityScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="Platforms"
+        component={PlatformsScreen}
         options={{ animation: 'slide_from_right' }}
       />
     </Stack.Navigator>
