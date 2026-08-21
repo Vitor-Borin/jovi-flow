@@ -22,7 +22,7 @@ import { WhiteboardFallback } from '../components/WhiteboardFallback';
 import type { Chip, SubModo } from '../data/mock';
 import { subModos } from '../data/mock';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
-import { prepararImagem } from '../services/analiseAoVivo';
+import { analisarCaptura, prepararImagem } from '../services/analiseAoVivo';
 import type { RootStackParamList } from '../navigation/types';
 import { useFlow } from '../store/FlowContext';
 import { TOQUE_MIN, colors, font, fontDado, radius, shadow, spacing } from '../theme';
@@ -53,6 +53,8 @@ export function CameraScreen({ navigation }: Props) {
     modoAoVivo,
     definirFotoBase64,
     definirAnalise,
+    definirAnalisando,
+    definirTexto,
   } = useFlow();
 
   const modoAtual: SubModo = subModos.find((m) => m.id === subModo) ?? subModos[0];
@@ -69,6 +71,9 @@ export function CameraScreen({ navigation }: Props) {
   const cameraRef = useRef<CameraView>(null);
   const montado = useRef(true);
   const jaPediuPermissao = useRef(false);
+  // Numero de sequencia da captura: se o usuario cancelar e capturar de novo,
+  // so o resultado da captura mais recente vale.
+  const capturaAtual = useRef(0);
 
   useEffect(() => {
     montado.current = true;
@@ -140,6 +145,27 @@ export function CameraScreen({ navigation }: Props) {
           console.log(
             `[JOVI Flow] modo ao vivo: ${foto.width}x${foto.height} reduzida para envio, ${kb} KB`
           );
+
+          // Dispara JA, sem esperar a folha de confirmacao nem a tela de
+          // processamento. A analise passa a correr tambem durante o tempo em
+          // que o usuario le a folha, o que costuma ser o suficiente para o
+          // conteudo real chegar antes da tela seguinte aparecer.
+          const seq = capturaAtual.current + 1;
+          capturaAtual.current = seq;
+          definirAnalisando(true);
+
+          void analisarCaptura(b64).then((r) => {
+            // Captura mais nova ja em andamento: este resultado esta velho.
+            if (capturaAtual.current !== seq) return;
+            if (r.estado === 'ok') {
+              definirAnalise(r.conteudo);
+              definirTexto(r.conteudo.textoExtraido);
+              console.log(`[JOVI Flow] analise ao vivo OK em ${r.ms}ms: ${r.conteudo.topico}`);
+            } else {
+              console.log('[JOVI Flow] analise indisponivel, seguindo com o exemplo:', r.estado);
+            }
+            definirAnalisando(false);
+          });
         }
       }
     } catch (erro) {
@@ -151,7 +177,16 @@ export function CameraScreen({ navigation }: Props) {
         setEtapa('confirmar');
       }
     }
-  }, [capturando, mostrarCamera, definirFoto, modoAoVivo, definirFotoBase64, definirAnalise]);
+  }, [
+    capturando,
+    mostrarCamera,
+    definirFoto,
+    modoAoVivo,
+    definirFotoBase64,
+    definirAnalise,
+    definirAnalisando,
+    definirTexto,
+  ]);
 
   const alternarFlow = useCallback(() => {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

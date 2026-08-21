@@ -11,7 +11,6 @@ import { WhiteboardFallback } from '../components/WhiteboardFallback';
 import { etapasCamera, etapasIA } from '../data/mock';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
 import type { RootStackParamList } from '../navigation/types';
-import { analisarCaptura } from '../services/analiseAoVivo';
 import { useFlow } from '../store/FlowContext';
 import { colors, font, fontDado, radius, shadow, spacing } from '../theme';
 
@@ -29,10 +28,16 @@ export function ProcessingScreen({ navigation }: Props) {
   const [momento, setMomento] = useState<Momento>('camera');
   const [indice, setIndice] = useState(0);
   const montado = useRef(true);
-  const { modoAoVivo, fotoBase64, definirAnalise, definirTexto } = useFlow();
-  const [statusAoVivo, setStatusAoVivo] = useState<'off' | 'analisando' | 'ok' | 'simulado'>(
-    modoAoVivo ? 'analisando' : 'off'
-  );
+  // A analise ja foi disparada na captura, para aproveitar tambem o tempo em que
+  // a folha de confirmacao ficou na tela. Aqui a gente so observa o resultado.
+  const { modoAoVivo, analiseAoVivo, analisando } = useFlow();
+  const statusAoVivo = !modoAoVivo
+    ? 'off'
+    : analiseAoVivo !== null
+      ? 'ok'
+      : analisando
+        ? 'analisando'
+        : 'simulado';
 
   useEffect(() => {
     montado.current = true;
@@ -40,37 +45,6 @@ export function ProcessingScreen({ navigation }: Props) {
       montado.current = false;
     };
   }, []);
-
-  // A analise real roda EM PARALELO com a animacao, que dura cerca de 6,4s.
-  // Como a chamada se esconde atras dela, o modo ao vivo nao adiciona nenhuma
-  // espera percebida: ou a resposta chega dentro da janela, ou o app segue com o
-  // conteudo simulado sem que ninguem note.
-  useEffect(() => {
-    if (!modoAoVivo) return;
-    let vivo = true;
-
-    void analisarCaptura(fotoBase64).then((r) => {
-      if (!vivo) return;
-
-      if (r.estado === 'ok') {
-        // Escrever no contexto e seguro mesmo se esta tela ja saiu: quem exibe e
-        // a tela seguinte. Uma resposta que chega tarde ainda substitui o
-        // conteudo de exemplo, em vez de ser jogada fora.
-        definirAnalise(r.conteudo);
-        definirTexto(r.conteudo.textoExtraido);
-        console.log(`[JOVI Flow] analise ao vivo OK em ${r.ms}ms: ${r.conteudo.topico}`);
-      } else {
-        console.log('[JOVI Flow] analise ao vivo indisponivel, usando conteudo simulado:', r.estado);
-      }
-
-      // O indicador e estado local: so atualiza se a tela ainda estiver viva.
-      if (montado.current) setStatusAoVivo(r.estado === 'ok' ? 'ok' : 'simulado');
-    });
-
-    return () => {
-      vivo = false;
-    };
-  }, [modoAoVivo, fotoBase64, definirAnalise, definirTexto]);
 
   // Toda a coreografia e agendada de uma vez e limpa junto. Timer sobrevivendo ao
   // unmount e a causa numero 1 de crash aleatorio em demonstracao.

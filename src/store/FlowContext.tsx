@@ -30,6 +30,8 @@ export type FlowState = {
   fotoBase64: string | null;
   /** Conteudo reconhecido de verdade. Nulo = usar o conteudo simulado. */
   analiseAoVivo: ConteudoReconhecido | null;
+  /** Ha uma analise em andamento neste momento. */
+  analisando: boolean;
   ativarFlow: (v: boolean) => void;
   definirFoto: (uri: string | null) => void;
   definirDestino: (d: string[]) => void;
@@ -40,6 +42,7 @@ export type FlowState = {
   alternarModoAoVivo: () => void;
   definirFotoBase64: (b64: string | null) => void;
   definirAnalise: (c: ConteudoReconhecido | null) => void;
+  definirAnalisando: (v: boolean) => void;
   salvarResumo: () => void;
   /** Volta ao estado inicial. Permite refazer o pitch varias vezes sem fechar o app. */
   reiniciar: () => void;
@@ -59,6 +62,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   const [modoAoVivo, setModoAoVivo] = useState(false);
   const [fotoBase64, setFotoBase64] = useState<string | null>(null);
   const [analiseAoVivo, setAnalise] = useState<ConteudoReconhecido | null>(null);
+  const [analisando, setAnalisando] = useState(false);
 
   const ativarFlow = useCallback((v: boolean) => setFlowAtivo(v), []);
   const definirFoto = useCallback((uri: string | null) => setFotoUri(uri), []);
@@ -69,6 +73,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   const alternarModoAoVivo = useCallback(() => setModoAoVivo((v) => !v), []);
   const definirFotoBase64 = useCallback((b64: string | null) => setFotoBase64(b64), []);
   const definirAnalise = useCallback((c: ConteudoReconhecido | null) => setAnalise(c), []);
+  const definirAnalisando = useCallback((v: boolean) => setAnalisando(v), []);
   const salvarResumo = useCallback(() => setResumoSalvo(true), []);
 
   const alternarPlataforma = useCallback((id: string) => {
@@ -88,6 +93,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     setJaApresentou(false);
     setFotoBase64(null);
     setAnalise(null);
+    setAnalisando(false);
     // modoAoVivo nao e limpo de proposito: e uma escolha do apresentador, e nao
     // parte do estado da captura. Reiniciar a demo nao deve desligar a API.
   }, []);
@@ -105,6 +111,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       modoAoVivo,
       fotoBase64,
       analiseAoVivo,
+      analisando,
       ativarFlow,
       definirFoto,
       definirDestino,
@@ -115,6 +122,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       alternarModoAoVivo,
       definirFotoBase64,
       definirAnalise,
+      definirAnalisando,
       salvarResumo,
       reiniciar,
     }),
@@ -130,6 +138,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       modoAoVivo,
       fotoBase64,
       analiseAoVivo,
+      analisando,
       ativarFlow,
       definirFoto,
       definirDestino,
@@ -140,6 +149,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       alternarModoAoVivo,
       definirFotoBase64,
       definirAnalise,
+      definirAnalisando,
       salvarResumo,
       reiniciar,
     ]
