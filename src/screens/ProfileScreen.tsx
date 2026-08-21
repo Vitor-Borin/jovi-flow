@@ -1,9 +1,13 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
+import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { GhostButton } from '../components/GhostButton';
 import { ScreenHeader } from '../components/ScreenHeader';
 import type { NomeIcone } from '../data/mock';
+import { useFlow } from '../store/FlowContext';
 import { TOQUE_MIN, colors, font, fontDado, radius, spacing } from '../theme';
 
 const NOME = 'Vitor Mazer';
@@ -25,6 +29,14 @@ function iniciais(nome: string): string {
 
 export function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const { reiniciar } = useFlow();
+  const [reiniciado, setReiniciado] = useState(false);
+
+  const aoReiniciar = () => {
+    reiniciar();
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+    setReiniciado(true);
+  };
 
   return (
     <View style={styles.tela}>
@@ -49,6 +61,21 @@ export function ProfileScreen() {
               <Ionicons name="chevron-forward" size={18} color={colors.textFaint} />
             </View>
           ))}
+        </View>
+
+        {/* Existe para o fluxo poder ser refeito varias vezes durante o pitch
+            sem precisar fechar e reabrir o app. */}
+        <View style={styles.blocoDemo}>
+          <Text style={styles.rotuloDemo}>Demonstração</Text>
+          <GhostButton
+            label={reiniciado ? 'Demonstração reiniciada' : 'Reiniciar demonstração'}
+            variant="outline"
+            onPress={aoReiniciar}
+          />
+          <Text style={styles.explicacaoDemo}>
+            Limpa a foto capturada, o destino escolhido e o resumo salvo, deixando o app pronto
+            para outra apresentação.
+          </Text>
         </View>
 
         <Text style={styles.versao}>JOVI Flow · protótipo</Text>
@@ -112,6 +139,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
+  blocoDemo: {
+    marginTop: spacing(9),
+  },
+  rotuloDemo: {
+    ...fontDado.rotulo,
+    color: colors.textDim,
+    marginBottom: spacing(3),
+  },
+  explicacaoDemo: {
+    ...font.small,
+    color: colors.textFaint,
+    marginTop: spacing(3),
+    lineHeight: 17,
+  },
   versao: {
     ...fontDado.rotulo,
     color: colors.textFaint,
