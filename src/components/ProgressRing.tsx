@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
-import { useEffect, useRef, useState } from 'react';
-import { AccessibilityInfo, Animated, StyleSheet, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, StyleSheet, View } from 'react-native';
 import Svg, { Circle } from 'react-native-svg';
 
+import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
 import { colors } from '../theme';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
@@ -21,22 +22,8 @@ export function ProgressRing({ progress, size = 140, stroke = 8, children }: Pro
   const centro = size / 2;
 
   const anim = useRef(new Animated.Value(0)).current;
-  const [semAnimacao, setSemAnimacao] = useState(false);
-
   // Se o usuario pediu menos animacao no sistema, o anel vai direto ao valor final.
-  useEffect(() => {
-    let vivo = true;
-    AccessibilityInfo.isReduceMotionEnabled()
-      .then((ligado) => {
-        if (vivo) setSemAnimacao(ligado);
-      })
-      .catch(() => {
-        // Sem suporte na plataforma: mantem a animacao padrao.
-      });
-    return () => {
-      vivo = false;
-    };
-  }, []);
+  const semAnimacao = useReduzirMovimento();
 
   useEffect(() => {
     const alvo = Math.min(Math.max(progress, 0), 1);
