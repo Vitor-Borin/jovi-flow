@@ -20,7 +20,7 @@ import { GhostButton } from '../components/GhostButton';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { WhiteboardFallback } from '../components/WhiteboardFallback';
 import type { Chip, SubModo } from '../data/mock';
-import { subModos } from '../data/mock';
+import { pastasExistentes, subModos } from '../data/mock';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
 import {
   PX,
@@ -61,6 +61,7 @@ export function CameraScreen({ navigation }: Props) {
     definirTranscricao,
     definirAnalisando,
     definirTexto,
+    definirDestino,
   } = useFlow();
 
   const modoAtual: SubModo = subModos.find((m) => m.id === subModo) ?? subModos[0];
@@ -167,17 +168,23 @@ export function CameraScreen({ navigation }: Props) {
 
           // As duas correm em paralelo e sao independentes: se uma falhar, so
           // aquela parte da tela cai no exemplo.
-          const pClass = classificarCaptura(pequena).then((r) => {
+          // O sub-modo e a lista de pastas existentes vao no prompt: o primeiro
+          // muda como a imagem e lida, a segunda evita a IA inventar um nome novo
+          // a cada captura para o mesmo assunto.
+          const pClass = classificarCaptura(pequena, modoAtual.id, pastasExistentes()).then((r) => {
             if (capturaAtual.current !== seq) return;
             if (r.estado === 'ok') {
               definirClassificacao(r.dados);
-              console.log(`[JOVI Flow] classificacao em ${r.ms}ms: ${r.dados.topico}`);
+              definirDestino(r.dados.pasta);
+              console.log(
+                `[JOVI Flow] classificacao em ${r.ms}ms: ${r.dados.topico} -> ${r.dados.pasta.join(' > ')}${r.dados.pastaNova ? ' (pasta nova)' : ''}`
+              );
             } else {
               console.log('[JOVI Flow] classificacao indisponivel:', r.estado);
             }
           });
 
-          const pTrans = transcreverCaptura(grande).then((r) => {
+          const pTrans = transcreverCaptura(grande, modoAtual.id).then((r) => {
             if (capturaAtual.current !== seq) return;
             if (r.estado === 'ok') {
               definirTranscricao(r.dados);
@@ -212,6 +219,8 @@ export function CameraScreen({ navigation }: Props) {
     definirTranscricao,
     definirAnalisando,
     definirTexto,
+    definirDestino,
+    modoAtual.id,
   ]);
 
   const alternarFlow = useCallback(() => {

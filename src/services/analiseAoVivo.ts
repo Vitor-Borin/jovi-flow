@@ -55,6 +55,10 @@ export type ClassificacaoAoVivo = {
   materia: string;
   tema: string;
   topico: string;
+  /** Caminho de pasta onde a aula sera salva. */
+  pasta: string[];
+  /** true quando nenhuma pasta existente servia e uma nova foi proposta. */
+  pastaNova: boolean;
 };
 
 export type TranscricaoAoVivo = {
@@ -69,18 +73,40 @@ export type Resultado<T> =
   | { estado: 'tempo-esgotado' }
   | { estado: 'falha'; motivo: string };
 
-const PROMPT_CLASSIFICACAO = [
-  'Olhe esta foto de lousa, slide ou caderno de um estudante universitário brasileiro.',
-  '',
-  'Responda SOMENTE com JSON válido, sem cercas de código e sem texto ao redor:',
-  '{"materia":"...","tema":"...","topico":"..."}',
-  '',
-  '- materia: a área de estudo em uma ou duas palavras. Ex.: Design, Programação, Matemática.',
-  '- tema: a disciplina ou assunto maior.',
-  '- topico: o assunto específico da imagem, em uma linha curta.',
-  '',
-  'Tudo em português do Brasil.',
-].join('\n');
+/** O sub-modo escolhido na camera entra no prompt: lousa, slide e caderno tem
+ *  problemas de leitura diferentes, e dizer qual e ajuda a leitura de verdade.
+ *  Sem isso o seletor seria um controle decorativo, que o DESIGN.md proibe. */
+const DICA_SUBMODO: Record<string, string> = {
+  lousa: 'É a foto de uma lousa ou quadro branco, possivelmente com reflexo de janela e escrita à mão.',
+  slide: 'É a foto de um slide projetado numa sala escura, possivelmente estourado de brilho.',
+  caderno: 'É a foto de um caderno ou folha sobre a mesa, possivelmente com sombra e escrita à mão.',
+};
+
+function promptClassificacao(subModo: string, pastas: string[]): string {
+  return [
+    'Olhe esta foto de material de estudo de um estudante universitário brasileiro.',
+    DICA_SUBMODO[subModo] ?? '',
+    '',
+    'Estas são as pastas que já existem no aplicativo dele:',
+    ...pastas.map((p) => `- ${p}`),
+    '',
+    'Responda SOMENTE com JSON válido, sem cercas de código e sem texto ao redor:',
+    '{"materia":"...","tema":"...","topico":"...","pasta":["...","..."],"pastaNova":false}',
+    '',
+    '- materia: a área de estudo em uma ou duas palavras. Ex.: Design, Programação, Matemática.',
+    '- tema: a disciplina ou assunto maior.',
+    '- topico: o assunto específico da imagem, em uma linha curta.',
+    '- pasta: onde salvar, como caminho de dois ou três níveis.',
+    '  Se UMA das pastas existentes acima couber para este conteúdo, repita exatamente',
+    '  os nomes dela, separando os níveis no array, e devolva pastaNova como false.',
+    '  Só proponha nomes novos quando nenhuma das existentes fizer sentido — nesse',
+    '  caso devolva pastaNova como true.',
+    '',
+    'Tudo em português do Brasil.',
+  ]
+    .filter((l) => l !== '')
+    .join('\n');
+}
 
 const PROMPT_TRANSCRICAO = [
   'Transcreva fielmente todo o texto desta foto de lousa, slide ou caderno e resuma o conteúdo.',
@@ -249,14 +275,16 @@ async function chamarComRetentativa(
 }
 
 export async function classificarCaptura(
-  b64: string | null
+  b64: string | null,
+  subModo: string,
+  pastas: string[]
 ): Promise<Resultado<ClassificacaoAoVivo>> {
   if (b64 === null || b64.length === 0) return { estado: 'sem-foto' };
 
   const r = await chamarComRetentativa(
     b64,
-    PROMPT_CLASSIFICACAO,
-    300,
+    promptClassificacao(subModo, pastas),
+    400,
     LIMITE_CLASSIFICACAO_MS
   );
   if (!r.ok) return r.resultado;
@@ -273,23 +301,36 @@ export async function classificarCaptura(
   const tema = texto(o.tema);
   const topico = texto(o.topico);
 
+  const pasta = Array.isArray(o.pasta) ? o.pasta.map(texto).filter((n) => n.length > 0) : [];
+  const temaFinal = tema === '' ? materia : tema;
+
   return {
     estado: 'ok',
     ms: r.ms,
     dados: {
       materia,
-      tema: tema === '' ? materia : tema,
-      topico: topico === '' ? tema : topico,
+      tema: temaFinal,
+      topico: topico === '' ? temaFinal : topico,
+      // Sem caminho valido na resposta, deriva um da propria leitura em vez de
+      // deixar a arvore de destino vazia.
+      pasta: pasta.length >= 2 ? pasta : [materia, temaFinal],
+      pastaNova: o.pastaNova === true,
     },
   };
 }
 
 export async function transcreverCaptura(
-  b64: string | null
+  b64: string | null,
+  subModo: string
 ): Promise<Resultado<TranscricaoAoVivo>> {
   if (b64 === null || b64.length === 0) return { estado: 'sem-foto' };
 
-  const r = await chamarComRetentativa(b64, PROMPT_TRANSCRICAO, 2000, LIMITE_TRANSCRICAO_MS);
+  const dica = DICA_SUBMODO[subModo];
+  const prompt = dica === undefined ? PROMPT_TRANSCRICAO : `${dica}
+
+${PROMPT_TRANSCRICAO}`;
+
+  const r = await chamarComRetentativa(b64, prompt, 2000, LIMITE_TRANSCRICAO_MS);
   if (!r.ok) return r.resultado;
 
   const d = extrairJson(r.texto);

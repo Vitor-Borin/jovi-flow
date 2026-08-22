@@ -21,7 +21,8 @@ const RECUO_POR_NIVEL = spacing(6);
 
 export function OrganizeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { destino, definirDestino } = useFlow();
+  const { destino, definirDestino, classificacao } = useFlow();
+  const pastaNova = classificacao?.pastaNova === true;
   const reduzir = useReduzirMovimento();
   const [modalAberto, setModalAberto] = useState(false);
 
@@ -43,6 +44,17 @@ export function OrganizeScreen({ navigation }: Props) {
         contentContainerStyle={[styles.conteudo, { paddingBottom: insets.bottom + spacing(6) }]}
       >
         <Text style={styles.titulo}>Será salvo em:</Text>
+
+        {/* Quando nenhuma pasta existente servia, o Flow abre uma — e diz que
+            abriu, em vez de deixar o estudante descobrir depois. */}
+        {pastaNova ? (
+          <View style={styles.avisoNova}>
+            <MaterialCommunityIcons name="folder-plus-outline" size={16} color={colors.primaryHi} />
+            <Text style={styles.textoAvisoNova}>
+              Assunto novo: nenhuma pasta sua servia, então o Flow criou esta.
+            </Text>
+          </View>
+        ) : null}
 
         <View style={styles.arvore}>
           {linhas.map((linha, indice) => (
@@ -236,6 +248,24 @@ const styles = StyleSheet.create({
     color: colors.text,
     marginTop: spacing(2),
     marginBottom: spacing(7),
+  },
+  avisoNova: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing(2.5),
+    backgroundColor: colors.primarySoft,
+    borderWidth: 1,
+    borderColor: colors.primaryEdge,
+    borderRadius: radius.md,
+    paddingVertical: spacing(3),
+    paddingHorizontal: spacing(3.5),
+    marginBottom: spacing(6),
+  },
+  textoAvisoNova: {
+    ...font.small,
+    color: colors.text,
+    flex: 1,
+    lineHeight: 17,
   },
   arvore: {
     alignSelf: 'stretch',

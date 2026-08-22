@@ -46,30 +46,89 @@ export const gradeHoraria: Slot[] = [
   { dia: 4, inicio: '21:15', fim: '22:55', materia: 'Programação', disciplina: 'Computational Thinking with Python', sala: 'LAB 402' },
 ];
 
-/** Slot usado fora de horario de aula: quinta, Front-End Design — o mesmo da
- *  apresentacao, para o card seguir coerente se o horario escorregar. */
-const SLOT_PADRAO: Slot = {
-  dia: 4,
-  inicio: '19:20',
-  fim: '21:00',
-  materia: 'Design',
-  disciplina: 'Front-End Design',
-  sala: 'LAB 402',
-};
-
-/** Sempre devolve um slot para a demo funcionar em qualquer dia/hora. */
-export function slotAtual(agora = new Date()): { slot: Slot; aoVivo: boolean } {
+/**
+ * A aula que esta acontecendo AGORA, ou null.
+ *
+ * Devolver null de proposito. A versao anterior devolvia sempre um slot, e a
+ * tela exibia "Confirmado pela sua grade" mesmo num domingo a tarde, em casa —
+ * afirmando uma confirmacao que nunca aconteceu. Preferimos admitir que nao
+ * sabemos a mentir com confianca.
+ */
+export function aulaAgora(agora = new Date()): Slot | null {
   const dia = agora.getDay();
   const min = agora.getHours() * 60 + agora.getMinutes();
-  const toMin = (h: string) => {
-    const [horas = 0, minutos = 0] = h.split(':').map(Number);
-    return horas * 60 + minutos;
-  };
-  const emAula = gradeHoraria.find(
-    (s) => s.dia === dia && min >= toMin(s.inicio) && min <= toMin(s.fim)
+  return (
+    gradeHoraria.find((s) => s.dia === dia && min >= toMin(s.inicio) && min <= toMin(s.fim)) ?? null
   );
-  if (emAula) return { slot: emAula, aoVivo: true };
-  return { slot: SLOT_PADRAO, aoVivo: false };
+}
+
+function toMin(h: string): number {
+  const [horas = 0, minutos = 0] = h.split(':').map(Number);
+  return horas * 60 + minutos;
+}
+
+/** A proxima aula da grade, varrendo a semana para a frente a partir de agora.
+ *  Usado no Inicio, onde a pergunta e "qual e a proxima", nao "onde estou". */
+export function proximaAula(agora = new Date()): { slot: Slot; emAula: boolean } {
+  const atual = aulaAgora(agora);
+  if (atual) return { slot: atual, emAula: true };
+
+  const dia = agora.getDay();
+  const min = agora.getHours() * 60 + agora.getMinutes();
+
+  // Procura ainda hoje, depois nos proximos seis dias, e por fim volta ao topo.
+  for (let avanco = 0; avanco < 7; avanco += 1) {
+    const d = (dia + avanco) % 7;
+    const candidatos = gradeHoraria
+      .filter((s) => s.dia === d && (avanco > 0 || toMin(s.inicio) > min))
+      .sort((a, b) => toMin(a.inicio) - toMin(b.inicio));
+    const proximo = candidatos[0];
+    if (proximo) return { slot: proximo, emAula: false };
+  }
+
+  return { slot: gradeHoraria[0], emAula: false };
+}
+
+/**
+ * Como o Flow chegou na materia desta captura.
+ *
+ * Tres estados, do mais forte para o mais fraco. O primeiro e o diferencial do
+ * projeto; o terceiro e a admissao honesta de que a grade nao ajuda aqui — o que
+ * cobre o caso do estudante revisando em casa, num sabado, longe da faculdade.
+ */
+export type ContextoCaptura =
+  | { tipo: 'em-aula'; slot: Slot }
+  | { tipo: 'disciplina-conhecida'; slot: Slot }
+  | { tipo: 'assunto-novo' };
+
+function normalizar(t: string): string {
+  return t
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .trim();
+}
+
+export function contextoDaCaptura(
+  materiaDetectada: string,
+  agora = new Date()
+): ContextoCaptura {
+  const emAula = aulaAgora(agora);
+  if (emAula) return { tipo: 'em-aula', slot: emAula };
+
+  // Fora de aula a grade ainda serve — nao como relogio, mas como vocabulario
+  // das disciplinas que este estudante cursa.
+  const alvo = normalizar(materiaDetectada);
+  if (alvo !== '') {
+    const conhecida = gradeHoraria.find((s) => {
+      const m = normalizar(s.materia);
+      const d = normalizar(s.disciplina);
+      return m === alvo || d === alvo || d.includes(alvo) || alvo.includes(m);
+    });
+    if (conhecida) return { tipo: 'disciplina-conhecida', slot: conhecida };
+  }
+
+  return { tipo: 'assunto-novo' };
 }
 
 export type Etapa = { id: string; label: string; detalhe: string };
@@ -146,8 +205,15 @@ export const etapasIA: Etapa[] = [
   { id: 'fim', label: 'Finalizando', detalhe: 'Preparando ações' },
 ];
 
-/** Leitura tecnica do ganho da captura. Renderizada com numeral monoespacado,
- *  no estilo de visor de camera — ver DESIGN.md. */
+/**
+ * Leitura tecnica do ganho da captura, renderizada com numeral monoespacado no
+ * estilo de visor de camera — ver DESIGN.md.
+ *
+ * Sao ESTIMATIVAS ilustrativas do processamento, e a tela diz isso. Numa tela
+ * onde todo o resto passou a ser leitura real, apresentar estes valores como
+ * medicao seria o unico ponto sem resposta se a banca perguntar como foram
+ * obtidos — e contaminaria a credibilidade do que e verdadeiro.
+ */
 export const ganhosCaptura = [
   { label: 'Nitidez do texto', valor: '+62%' },
   { label: 'Reflexo removido', valor: '3 pontos' },
@@ -298,6 +364,14 @@ export const biblioteca: Pasta[] = [
     ],
   },
 ];
+
+/** Caminhos de pasta que ja existem. Vao no prompt de classificacao para a IA
+ *  reaproveitar um em vez de inventar um nome novo a cada captura — sem isso,
+ *  cinco fotos do mesmo assunto viram cinco pastas diferentes, que e exatamente
+ *  a bagunca que o app existe para resolver. */
+export function pastasExistentes(): string[] {
+  return biblioteca.flatMap((p) => p.subpastas.map((sub) => `${p.nome} › ${sub.nome}`));
+}
 
 /* ------------------------------------------------------------ integracoes */
 

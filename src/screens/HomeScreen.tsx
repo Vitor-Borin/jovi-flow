@@ -9,7 +9,7 @@ import { Badge } from '../components/Badge';
 import { Card } from '../components/Card';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
-import { biblioteca, economiaFormatada, slotAtual } from '../data/mock';
+import { biblioteca, economiaFormatada, proximaAula } from '../data/mock';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
 import type { RootStackParamList } from '../navigation/types';
 import { TOQUE_MIN, colors, font, fontDado, radius, shadow, spacing } from '../theme';
@@ -34,8 +34,10 @@ export function HomeScreen() {
 
   const { slot, aoVivo, ola } = useMemo(() => {
     const agora = new Date();
-    const r = slotAtual(agora);
-    return { slot: r.slot, aoVivo: r.aoVivo, ola: saudacao(agora.getHours()) };
+    // proximaAula varre a semana para a frente: fora de horario, o card mostra a
+    // aula que realmente vem a seguir, e nao um slot fixo qualquer.
+    const r = proximaAula(agora);
+    return { slot: r.slot, aoVivo: r.emAula, ola: saudacao(agora.getHours()) };
   }, []);
 
   const recentes = useMemo(

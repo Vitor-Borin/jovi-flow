@@ -8,8 +8,8 @@ import { Badge } from '../components/Badge';
 import { Card } from '../components/Card';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
-import type { NomeIcone } from '../data/mock';
-import { conteudoIdentificado, ganhosCaptura, slotAtual } from '../data/mock';
+import type { ContextoCaptura, NomeIcone } from '../data/mock';
+import { conteudoIdentificado, contextoDaCaptura, ganhosCaptura } from '../data/mock';
 import type { RootStackParamList } from '../navigation/types';
 import { useFlow } from '../store/FlowContext';
 import { colors, font, fontDado, fontMono, radius, spacing } from '../theme';
@@ -36,16 +36,15 @@ export function IdentifiedScreen({ navigation }: Props) {
   const conteudo = classificacao ?? conteudoIdentificado;
 
   // Calculado uma vez: a data exibida nao pode mudar no meio da apresentacao.
-  const { slot, aoVivo, dataFormatada } = useMemo(() => {
+  // O contexto depende da materia detectada, entao recalcula quando a leitura
+  // real chega e substitui o exemplo.
+  const dataFormatada = useMemo(() => {
     const agora = new Date();
-    const r = slotAtual(agora);
     const dois = (n: number) => String(n).padStart(2, '0');
-    return {
-      slot: r.slot,
-      aoVivo: r.aoVivo,
-      dataFormatada: `${dois(agora.getDate())}/${dois(agora.getMonth() + 1)}/${agora.getFullYear()} — ${dois(agora.getHours())}:${dois(agora.getMinutes())}`,
-    };
+    return `${dois(agora.getDate())}/${dois(agora.getMonth() + 1)}/${agora.getFullYear()} — ${dois(agora.getHours())}:${dois(agora.getMinutes())}`;
   }, []);
+
+  const contexto = contextoDaCaptura(conteudo.materia);
 
   const campos: { rotulo: string; valor: string; icone: NomeIcone }[] = [
     { rotulo: 'Matéria', valor: conteudo.materia, icone: 'function-variant' },
@@ -75,31 +74,13 @@ export function IdentifiedScreen({ navigation }: Props) {
           </View>
         ) : null}
 
-        {/* [D2] O diferencial mais forte da tela: o Flow nao adivinha a materia,
-            ele confirma com a grade horaria do estudante. */}
-        <View style={styles.cardGrade}>
-          <View style={styles.linhaGrade}>
-            <MaterialCommunityIcons
-              name="calendar-check-outline"
-              size={20}
-              color={colors.primaryHi}
-            />
-            <Text style={styles.tituloGrade}>Confirmado pela sua grade</Text>
-            {aoVivo ? <Badge label="AGORA" variant="solid" style={styles.badgeAgora} /> : null}
-          </View>
-
-          <Text style={styles.detalheGrade}>
-            {DIAS_SEMANA[slot.dia]}, {slot.inicio} — {slot.disciplina} ·{' '}
-            {slot.remoto ? 'aula remota' : slot.sala}
-          </Text>
-
-          <Text style={styles.rodapeGrade}>
-            O Flow não adivinhou a matéria: ele cruzou com o seu horário.
-          </Text>
-        </View>
+        {/* [D2] O Flow nao adivinha a materia. Quando a grade confirma, ele diz
+            que confirmou; quando nao confirma, ele diz isso tambem, em vez de
+            afirmar um horario que nao esta acontecendo. */}
+        <CardContexto contexto={contexto} materia={conteudo.materia} />
 
         {/* [D1] Leitura tecnica do que a camera ganhou, no estilo de um visor. */}
-        <Text style={styles.tituloSecao}>Ganhos da captura</Text>
+        <Text style={styles.tituloSecao}>Ganhos da captura · estimativa</Text>
         <View style={styles.faixaGanhos}>
           {ganhosCaptura.map((ganho, indice) => (
             <View key={ganho.label} style={styles.blocoGanho}>
@@ -151,6 +132,63 @@ export function IdentifiedScreen({ navigation }: Props) {
   );
 }
 
+/* ------------------------------------------------- card de contexto [D2] */
+
+function CardContexto({
+  contexto,
+  materia,
+}: {
+  contexto: ContextoCaptura;
+  materia: string;
+}) {
+  if (contexto.tipo === 'assunto-novo') {
+    return (
+      <View style={styles.cardNovo}>
+        <View style={styles.linhaGrade}>
+          <MaterialCommunityIcons name="folder-plus-outline" size={20} color={colors.textDim} />
+          <Text style={styles.tituloNovo}>Assunto fora da sua grade</Text>
+        </View>
+        <Text style={styles.detalheGrade}>{materia}</Text>
+        <Text style={styles.rodapeGrade}>
+          Não é nenhuma das suas disciplinas, então o Flow vai abrir uma pasta nova para este
+          assunto.
+        </Text>
+      </View>
+    );
+  }
+
+  const { slot } = contexto;
+  const emAula = contexto.tipo === 'em-aula';
+
+  return (
+    <View style={styles.cardGrade}>
+      <View style={styles.linhaGrade}>
+        <MaterialCommunityIcons
+          name={emAula ? 'calendar-check-outline' : 'school-outline'}
+          size={20}
+          color={colors.primaryHi}
+        />
+        <Text style={styles.tituloGrade}>
+          {emAula ? 'Confirmado pela sua grade' : 'Uma das suas disciplinas'}
+        </Text>
+        {emAula ? <Badge label="AGORA" variant="solid" style={styles.badgeAgora} /> : null}
+      </View>
+
+      <Text style={styles.detalheGrade}>
+        {emAula
+          ? `${DIAS_SEMANA[slot.dia]}, ${slot.inicio} — ${slot.disciplina} · ${slot.remoto ? 'aula remota' : slot.sala}`
+          : slot.disciplina}
+      </Text>
+
+      <Text style={styles.rodapeGrade}>
+        {emAula
+          ? 'O Flow não adivinhou a matéria: ele cruzou com o seu horário.'
+          : 'Você não está em aula agora, mas este assunto é de uma disciplina que você cursa.'}
+      </Text>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   tela: {
     flex: 1,
@@ -185,6 +223,18 @@ const styles = StyleSheet.create({
     color: colors.primaryHi,
   },
 
+  cardNovo: {
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    padding: spacing(4),
+  },
+  tituloNovo: {
+    ...font.h3,
+    color: colors.text,
+    flexShrink: 1,
+  },
   cardGrade: {
     backgroundColor: colors.primarySoft,
     borderWidth: 1,
