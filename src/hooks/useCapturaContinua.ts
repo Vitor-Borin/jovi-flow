@@ -75,6 +75,10 @@ export function useCapturaContinua({ ativo, cameraRef, disponivel, ocupada }: Pa
 
   const montado = useRef(true);
   const emCaptura = useRef(false);
+  // Espelha `ativo` para o ciclo assincrono poder desistir no meio: sem isso, um
+  // ciclo que estava em voo quando o usuario desligou reinseria um quadro DEPOIS
+  // da limpeza, deixando um resto na tela.
+  const ativoRef = useRef(ativo);
   const tamanhoReferencia = useRef<number | null>(null);
   const instanteUltimoGuardado = useRef(0);
 
@@ -93,6 +97,10 @@ export function useCapturaContinua({ ativo, cameraRef, disponivel, ocupada }: Pa
   }, []);
 
   useEffect(() => {
+    ativoRef.current = ativo;
+  }, [ativo]);
+
+  useEffect(() => {
     if (!ativo || !disponivel) return;
 
     const ciclo = async () => {
@@ -108,18 +116,21 @@ export function useCapturaContinua({ ativo, cameraRef, disponivel, ocupada }: Pa
 
         // Sem som e sem animacao: em sala de aula, uma camera que apita a cada
         // cinco segundos e inutilizavel.
+        // Qualidade baixa de proposito: estes quadros so viram miniatura e
+        // contagem. Cada disparo grava um arquivo no cache, e a 5s por ciclo uma
+        // sessao longa acumularia dezenas de fotos em resolucao cheia.
         const foto = await camera.takePictureAsync({
-          quality: 0.6,
+          quality: 0.3,
           shutterSound: false,
         });
-        if (!foto?.uri || !montado.current) return;
+        if (!foto?.uri || !montado.current || !ativoRef.current) return;
 
         const medida = await manipulateAsync(
           foto.uri,
           [{ resize: { width: PX_MEDICAO } }],
           { base64: true, compress: 0.5, format: SaveFormat.JPEG }
         );
-        if (!montado.current) return;
+        if (!montado.current || !ativoRef.current) return;
 
         const tamanho = medida.base64?.length ?? 0;
         if (tamanho === 0) return;
