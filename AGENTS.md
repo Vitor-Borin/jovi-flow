@@ -12,7 +12,10 @@ Apresentacao ao vivo em 27/08/2026, rodando em iPhone via Expo Go.
 
 - **SDK 54.** O Expo Go do aparelho de apresentacao e da linha 54. Nao atualizar
   o SDK: o app deixa de abrir no celular e o pitch cai.
-- **Zero rede.** OCR e IA sao simulados. O app roda 100% em modo aviao.
+- **Offline por padrao.** Existe exatamente UMA chamada de rede no projeto, em
+  `src/services/analiseAoVivo.ts`, e ela so acontece com o modo ao vivo ligado no
+  Perfil. Desligado, o app roda 100% em modo aviao. Nao introduza rede em
+  nenhum outro arquivo.
 - **Sem `any` e sem `@ts-ignore`.**
 - **Nenhuma cor fixa fora de `src/theme.ts`.**
 - **Emoji nunca como icone** — ver `DESIGN.md`.
