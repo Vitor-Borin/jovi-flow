@@ -6,6 +6,7 @@ import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
+  Image,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -21,6 +22,8 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { WhiteboardFallback } from '../components/WhiteboardFallback';
 import type { Chip, SubModo } from '../data/mock';
 import { pastasExistentes, subModos } from '../data/mock';
+import type { FrameContinuo } from '../hooks/useCapturaContinua';
+import { useCapturaContinua } from '../hooks/useCapturaContinua';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
 import {
   PX,
@@ -62,6 +65,7 @@ export function CameraScreen({ navigation }: Props) {
     definirAnalisando,
     definirTexto,
     definirDestino,
+    definirSequencia,
   } = useFlow();
 
   const modoAtual: SubModo = subModos.find((m) => m.id === subModo) ?? subModos[0];
@@ -81,6 +85,9 @@ export function CameraScreen({ navigation }: Props) {
   // Numero de sequencia da captura: se o usuario cancelar e capturar de novo,
   // so o resultado da captura mais recente vale.
   const capturaAtual = useRef(0);
+  // Trava da camera: a captura manual e o ciclo continuo passam pela mesma, para
+  // nunca chamarem takePictureAsync ao mesmo tempo.
+  const cameraOcupada = useRef(false);
 
   useEffect(() => {
     montado.current = true;
@@ -97,6 +104,16 @@ export function CameraScreen({ navigation }: Props) {
   }, [permissao, pedirPermissao]);
 
   const mostrarCamera = permissao?.granted === true && !erroCamera;
+
+  // A captura continua so roda com o Modo Aula ligado, camera disponivel e fora
+  // da folha de confirmacao — capturar por baixo do sheet nao faria sentido.
+  const continuaAtiva = capturaContinua && etapa === 'ativo' && mostrarCamera;
+  const sequencia = useCapturaContinua({
+    ativo: continuaAtiva,
+    cameraRef,
+    disponivel: mostrarCamera,
+    ocupada: cameraOcupada,
+  });
 
   // Gatilho da demo: a lousa e "detectada" sozinha. O toque no badge FLOW e a
   // garantia manual caso o tempo nao caia bem durante o pitch.
@@ -127,8 +144,9 @@ export function CameraScreen({ navigation }: Props) {
   }, [width, height, insets.top, insets.bottom]);
 
   const aoTocarObturador = useCallback(async () => {
-    if (capturando) return;
+    if (capturando || cameraOcupada.current) return;
     setCapturando(true);
+    cameraOcupada.current = true;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
@@ -147,6 +165,16 @@ export function CameraScreen({ navigation }: Props) {
         definirClassificacao(null);
         definirTranscricao(null);
         definirFotoBase64(null);
+
+        // A sequencia da captura continua nao pode ser descartada em silencio:
+        // ela vira parte do que foi salvo, e a tela seguinte mostra isso.
+        const quadros = sequencia.frames;
+        const primeiro = quadros[0];
+        const ultimo = quadros[quadros.length - 1];
+        definirSequencia(
+          quadros.length,
+          primeiro && ultimo ? { inicio: primeiro.hora.slice(0, 5), fim: ultimo.hora.slice(0, 5) } : null
+        );
 
         if (modoAoVivo && foto?.uri) {
           const seq = capturaAtual.current + 1;
@@ -204,6 +232,7 @@ export function CameraScreen({ navigation }: Props) {
       // Sem foto a demo continua: as telas seguintes caem no WhiteboardFallback.
       console.log('[JOVI Flow] captura falhou, seguindo sem foto:', erro);
     } finally {
+      cameraOcupada.current = false;
       if (montado.current) {
         setCapturando(false);
         setEtapa('confirmar');
@@ -221,6 +250,8 @@ export function CameraScreen({ navigation }: Props) {
     definirTexto,
     definirDestino,
     modoAtual.id,
+    definirSequencia,
+    sequencia.frames,
   ]);
 
   const alternarFlow = useCallback(() => {
@@ -254,6 +285,7 @@ export function CameraScreen({ navigation }: Props) {
               style={StyleSheet.absoluteFill}
               facing={lente}
               flash={(flashLigado ? 'on' : 'off') satisfies FlashMode}
+              animateShutter={!continuaAtiva}
               onMountError={() => setErroCamera(true)}
             />
           ) : (
@@ -295,13 +327,21 @@ export function CameraScreen({ navigation }: Props) {
 
           <View style={styles.rodapeVisor}>
             {flowLigado ? (
-              <ToggleCapturaContinua ligado={capturaContinua} onAlternar={setCapturaContinua} />
+              <ToggleCapturaContinua
+                ligado={capturaContinua}
+                onAlternar={setCapturaContinua}
+                intervalo={sequencia.intervaloSegundos}
+              />
             ) : (
               <View style={styles.pilulaZoom}>
                 <Text style={styles.textoZoom}>1x</Text>
               </View>
             )}
           </View>
+
+          {continuaAtiva && sequencia.frames.length > 0 ? (
+            <TiraSequencia frames={sequencia.frames} reduzir={reduzir} />
+          ) : null}
 
           {etapa === 'confirmar' ? <View style={styles.escurecedor} /> : null}
         </View>
@@ -531,14 +571,57 @@ function ChipsOtimizacao({ chips, reduzir }: { chips: Chip[]; reduzir: boolean }
   );
 }
 
+/* --------------------------------------------- tira da sequencia continua [D1] */
+
+function TiraSequencia({ frames, reduzir }: { frames: FrameContinuo[]; reduzir: boolean }) {
+  const pulso = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (reduzir) return;
+    const loop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(pulso, { toValue: 1, duration: 750, useNativeDriver: true }),
+        Animated.timing(pulso, { toValue: 0, duration: 750, useNativeDriver: true }),
+      ])
+    );
+    loop.start();
+    return () => loop.stop();
+  }, [reduzir, pulso]);
+
+  const opacidade = pulso.interpolate({ inputRange: [0, 1], outputRange: [1, 0.3] });
+  const ultimos = frames.slice(-5);
+
+  return (
+    <View style={styles.tira}>
+      <View style={styles.cabecalhoTira}>
+        <Animated.View style={[styles.pontoGravando, { opacity: opacidade }]} />
+        <Text style={styles.textoTira}>
+          {frames.length} {frames.length === 1 ? 'QUADRO GUARDADO' : 'QUADROS GUARDADOS'}
+        </Text>
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.listaTira}>
+        {ultimos.map((f) => (
+          <View key={f.id} style={styles.itemTira}>
+            <Image source={{ uri: f.uri }} style={styles.miniaturaTira} resizeMode="cover" />
+            <Text style={styles.horaTira}>{f.hora.slice(0, 5)}</Text>
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
+
 /* ------------------------------------------------- toggle de captura continua [D1] */
 
 function ToggleCapturaContinua({
   ligado,
   onAlternar,
+  intervalo,
 }: {
   ligado: boolean;
   onAlternar: (v: boolean) => void;
+  intervalo: number;
 }) {
   return (
     <View style={styles.blocoContinua}>
@@ -562,7 +645,7 @@ function ToggleCapturaContinua({
 
       {ligado ? (
         <Text style={styles.explicacaoContinua}>
-          A câmera captura sozinha quando a lousa mudar
+          Fotografando a cada {intervalo}s, em silêncio. Só guarda quando o conteúdo muda.
         </Text>
       ) : null}
     </View>
@@ -1010,6 +1093,53 @@ const styles = StyleSheet.create({
     ...fontDado.valor,
     fontSize: 13,
     color: colors.text,
+  },
+
+  tira: {
+    position: 'absolute',
+    left: spacing(3),
+    right: spacing(3),
+    bottom: spacing(22),
+    backgroundColor: colors.overlay,
+    borderRadius: radius.md,
+    paddingVertical: spacing(2.5),
+    paddingHorizontal: spacing(3),
+  },
+  cabecalhoTira: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing(2),
+    marginBottom: spacing(2),
+  },
+  pontoGravando: {
+    width: spacing(2),
+    height: spacing(2),
+    borderRadius: radius.pill,
+    backgroundColor: colors.danger,
+  },
+  textoTira: {
+    ...fontDado.rotulo,
+    color: colors.text,
+  },
+  listaTira: {
+    gap: spacing(2),
+  },
+  itemTira: {
+    alignItems: 'center',
+    gap: spacing(1),
+  },
+  miniaturaTira: {
+    width: spacing(11),
+    height: spacing(14),
+    borderRadius: radius.sm,
+    borderWidth: 1,
+    borderColor: colors.primaryEdge,
+    backgroundColor: colors.surfaceAlt,
+  },
+  horaTira: {
+    ...fontDado.valor,
+    fontSize: 10,
+    color: colors.textDim,
   },
 
   blocoContinua: {

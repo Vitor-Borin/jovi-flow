@@ -36,6 +36,12 @@ export type FlowState = {
   transcricao: TranscricaoAoVivo | null;
   /** Ha alguma das duas chamadas em andamento. */
   analisando: boolean;
+  /** Quantos quadros a captura continua guardou nesta sessao. Zero quando ela
+   *  nao foi usada. */
+  quadrosSequencia: number;
+  /** Horario do primeiro e do ultimo quadro guardado, para a tela seguinte
+   *  poder mostrar a janela de tempo coberta. */
+  janelaSequencia: { inicio: string; fim: string } | null;
   ativarFlow: (v: boolean) => void;
   definirFoto: (uri: string | null) => void;
   definirDestino: (d: string[]) => void;
@@ -48,6 +54,7 @@ export type FlowState = {
   definirClassificacao: (c: ClassificacaoAoVivo | null) => void;
   definirTranscricao: (t: TranscricaoAoVivo | null) => void;
   definirAnalisando: (v: boolean) => void;
+  definirSequencia: (quadros: number, janela: { inicio: string; fim: string } | null) => void;
   salvarResumo: () => void;
   /** Volta ao estado inicial. Permite refazer o pitch varias vezes sem fechar o app. */
   reiniciar: () => void;
@@ -69,6 +76,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   const [classificacao, setClassificacao] = useState<ClassificacaoAoVivo | null>(null);
   const [transcricao, setTranscricao] = useState<TranscricaoAoVivo | null>(null);
   const [analisando, setAnalisando] = useState(false);
+  const [quadrosSequencia, setQuadros] = useState(0);
+  const [janelaSequencia, setJanela] = useState<{ inicio: string; fim: string } | null>(null);
 
   const ativarFlow = useCallback((v: boolean) => setFlowAtivo(v), []);
   const definirFoto = useCallback((uri: string | null) => setFotoUri(uri), []);
@@ -81,6 +90,13 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   const definirClassificacao = useCallback((c: ClassificacaoAoVivo | null) => setClassificacao(c), []);
   const definirTranscricao = useCallback((t: TranscricaoAoVivo | null) => setTranscricao(t), []);
   const definirAnalisando = useCallback((v: boolean) => setAnalisando(v), []);
+  const definirSequencia = useCallback(
+    (quadros: number, janela: { inicio: string; fim: string } | null) => {
+      setQuadros(quadros);
+      setJanela(janela);
+    },
+    []
+  );
   const salvarResumo = useCallback(() => setResumoSalvo(true), []);
 
   const alternarPlataforma = useCallback((id: string) => {
@@ -102,6 +118,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     setClassificacao(null);
     setTranscricao(null);
     setAnalisando(false);
+    setQuadros(0);
+    setJanela(null);
     // modoAoVivo nao e limpo de proposito: e uma escolha do apresentador, e nao
     // parte do estado da captura. Reiniciar a demo nao deve desligar a API.
   }, []);
@@ -121,6 +139,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       classificacao,
       transcricao,
       analisando,
+      quadrosSequencia,
+      janelaSequencia,
       ativarFlow,
       definirFoto,
       definirDestino,
@@ -133,6 +153,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       definirClassificacao,
       definirTranscricao,
       definirAnalisando,
+      definirSequencia,
       salvarResumo,
       reiniciar,
     }),
@@ -150,6 +171,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       classificacao,
       transcricao,
       analisando,
+      quadrosSequencia,
+      janelaSequencia,
       ativarFlow,
       definirFoto,
       definirDestino,
@@ -162,6 +185,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       definirClassificacao,
       definirTranscricao,
       definirAnalisando,
+      definirSequencia,
       salvarResumo,
       reiniciar,
     ]

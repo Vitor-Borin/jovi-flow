@@ -31,7 +31,7 @@ const ALTURA_TEXTO_EXTRAIDO = 180;
 export function IdentifiedScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   // Vem do contexto, e nao do mock: a tela de Acoes permite editar este texto.
-  const { textoExtraido, classificacao } = useFlow();
+  const { textoExtraido, classificacao, quadrosSequencia, janelaSequencia } = useFlow();
   // O conteudo reconhecido de verdade tem precedencia sobre o simulado.
   const conteudo = classificacao ?? conteudoIdentificado;
 
@@ -71,6 +71,19 @@ export function IdentifiedScreen({ navigation }: Props) {
           <View style={styles.seloAoVivo}>
             <MaterialCommunityIcons name="access-point" size={14} color={colors.primaryHi} />
             <Text style={styles.textoSeloAoVivo}>LIDO DA SUA FOTO, AGORA</Text>
+          </View>
+        ) : null}
+
+        {/* A captura continua nao pode terminar em silencio: se ela guardou
+            quadros, eles fazem parte do que foi capturado. */}
+        {quadrosSequencia > 1 ? (
+          <View style={styles.faixaSequencia}>
+            <MaterialCommunityIcons name="camera-burst" size={18} color={colors.primaryHi} />
+            <Text style={styles.textoSequencia}>
+              <Text style={styles.destaqueSequencia}>{quadrosSequencia} quadros</Text> guardados pela
+              captura contínua
+              {janelaSequencia ? `, das ${janelaSequencia.inicio} às ${janelaSequencia.fim}` : ''}
+            </Text>
           </View>
         ) : null}
 
@@ -223,6 +236,27 @@ const styles = StyleSheet.create({
     color: colors.primaryHi,
   },
 
+  faixaSequencia: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing(2.5),
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    paddingVertical: spacing(3),
+    paddingHorizontal: spacing(3.5),
+    marginBottom: spacing(4),
+  },
+  textoSequencia: {
+    ...font.small,
+    color: colors.textDim,
+    flex: 1,
+    lineHeight: 17,
+  },
+  destaqueSequencia: {
+    ...font.bodyMed,
+    fontSize: 12,
+    color: colors.text,
+  },
   cardNovo: {
     backgroundColor: colors.surface,
     borderWidth: 1,
