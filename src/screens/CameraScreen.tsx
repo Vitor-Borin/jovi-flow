@@ -312,25 +312,22 @@ export function CameraScreen({ navigation }: Props) {
             )}
           </View>
 
-          {flowLigado ? (
+          {/* Uma camada por vez sobre o visor. O cartao de descoberta explica com
+              palavras o que os chips mostram em simbolos: exibir os dois juntos
+              era dizer a mesma coisa duas vezes, em cima da imagem. */}
+          {flowLigado && !jaApresentouModoAula ? (
+            <CartaoDescoberta reduzir={reduzir} onFechar={marcarApresentacaoVista} />
+          ) : flowLigado ? (
             <View style={styles.blocoDeteccao}>
               <PilulaDeteccao reduzir={reduzir} />
-              {/* Com a sequencia continua na tela, os chips sairiam por cima.
-                  Eles ja cumpriram o papel quando o Modo Aula ligou. */}
               {sequencia.frames.length === 0 ? (
                 <ChipsOtimizacao key={modoAtual.id} chips={modoAtual.chips} reduzir={reduzir} />
               ) : null}
             </View>
           ) : null}
 
-          {/* A pesquisa do grupo mostrou que o scan da Samsung existe e ninguem
-              descobre. O Modo Aula se apresenta uma vez, no momento em que liga. */}
-          {flowLigado && !jaApresentouModoAula ? (
-            <CartaoDescoberta reduzir={reduzir} onFechar={marcarApresentacaoVista} />
-          ) : null}
-
           <View style={styles.rodapeVisor}>
-            {flowLigado ? (
+            {flowLigado && mostrarCamera ? (
               <ToggleCapturaContinua
                 ligado={capturaContinua}
                 onAlternar={setCapturaContinua}
@@ -1227,7 +1224,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     left: spacing(3),
     right: spacing(3),
-    top: spacing(16),
+    bottom: spacing(16),
     backgroundColor: colors.overlay,
     borderWidth: 1,
     borderColor: colors.primaryEdge,

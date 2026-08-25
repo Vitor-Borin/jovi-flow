@@ -8,65 +8,37 @@ type Props = {
 };
 
 /**
- * Lousa da aula de Front-End Design desenhada apenas com View e Text — nenhum
- * arquivo de imagem.
+ * Lousa de aula desenhada apenas com View e Text, sem arquivo de imagem.
  *
- * Motivo: entra no lugar do visor quando a permissao de camera e negada ou o app
- * roda em emulador. Garante que a demonstracao funcione em qualquer situacao,
- * sem nunca deixar a tela preta.
+ * Entra no lugar do visor quando a permissao de camera e negada ou o app roda em
+ * emulador, para a demonstracao nunca mostrar uma tela preta.
  *
- * O conteudo e Flexbox de proposito: e o que a disciplina em que a apresentacao
- * acontece esta ensinando, e o que o proprio brief da Sprint 2 exige.
+ * Ela e FUNDO, e nao conteudo. A versao anterior era uma ficha de consulta com
+ * dezessete linhas sobre Flexbox, competindo com os badges, a pilula de
+ * deteccao, os chips e o cartao de descoberta que ficam por cima dela. Precisa
+ * apenas parecer um quadro de aula num relance.
  */
 export function WhiteboardFallback({ style }: Props) {
   return (
     <View
       style={[styles.quadro, style]}
       accessible
-      accessibilityLabel="Lousa da aula de Front-End Design, sobre Flexbox: eixos, alinhamento e propriedades dos itens."
+      accessibilityLabel="Lousa de aula sobre Flexbox, usada como exemplo quando a câmera não está disponível."
     >
       <Text style={styles.titulo}>FLEXBOX</Text>
-      <View style={styles.sublinhadoTitulo} />
+      <View style={styles.sublinhado} />
 
-      <View style={styles.caixaCodigo}>
-        <Text style={styles.codigo}>.container {'{'} display: flex; {'}'}</Text>
-      </View>
+      <Text style={styles.codigo}>display: flex</Text>
 
-      <View style={styles.colunas}>
-        <View style={styles.coluna}>
-          <Text style={styles.secaoVermelha}>EIXO PRINCIPAL</Text>
-          <Text style={styles.corpo}>justify-content</Text>
-          <Text style={styles.valor}>flex-start</Text>
-          <Text style={styles.valor}>center</Text>
-          <Text style={styles.valor}>space-between</Text>
-        </View>
-
-        <View style={styles.divisorVertical} />
-
-        <View style={styles.coluna}>
-          <Text style={styles.secaoAzul}>EIXO CRUZADO</Text>
-          <Text style={styles.corpo}>align-items</Text>
-          <Text style={styles.valor}>stretch</Text>
-          <Text style={styles.valor}>center</Text>
-          <Text style={styles.valor}>baseline</Text>
-        </View>
-      </View>
-
-      {/* Desenho do container com tres itens, como um professor rascunharia. */}
+      {/* Container com tres itens, como um professor rascunharia no quadro. */}
       <View style={styles.demo}>
-        <View style={styles.demoItem} />
-        <View style={styles.demoItem} />
-        <View style={styles.demoItem} />
+        <View style={styles.item} />
+        <View style={styles.item} />
+        <View style={styles.item} />
       </View>
-      <Text style={styles.legendaDemo}>row · space-between</Text>
 
-      <View style={styles.divisorHorizontal} />
-
-      <Text style={styles.secaoAzul}>NOS ITENS</Text>
-      <Text style={styles.item}>• flex-grow → cresce se sobrar espaço</Text>
-      <Text style={styles.item}>• flex-shrink → encolhe se faltar</Text>
-      <Text style={styles.item}>• flex-basis → tamanho de partida</Text>
-      <Text style={styles.itemDestaque}>flex: 1 == flex: 1 1 0%</Text>
+      <Text style={styles.eixo}>justify-content →</Text>
+      <Text style={styles.eixo}>align-items ↓</Text>
     </View>
   );
 }
@@ -76,109 +48,49 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.board,
     borderRadius: radius.lg,
-    padding: spacing(4),
+    paddingVertical: spacing(8),
+    paddingHorizontal: spacing(6),
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: spacing(4),
     overflow: 'hidden',
   },
   titulo: {
-    fontSize: 22,
+    fontSize: 26,
     fontWeight: '700',
-    letterSpacing: 3,
-    textAlign: 'center',
+    letterSpacing: 4,
     color: colors.boardBlue,
   },
-  sublinhadoTitulo: {
+  sublinhado: {
     height: 2,
-    width: '38%',
-    alignSelf: 'center',
+    width: spacing(24),
     backgroundColor: colors.boardBlue,
-    marginTop: spacing(0.5),
-    marginBottom: spacing(2.5),
-  },
-  caixaCodigo: {
-    borderWidth: 1,
-    borderColor: colors.boardRed,
-    borderRadius: radius.sm,
-    paddingVertical: spacing(1.5),
-    paddingHorizontal: spacing(2.5),
-    alignSelf: 'center',
-    marginBottom: spacing(3),
+    marginTop: -spacing(3),
   },
   codigo: {
-    fontSize: 12,
-    color: colors.boardInk,
-  },
-  colunas: {
-    flexDirection: 'row',
-  },
-  coluna: {
-    flex: 1,
-  },
-  divisorVertical: {
-    width: 1,
-    backgroundColor: colors.boardLine,
-    marginHorizontal: spacing(3),
-  },
-  divisorHorizontal: {
-    height: 1,
-    backgroundColor: colors.boardRed,
-    marginVertical: spacing(2.5),
-  },
-  secaoVermelha: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    color: colors.boardRed,
-    marginBottom: spacing(1.5),
-  },
-  secaoAzul: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.8,
-    color: colors.boardBlue,
-    marginBottom: spacing(1.5),
-  },
-  corpo: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: colors.boardInk,
-    marginBottom: spacing(1),
-  },
-  valor: {
-    fontSize: 10,
-    lineHeight: 15,
+    fontSize: 15,
     color: colors.boardInk,
   },
   demo: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    borderWidth: 1,
+    alignSelf: 'stretch',
+    borderWidth: 1.5,
     borderColor: colors.boardInk,
     borderRadius: radius.sm,
-    padding: spacing(1.5),
-    marginTop: spacing(3),
-  },
-  demoItem: {
-    width: spacing(7),
-    height: spacing(5),
-    borderRadius: 2,
-    backgroundColor: colors.boardBlue,
-    opacity: 0.75,
-  },
-  legendaDemo: {
-    fontSize: 9,
-    color: colors.boardInk,
-    textAlign: 'center',
-    marginTop: spacing(1),
+    padding: spacing(2),
+    marginTop: spacing(2),
   },
   item: {
-    fontSize: 11,
-    lineHeight: 17,
-    color: colors.boardInk,
+    width: spacing(11),
+    height: spacing(8),
+    borderRadius: 2,
+    backgroundColor: colors.boardBlue,
+    opacity: 0.7,
   },
-  itemDestaque: {
-    fontSize: 11,
-    fontWeight: '700',
+  eixo: {
+    fontSize: 13,
     color: colors.boardRed,
-    marginTop: spacing(1),
+    alignSelf: 'flex-start',
   },
 });

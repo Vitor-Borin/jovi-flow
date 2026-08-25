@@ -120,12 +120,19 @@ export function contextoDaCaptura(
   // das disciplinas que este estudante cursa.
   const alvo = normalizar(materiaDetectada);
   if (alvo !== '') {
-    const conhecida = gradeHoraria.find((s) => {
-      const m = normalizar(s.materia);
+    // Ordem importa. A busca por substring casava "Design" com "Software &
+    // Total Experience Design" de segunda, que vem antes na grade, e a tela
+    // mostrava a disciplina errada. Casamento exato tem precedencia.
+    const exato = gradeHoraria.find(
+      (s) => normalizar(s.materia) === alvo || normalizar(s.disciplina) === alvo
+    );
+    if (exato) return { tipo: 'disciplina-conhecida', slot: exato };
+
+    const parcial = gradeHoraria.find((s) => {
       const d = normalizar(s.disciplina);
-      return m === alvo || d === alvo || d.includes(alvo) || alvo.includes(m);
+      return d.startsWith(alvo) || alvo.startsWith(normalizar(s.materia));
     });
-    if (conhecida) return { tipo: 'disciplina-conhecida', slot: conhecida };
+    if (parcial) return { tipo: 'disciplina-conhecida', slot: parcial };
   }
 
   return { tipo: 'assunto-novo' };
@@ -225,37 +232,17 @@ export const conteudoIdentificado = {
   tema: 'Front-End Design — Layout',
   topico: 'Flexbox: eixos, alinhamento e distribuição',
   textoExtraido: [
-    'FLEXBOX — layout em uma dimensão',
+    'FLEXBOX',
     '',
-    '1. Ativando',
-    '.container { display: flex; }',
-    'O elemento pai vira flex container.',
-    'Os filhos diretos viram flex items.',
+    '.container { display: flex }',
     '',
-    '2. Os dois eixos',
-    'flex-direction: row     -> eixo principal na horizontal',
-    'flex-direction: column  -> eixo principal na vertical',
+    'flex-direction: row | column',
+    '   define o eixo principal',
     '',
-    'O eixo cruzado é sempre perpendicular ao principal.',
-    'Trocar a direção troca o papel das duas propriedades abaixo.',
+    'justify-content  ->  eixo principal',
+    'align-items      ->  eixo cruzado',
     '',
-    '3. Alinhamento',
-    'justify-content -> distribui no eixo PRINCIPAL',
-    '   flex-start | center | space-between | space-around | space-evenly',
-    '',
-    'align-items     -> alinha no eixo CRUZADO',
-    '   stretch | flex-start | center | baseline',
-    '',
-    '4. Nos itens',
-    'flex-grow   -> quanto o item cresce se sobrar espaço',
-    'flex-shrink -> quanto encolhe se faltar espaço',
-    'flex-basis  -> tamanho de partida antes de crescer/encolher',
-    '',
-    'atalho: flex: 1  ==  flex: 1 1 0%',
-    '',
-    '5. Cuidado',
-    'gap: 16px  substitui margin nos filhos',
-    'flex-wrap: wrap  permite quebrar em várias linhas',
+    'flex: 1  ==  flex: 1 1 0%',
   ].join('\n'),
 };
 
