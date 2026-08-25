@@ -132,15 +132,12 @@ export function ActionsScreen({ navigation }: Props) {
           </View>
         ) : null}
 
-        {/* Uma das dores da pesquisa do grupo era falta de espaco no celular. */}
-        <View style={styles.blocoEconomia}>
-          <MaterialCommunityIcons name="database-check-outline" size={18} color={colors.primaryHi} />
-          <Text style={styles.textoEconomia}>
-            Guardado como <Text style={styles.destaqueEconomia}>{eco.porAula}</Text> de texto, e
-            não como uma foto de {eco.porAulaSemFlow}.{' '}
-            <Text style={styles.destaqueEconomia}>{eco.fator}× menos espaço.</Text>
-          </Text>
-        </View>
+        {/* Uma das dores da pesquisa do grupo era falta de espaco no celular.
+            Linha simples em vez de card: a tela ja tem caixas demais. */}
+        <Text style={styles.linhaEconomia}>
+          <Text style={styles.destaqueEconomia}>{eco.porAula}</Text> de texto no lugar de{' '}
+          {eco.porAulaSemFlow} de foto · <Text style={styles.destaqueEconomia}>{eco.fator}× menos</Text>
+        </Text>
 
         <Text style={styles.subtitulo}>O que deseja fazer agora?</Text>
 
@@ -328,23 +325,12 @@ const styles = StyleSheet.create({
     color: colors.primaryHi,
   },
 
-  blocoEconomia: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: spacing(2.5),
-    alignSelf: 'stretch',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: spacing(3.5),
-    marginTop: spacing(5),
-  },
-  textoEconomia: {
+  linhaEconomia: {
     ...font.small,
-    color: colors.textDim,
+    color: colors.textFaint,
+    textAlign: 'center',
     lineHeight: 18,
-    flex: 1,
+    marginTop: spacing(4),
   },
   destaqueEconomia: {
     ...font.bodyMed,

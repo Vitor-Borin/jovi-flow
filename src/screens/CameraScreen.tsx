@@ -315,7 +315,11 @@ export function CameraScreen({ navigation }: Props) {
           {flowLigado ? (
             <View style={styles.blocoDeteccao}>
               <PilulaDeteccao reduzir={reduzir} />
-              <ChipsOtimizacao key={modoAtual.id} chips={modoAtual.chips} reduzir={reduzir} />
+              {/* Com a sequencia continua na tela, os chips sairiam por cima.
+                  Eles ja cumpriram o papel quando o Modo Aula ligou. */}
+              {sequencia.frames.length === 0 ? (
+                <ChipsOtimizacao key={modoAtual.id} chips={modoAtual.chips} reduzir={reduzir} />
+              ) : null}
             </View>
           ) : null}
 
@@ -356,11 +360,7 @@ export function CameraScreen({ navigation }: Props) {
         <CarrosselModos selecionado={modo} onSelecionar={setModo} />
       )}
 
-      {flowLigado ? (
-        <Text style={styles.problemaModo} numberOfLines={1}>
-          {modoAtual.problema}
-        </Text>
-      ) : null}
+
 
       <LinhaObturador
         modoAula={flowLigado}
@@ -1223,14 +1223,6 @@ const styles = StyleSheet.create({
   textoSeletorAtivo: {
     color: colors.primaryHi,
   },
-  problemaModo: {
-    ...font.small,
-    color: colors.textFaint,
-    textAlign: 'center',
-    paddingHorizontal: spacing(6),
-    marginTop: -spacing(1),
-  },
-
   descoberta: {
     position: 'absolute',
     left: spacing(3),
