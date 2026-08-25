@@ -1,24 +1,33 @@
-import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useEffect, useMemo, useRef } from 'react';
-import { Animated, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Badge } from '../components/Badge';
 import { Card } from '../components/Card';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
-import { biblioteca, economiaFormatada, proximaAula } from '../data/mock';
+import { biblioteca, economiaFormatada, flashcards, proximaAula } from '../data/mock';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
 import type { RootStackParamList } from '../navigation/types';
-import { TOQUE_MIN, colors, font, fontDado, radius, shadow, spacing } from '../theme';
+import { colors, font, fontDado, radius, shadow, spacing } from '../theme';
 
-const ESTATISTICAS = [
-  { valor: '12', label: 'Aulas capturadas' },
-  { valor: '4', label: 'Matérias' },
-  { valor: '38', label: 'Flashcards' },
-];
+/** Conta o acervo de verdade. Antes estes tres numeros eram fixos no codigo e
+ *  nao batiam com a aba Estudos: a tela dizia 12 aulas e 4 materias onde existiam
+ *  5 e 3. Numero que a interface apresenta como contagem tem de ser contagem. */
+function contarAcervo() {
+  const aulas = biblioteca.reduce(
+    (total, pasta) => total + pasta.subpastas.reduce((s, sub) => s + sub.aulas.length, 0),
+    0
+  );
+  return [
+    { valor: String(aulas), label: 'Aulas capturadas' },
+    { valor: String(biblioteca.length), label: 'Matérias' },
+    { valor: String(flashcards.length), label: 'Flashcards' },
+  ];
+}
 
 function saudacao(hora: number): string {
   if (hora < 12) return 'Bom dia';
@@ -31,6 +40,7 @@ export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const reduzir = useReduzirMovimento();
   const eco = economiaFormatada();
+  const estatisticas = useMemo(contarAcervo, []);
 
   const { slot, aoVivo, ola } = useMemo(() => {
     const agora = new Date();
@@ -54,23 +64,12 @@ export function HomeScreen() {
 
   return (
     <View style={styles.tela}>
-      <ScreenHeader
-        right={
-          <Pressable
-            accessibilityRole="button"
-            accessibilityLabel="Notificações"
-            style={styles.botaoTopo}
-          >
-            <Ionicons name="notifications-outline" size={22} color={colors.textDim} />
-          </Pressable>
-        }
-      />
+      <ScreenHeader />
 
       <ScrollView
         contentContainerStyle={[styles.conteudo, { paddingBottom: insets.bottom + spacing(8) }]}
       >
         <Text style={styles.saudacao}>{ola}, Vitor</Text>
-        <Text style={styles.subtitulo}>Pronto para capturar sua próxima aula?</Text>
 
         {/* [D2] A grade horaria da contexto ao app inteiro, nao so a captura. */}
         <Card style={[styles.cardAula, aoVivo && styles.cardAulaAoVivo]}>
@@ -87,7 +86,7 @@ export function HomeScreen() {
             <View style={styles.itemMeta}>
               <MaterialCommunityIcons name="clock-outline" size={15} color={colors.textDim} />
               <Text style={styles.textoMeta}>
-                {slot.inicio} — {slot.fim}
+                {slot.inicio} às {slot.fim}
               </Text>
             </View>
             <View style={styles.itemMeta}>
@@ -152,7 +151,7 @@ export function HomeScreen() {
         </View>
 
         <View style={styles.faixaStats}>
-          {ESTATISTICAS.map((stat, indice) => (
+          {estatisticas.map((stat, indice) => (
             <View key={stat.label} style={styles.blocoStat}>
               {indice > 0 ? <View style={styles.divisorStat} /> : null}
               <View style={styles.miolodStat}>
@@ -198,23 +197,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: colors.bg,
   },
-  botaoTopo: {
-    width: TOQUE_MIN,
-    height: TOQUE_MIN,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   conteudo: {
     paddingHorizontal: spacing(5),
   },
   saudacao: {
     ...font.h1,
     color: colors.text,
-  },
-  subtitulo: {
-    ...font.body,
-    color: colors.textDim,
-    marginTop: spacing(2),
     marginBottom: spacing(6),
   },
 

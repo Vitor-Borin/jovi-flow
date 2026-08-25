@@ -8,7 +8,7 @@
 // camada de dados pura e testavel fora do bundle.
 import type { MaterialCommunityIcons } from '@expo/vector-icons';
 
-/** Nome de icone valido. Substitui os emoji do plano original — ver DESIGN.md. */
+/** Nome de icone valido, no lugar dos emoji do plano original. Ver DESIGN.md. */
 export type NomeIcone = keyof typeof MaterialCommunityIcons.glyphMap;
 
 export type Slot = {
@@ -25,9 +25,9 @@ export type Slot = {
 };
 
 /** Diferencial: a grade horaria do estudante da contexto a camera.
- *  O Flow nao adivinha a materia — ele confirma com o horario. */
+ *  O Flow nao adivinha a materia: ele confirma com o horario. */
 /**
- * Grade real do Vitor — Engenharia de Software, FIAP Paulista, noturno.
+ * Grade real do Vitor, do curso de Engenharia de Software na FIAP Paulista, noturno.
  * Copiada do cronograma de aulas da faculdade, sem inventar horario nem sala.
  * E o que torna a confirmacao por contexto verificavel por qualquer pessoa na
  * sala no dia da apresentacao.
@@ -50,7 +50,7 @@ export const gradeHoraria: Slot[] = [
  * A aula que esta acontecendo AGORA, ou null.
  *
  * Devolver null de proposito. A versao anterior devolvia sempre um slot, e a
- * tela exibia "Confirmado pela sua grade" mesmo num domingo a tarde, em casa —
+ * tela exibia "Confirmado pela sua grade" mesmo num domingo a tarde, em casa,
  * afirmando uma confirmacao que nunca aconteceu. Preferimos admitir que nao
  * sabemos a mentir com confianca.
  */
@@ -93,7 +93,7 @@ export function proximaAula(agora = new Date()): { slot: Slot; emAula: boolean }
  * Como o Flow chegou na materia desta captura.
  *
  * Tres estados, do mais forte para o mais fraco. O primeiro e o diferencial do
- * projeto; o terceiro e a admissao honesta de que a grade nao ajuda aqui — o que
+ * projeto; o terceiro e a admissao honesta de que a grade nao ajuda aqui, o que
  * cobre o caso do estudante revisando em casa, num sabado, longe da faculdade.
  */
 export type ContextoCaptura =
@@ -116,7 +116,7 @@ export function contextoDaCaptura(
   const emAula = aulaAgora(agora);
   if (emAula) return { tipo: 'em-aula', slot: emAula };
 
-  // Fora de aula a grade ainda serve — nao como relogio, mas como vocabulario
+  // Fora de aula a grade ainda serve, nao como relogio, mas como vocabulario
   // das disciplinas que este estudante cursa.
   const alvo = normalizar(materiaDetectada);
   if (alvo !== '') {
@@ -214,12 +214,12 @@ export const etapasIA: Etapa[] = [
 
 /**
  * Leitura tecnica do ganho da captura, renderizada com numeral monoespacado no
- * estilo de visor de camera — ver DESIGN.md.
+ * estilo de visor de camera. Ver DESIGN.md.
  *
  * Sao ESTIMATIVAS ilustrativas do processamento, e a tela diz isso. Numa tela
  * onde todo o resto passou a ser leitura real, apresentar estes valores como
  * medicao seria o unico ponto sem resposta se a banca perguntar como foram
- * obtidos — e contaminaria a credibilidade do que e verdadeiro.
+ * obtidos, e contaminaria a credibilidade do que e verdadeiro.
  */
 export const ganhosCaptura = [
   { label: 'Nitidez do texto', valor: '+62%' },
@@ -229,7 +229,7 @@ export const ganhosCaptura = [
 
 export const conteudoIdentificado = {
   materia: 'Design',
-  tema: 'Front-End Design — Layout',
+  tema: 'Front-End Design · Layout',
   topico: 'Flexbox: eixos, alinhamento e distribuição',
   textoExtraido: [
     'FLEXBOX',
@@ -263,11 +263,11 @@ export const flashcards: Flashcard[] = [
   { p: 'O que display: flex faz?', r: 'Transforma o elemento em flex container. Todos os filhos diretos viram flex items.' },
   { p: 'Flexbox trabalha em quantas dimensões?', r: 'Uma. Linha ou coluna. Para as duas ao mesmo tempo existe o Grid.' },
   { p: 'O que flex-direction define?', r: 'Qual é o eixo principal: row deixa horizontal, column deixa vertical.' },
-  { p: 'justify-content atua em qual eixo?', r: 'No eixo principal — o mesmo que flex-direction definiu.' },
+  { p: 'justify-content atua em qual eixo?', r: 'No eixo principal, o mesmo que flex-direction definiu.' },
   { p: 'align-items atua em qual eixo?', r: 'No eixo cruzado, sempre perpendicular ao principal.' },
   { p: 'O que acontece com justify-content se eu mudar para column?', r: 'Ele passa a distribuir na vertical, porque o eixo principal mudou.' },
   { p: 'Para que serve flex-grow?', r: 'Define o quanto o item cresce quando sobra espaço no container.' },
-  { p: 'O que significa flex: 1?', r: 'É o atalho de flex: 1 1 0% — cresce, encolhe e parte do tamanho zero.' },
+  { p: 'O que significa flex: 1?', r: 'É o atalho de flex: 1 1 0%: cresce, encolhe e parte do tamanho zero.' },
   { p: 'Qual a diferença entre gap e margin no Flexbox?', r: 'gap cria espaço entre os itens sem afetar as bordas externas; margin afeta cada item individualmente.' },
   { p: 'O que faz flex-wrap: wrap?', r: 'Permite que os itens quebrem para a linha seguinte quando não couberem.' },
 ];
@@ -294,15 +294,25 @@ export const questoes: Questao[] = [
 
 export type Aula = { id: string; titulo: string; data: string; hora: string; novo?: boolean };
 
+/** Encurta o topico para caber num titulo de aula. "Flexbox: eixos, alinhamento
+ *  e distribuicao" vira "Flexbox". */
+export function tituloDaCaptura(topico: string): string {
+  const corte = topico.split(/[:.]/)[0] ?? topico;
+  const limpo = corte.trim();
+  return limpo.length > 32 ? `${limpo.slice(0, 32).trimEnd()}...` : limpo;
+}
+
 /** A aula que o usuario acabou de capturar, com a data e a hora reais do momento.
- *  Usada na arvore de destino e no topo de Meus Estudos, com o selo de nova. */
-export function aulaCapturada(agora = new Date()): Aula {
+ *  Usada na arvore de destino e no topo de Meus Estudos, com o selo de nova.
+ *  O titulo vem da leitura da IA quando o modo ao vivo esta ligado, para a aba
+ *  Estudos mostrar o que foi capturado de verdade, e nao um assunto fixo. */
+export function aulaCapturada(topico = conteudoIdentificado.topico, agora = new Date()): Aula {
   const dois = (n: number) => String(n).padStart(2, '0');
   const dia = dois(agora.getDate());
   const mes = dois(agora.getMonth() + 1);
   return {
     id: 'nova',
-    titulo: `Flexbox — Aula ${dia}/${mes}`,
+    titulo: `${tituloDaCaptura(topico)} · Aula ${dia}/${mes}`,
     data: `${dia}/${mes}/${agora.getFullYear()}`,
     hora: `${dois(agora.getHours())}:${dois(agora.getMinutes())}`,
     novo: true,
@@ -319,8 +329,8 @@ export const biblioteca: Pasta[] = [
       {
         nome: 'Front-End Design',
         aulas: [
-          { id: 'a1', titulo: 'Grid e Bento Layout — Aula 14/08', data: '14/08/2026', hora: '19:38' },
-          { id: 'a2', titulo: 'Tipografia e escala — Aula 07/08', data: '07/08/2026', hora: '19:26' },
+          { id: 'a1', titulo: 'Grid e Bento Layout · Aula 14/08', data: '14/08/2026', hora: '19:38' },
+          { id: 'a2', titulo: 'Tipografia e escala · Aula 07/08', data: '07/08/2026', hora: '19:26' },
         ],
       },
     ],
@@ -332,8 +342,8 @@ export const biblioteca: Pasta[] = [
       {
         nome: 'Computational Thinking with Python',
         aulas: [
-          { id: 'b1', titulo: 'Listas e repetição — Aula 20/08', data: '20/08/2026', hora: '21:32' },
-          { id: 'b2', titulo: 'Estruturas de decisão — Aula 19/08', data: '19/08/2026', hora: '21:28' },
+          { id: 'b1', titulo: 'Listas e repetição · Aula 20/08', data: '20/08/2026', hora: '21:32' },
+          { id: 'b2', titulo: 'Estruturas de decisão · Aula 19/08', data: '19/08/2026', hora: '21:28' },
         ],
       },
     ],
@@ -345,7 +355,7 @@ export const biblioteca: Pasta[] = [
       {
         nome: 'Differentiated Problem Solving',
         aulas: [
-          { id: 'c1', titulo: 'Modelagem de problemas — Aula 19/08', data: '19/08/2026', hora: '19:41' },
+          { id: 'c1', titulo: 'Modelagem de problemas · Aula 19/08', data: '19/08/2026', hora: '19:41' },
         ],
       },
     ],
@@ -353,7 +363,7 @@ export const biblioteca: Pasta[] = [
 ];
 
 /** Caminhos de pasta que ja existem. Vao no prompt de classificacao para a IA
- *  reaproveitar um em vez de inventar um nome novo a cada captura — sem isso,
+ *  reaproveitar um em vez de inventar um nome novo a cada captura. Sem isso,
  *  cinco fotos do mesmo assunto viram cinco pastas diferentes, que e exatamente
  *  a bagunca que o app existe para resolver. */
 export function pastasExistentes(): string[] {
@@ -422,7 +432,7 @@ export const economia = {
   salvoKb: 38,
   /**
    * Capturas de um semestre. Base do calculo: 5 aulas por semana, 16 semanas,
-   * e cerca de 5 fotos de quadro por aula. Numero conservador de proposito —
+   * e cerca de 5 fotos de quadro por aula. Numero conservador de proposito,
    * inflar aqui seria facil e destruiria a credibilidade se a banca perguntar.
    */
   capturasPorSemestre: 400,

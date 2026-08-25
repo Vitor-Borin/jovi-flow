@@ -115,7 +115,7 @@ export function ProcessingScreen({ navigation }: Props) {
               ? 'ANÁLISE AO VIVO EM ANDAMENTO'
               : statusAoVivo === 'ok'
                 ? 'CONTEÚDO LIDO DA SUA FOTO'
-                : 'SEM RESPOSTA A TEMPO — USANDO EXEMPLO'}
+                : 'SEM RESPOSTA A TEMPO · USANDO EXEMPLO'}
           </Text>
         ) : null}
         <GhostButton label="Cancelar" variant="outline" onPress={() => navigation.goBack()} />

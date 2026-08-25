@@ -42,3 +42,10 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# notas de trabalho e referencias que nao fazem parte da entrega
+CLAUDE.md
+AGENTS.md
+JOVI_FLOW_BUILD.md
+Image.jpg
+.claude/

@@ -97,7 +97,7 @@ export function IdentifiedScreen({ navigation }: Props) {
               <Text style={styles.metaSeparador}>·</Text>
               <Text style={styles.metaTexto}>
                 {quadrosSequencia} quadros
-                {janelaSequencia ? ` (${janelaSequencia.inicio}–${janelaSequencia.fim})` : ''}
+                {janelaSequencia ? ` (${janelaSequencia.inicio} às ${janelaSequencia.fim})` : ''}
               </Text>
             </>
           ) : null}
@@ -181,7 +181,7 @@ function CardContexto({ contexto, materia }: { contexto: ContextoCaptura; materi
 
       <Text style={styles.detalheGrade}>
         {emAula
-          ? `${DIAS_SEMANA[slot.dia]}, ${slot.inicio} — ${slot.disciplina} · ${slot.remoto ? 'aula remota' : slot.sala}`
+          ? `${DIAS_SEMANA[slot.dia]}, ${slot.inicio} · ${slot.disciplina} · ${slot.remoto ? 'aula remota' : slot.sala}`
           : slot.disciplina}
       </Text>
 

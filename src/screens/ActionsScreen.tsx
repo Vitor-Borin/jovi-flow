@@ -42,7 +42,7 @@ export function ActionsScreen({ navigation }: Props) {
   const compartilhar = async () => {
     try {
       await Share.share({
-        message: `${conteudo.tema} — ${conteudo.topico}\n\n${textoExtraido}`,
+        message: `${conteudo.tema} · ${conteudo.topico}\n\n${textoExtraido}`,
       });
     } catch {
       // O usuario fechou a folha de compartilhamento. Nao ha o que tratar.

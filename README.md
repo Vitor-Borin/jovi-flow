@@ -1,73 +1,68 @@
 # JOVI Flow
 
-Protótipo da próxima geração da experiência de câmera da **JOVI**, voltado a estudantes universitários.
+Protótipo de uma experiência de estudo dentro da câmera da JOVI, feita para estudante universitário.
 
-**Challenge FIAP × JOVI 2026** · Apresentação em 27/08/2026
-
-> "Todo mundo já tem OCR. Ninguém tem uma câmera que sabe que você está em aula."
-
----
+Challenge FIAP × JOVI 2026 · Apresentação em 27/08/2026
 
 ## O que é
 
-O professor apaga a lousa em 40 segundos. Você tem um único movimento: pegar o celular e fotografar. A dor não é tirar a foto — é o que acontece depois dela, quando a foto some entre milhares de outras na galeria e nunca mais é revisitada.
+O professor apaga a lousa em uns 40 segundos. Dá tempo de um movimento só: pegar o celular e fotografar. O problema aparece depois, quando aquela foto se perde no meio de milhares de outras na galeria e ninguém volta nela.
 
-O **JOVI Flow** é uma experiência de estudo integrada à câmera, organizada em quatro passos:
+O JOVI Flow pega essa foto e faz o resto do caminho:
 
 `Capturar → Entender → Organizar → Estudar`
 
-**Não é um aplicativo de loja.** É uma funcionalidade da câmera do aparelho — por isso o protótipo abre direto no visor, e não numa tela de menu. As demais telas são o que o Flow produziu, alcançáveis a partir da câmera, como a galeria é alcançável de dentro de qualquer câmera nativa.
+O Flow é uma funcionalidade da câmera do aparelho, do mesmo jeito que a galeria é. Por isso o protótipo abre direto no visor em vez de abrir num menu. As outras telas são o que o Flow produziu, e você chega nelas a partir da câmera.
 
 ### Os dois diferenciais
 
-**1. O Modo Aula muda o comportamento da câmera, não só o destino da foto.**
+**O Modo Aula muda o comportamento da câmera, e não apenas a pasta onde a foto cai.**
 
-Ao reconhecer uma superfície de estudo, a captura passa a combinar múltiplos frames, suprimir reflexo, corrigir perspectiva e realçar o traço. E distingue três superfícies com problemas ópticos opostos:
+Quando reconhece uma superfície de estudo, a captura passa a combinar vários frames, suprimir reflexo, corrigir perspectiva e realçar o traço. Ele separa três superfícies que têm problemas ópticos opostos entre si:
 
 | Modo | O problema que resolve |
 |---|---|
-| **Lousa** | reflexo da janela, giz apagado, foto tirada de lado |
-| **Slide** | projeção estourada em sala escura, com cintilação |
-| **Caderno** | sombra da própria mão, papel curvado sobre a mesa |
+| Lousa | reflexo da janela, giz apagado, foto tirada de lado |
+| Slide | projeção estourada em sala escura, com cintilação |
+| Caderno | sombra da própria mão, papel curvado sobre a mesa |
 
-Um "modo documento" genérico trata os três igual e falha nos três.
+Um "modo documento" genérico trata os três do mesmo jeito e erra nos três.
 
-**2. O Flow usa a grade horária do estudante como contexto.**
+**A grade horária do estudante entra como contexto.**
 
-O app não adivinha a matéria. E, quando não tem como confirmar, ele **diz que não tem** em vez de inventar. São três estados:
+O app não chuta a matéria. Quando não dá para confirmar, a tela avisa que não deu, em vez de inventar. São três situações possíveis:
 
 | Situação | O que a tela afirma |
 |---|---|
-| Em aula agora | "Confirmado pela sua grade — Front-End Design · LAB 402 · **agora**" |
-| Fora de aula, mas o assunto é de uma disciplina sua | "Uma das suas disciplinas — Front-End Design" |
-| Assunto que não está na grade | "Assunto fora da sua grade — o Flow vai abrir uma pasta nova" |
+| Em aula agora | "Confirmado pela sua grade · Front-End Design · LAB 402 · agora" |
+| Fora de aula, mas o assunto é de uma disciplina sua | "Uma das suas disciplinas: Front-End Design" |
+| Assunto que não está na grade | "Assunto fora da sua grade. O Flow vai abrir uma pasta nova" |
 
-O terceiro estado cobre o estudante revisando em casa, no fim de semana, longe da faculdade. A grade continua sendo a camada mais forte quando existe, mas deixou de ser a única.
-
----
+A terceira situação cobre quem está revisando em casa, no fim de semana, longe da faculdade. A grade continua sendo a camada mais forte quando ela existe, mas deixou de ser a única.
 
 ## Como rodar
 
-Requisitos: **Node.js 20+** e o app **Expo Go** no celular.
+Precisa de Node.js 20 ou mais novo, e do app Expo Go no celular.
 
 ```bash
 npm install
+```
+
+```bash
 npx expo start
 ```
 
-Leia o QR code com a câmera do iPhone (ou pelo próprio Expo Go no Android). O celular e o computador precisam estar na mesma rede.
+Leia o QR code com a câmera do iPhone, ou pelo próprio Expo Go no Android. O celular e o computador precisam estar na mesma rede.
 
 ### Atenção à versão do Expo Go
 
-O projeto está fixado no **Expo SDK 54**, porque essa é a versão suportada pelo Expo Go do aparelho usado na apresentação.
+O projeto está fixado no Expo SDK 54, que é a versão suportada pelo Expo Go do aparelho usado na apresentação.
 
-**Não atualize o SDK.** Se o Expo Go do celular for atualizado para uma versão mais nova, o app deixa de abrir com a mensagem *"Project is incompatible with this version of Expo Go"*. Antes da apresentação, desligue a atualização automática de apps no aparelho.
-
----
+Não atualize o SDK. Se o Expo Go do celular for atualizado para uma versão mais nova, o app para de abrir e mostra *"Project is incompatible with this version of Expo Go"*. Antes de apresentar, desligue a atualização automática de apps no aparelho.
 
 ## Modo de análise ao vivo
 
-Por padrão o app roda **inteiramente offline**, com conteúdo de exemplo. O modo ao vivo, opcional, faz a IA **ler de verdade** a foto capturada — qualquer lousa, qualquer papel, qualquer assunto.
+Por padrão o app roda inteiramente offline, com conteúdo de exemplo. O modo ao vivo é opcional e faz a IA ler de verdade a foto que você acabou de tirar, seja qual for o assunto no quadro.
 
 ### Como ligar
 
@@ -81,55 +76,51 @@ Cole uma chave da API da Anthropic na última linha do `.env` e reinicie:
 npx expo start --clear
 ```
 
-Depois, no aplicativo: **Perfil → Análise ao vivo**. Sem chave configurada, o interruptor aparece desabilitado e o app segue funcionando offline.
+Depois, dentro do app: Perfil → Análise ao vivo. Sem chave configurada o interruptor aparece desabilitado, e o app segue funcionando offline.
 
-> **Segurança.** Variáveis `EXPO_PUBLIC_*` são embutidas no pacote do aplicativo — qualquer pessoa com acesso ao bundle consegue lê-las. Use uma chave descartável, com limite de gasto configurado no Console, e revogue depois da apresentação. O `.env` está no `.gitignore` e nunca deve ser commitado.
+> **Sobre a chave.** Variáveis `EXPO_PUBLIC_*` são embutidas no pacote do aplicativo, então qualquer pessoa com acesso ao bundle consegue lê-las. Use uma chave descartável, com limite de gasto configurado no Console, e revogue depois da apresentação. O `.env` está no `.gitignore` e não deve ser commitado.
 >
-> Num produto real, a credencial ficaria no backend da JOVI e o aparelho jamais a veria. Aqui ela está no app porque é protótipo.
+> Num produto real a credencial ficaria no backend da JOVI e o aparelho nunca a veria. Aqui ela está no app porque isto é protótipo.
 
-### Como funciona: duas chamadas, não uma
+### Por que são duas chamadas em vez de uma
 
-O gargalo não é a rede — é a **geração da resposta**. Medido contra a API real, sobre a mesma imagem:
+O que demora não é a rede, é a geração da resposta. Medido contra a API real, sobre a mesma imagem:
 
 | Tarefa | Saída | Sonnet 5 | Opus 5 |
 |---|---|---|---|
-| Só classificar | 49 tokens | **2,1s** | 5,1s |
+| Só classificar | 49 tokens | 2,1s | 5,1s |
 | Transcrever tudo | 682 tokens | 8,2s | 11,5s |
 
-A parte cara de gerar — a transcrição inteira — é justamente a que fica **embaixo da tela**, num card com rolagem. Matéria, tema e tópico ficam no topo e são os primeiros que alguém lê.
+A transcrição inteira é a parte cara de gerar, e é justamente a que fica embaixo da tela, num card com rolagem. Matéria, tema e tópico ficam no topo, e são os primeiros que alguém lê.
 
 Por isso o trabalho é dividido em duas chamadas independentes, disparadas em paralelo no momento da captura:
 
 ```
-classificação   imagem de 768px    ~21 KB    ~2s    → topo da tela e pasta de destino
-transcrição     imagem de 1568px   ~250 KB   ~8s    → texto extraído e resumo
+classificação   imagem de 768px    ~21 KB    ~2s    topo da tela e pasta de destino
+transcrição     imagem de 1568px   ~250 KB   ~8s    texto extraído e resumo
 ```
 
-A classificação usa imagem pequena de propósito: medido, ela acerta igual com 768px e com 1568px. **A parte visível da tela deixa de depender de banda** — 21 KB sobem em qualquer rede. Os 250 KB alimentam o que ainda está fora da tela.
+A classificação usa imagem pequena de propósito. Medido, ela acerta igual com 768px e com 1568px, e assim a parte visível da tela para de depender de banda, porque 21 KB sobem em qualquer rede. Os 250 KB alimentam o que ainda está fora da tela.
 
 ### O que acontece quando falha
 
-Nada quebra. Sem chave, sem internet, resposta lenta ou JSON inválido: aquela parte cai no conteúdo de exemplo e o fluxo continua. As duas chamadas são independentes — uma falhar não derruba a outra. Há uma repetição automática em falha de rede, e teto de tempo em cada chamada.
+Sem chave, sem internet, resposta lenta ou JSON inválido: aquela parte cai no conteúdo de exemplo e o fluxo continua normalmente. As duas chamadas são independentes, então uma falhar não derruba a outra. Existe uma repetição automática em falha de rede, e teto de tempo em cada chamada.
 
-Como a análise roda **em paralelo com a animação de processamento**, que dura ~6,4s, o modo ao vivo não adiciona nenhuma espera percebida.
-
----
+Como a análise roda em paralelo com a animação de processamento, que dura uns 6,4s, ligar o modo ao vivo não acrescenta espera perceptível.
 
 ## Decisões de projeto
 
-**Offline por padrão, rede isolada e opcional.** Existe exatamente **uma** chamada de rede em todo o código, em `src/services/analiseAoVivo.ts`, e ela só acontece com o modo ao vivo ligado. Com ele desligado o app funciona 100% em modo avião. O motivo é prático: o Wi-Fi do campus não é confiável e um pitch de 5 minutos não sobrevive a um timeout.
+O app funciona offline por padrão. Existe exatamente uma chamada de rede em todo o código, em `src/services/analiseAoVivo.ts`, e ela só acontece com o modo ao vivo ligado. Com ele desligado o app roda 100% em modo avião. O motivo é prático: o Wi-Fi do campus não é confiável, e um pitch de 5 minutos não sobrevive a um timeout.
 
-**Estado em memória.** Sem banco de dados. Um React Context basta para o escopo do protótipo. Fechar o app zera tudo — é uma limitação conhecida e aceita.
+O estado fica em memória, sem banco de dados. Um React Context dá conta do escopo do protótipo. Fechar o app zera tudo, e isso é uma limitação conhecida e aceita.
 
-**Fora do escopo.** Login, cadastro, onboarding e configurações não foram implementados.
+Login, cadastro, onboarding e configurações ficaram fora do escopo.
 
-**Aparência.** As regras visuais estão em [`DESIGN.md`](DESIGN.md), que tem precedência sobre o plano de build. A direção é a de um instrumento de câmera — denso, técnico e numérico — e não a de um aplicativo de notas com tema escuro.
-
----
+As regras visuais estão em [`DESIGN.md`](DESIGN.md). A direção é a de um instrumento de câmera, com dado numérico à mostra, e não a de um aplicativo de notas com tema escuro.
 
 ## Viabilidade técnica
 
-O Flow não depende de tecnologia que ainda não existe. A tela **Perfil → Viabilidade técnica** lista, dentro do próprio app, qual API aberta sustenta cada peça:
+O Flow não depende de tecnologia que ainda não existe. A tela Perfil → Viabilidade técnica lista, dentro do próprio app, qual API aberta sustenta cada peça:
 
 | Capacidade | API | Onde roda |
 |---|---|---|
@@ -141,9 +132,7 @@ O Flow não depende de tecnologia que ainda não existe. A tela **Perfil → Via
 | Cruzar com a grade | Google Calendar API | nuvem |
 | Enviar para a turma | Google Classroom e Drive API | nuvem |
 
-O protótipo usa a API da Anthropic no modo ao vivo para demonstrar o conceito ponta a ponta. Numa JOVI de verdade, esse papel seria do Gemini Nano rodando no próprio aparelho.
-
----
+O protótipo usa a API da Anthropic no modo ao vivo para demonstrar o conceito ponta a ponta. Numa JOVI de verdade esse papel seria do Gemini Nano rodando no próprio aparelho.
 
 ## Stack
 
@@ -152,48 +141,65 @@ O protótipo usa a API da Anthropic no modo ao vivo para demonstrar o conceito p
 | Expo SDK | 54 |
 | React Native | 0.81.5 |
 | React | 19.1.0 |
-| TypeScript | 5.9 (modo estrito) |
+| TypeScript | 5.9, modo estrito |
 
-Navegação com React Navigation (stack nativo + abas), gráficos com `react-native-svg`, câmera com `expo-camera`, redimensionamento com `expo-image-manipulator`, ícones do `@expo/vector-icons`.
-
----
+Navegação com React Navigation, usando stack nativo e abas. Gráficos com `react-native-svg`, câmera com `expo-camera`, redimensionamento de imagem com `expo-image-manipulator`, ícones do `@expo/vector-icons`.
 
 ## Estrutura
 
 ```
-App.tsx                     providers + navegação raiz
+App.tsx                     providers e navegação raiz
 .env.example                modelo de configuração do modo ao vivo
 src/
-├── theme.ts                tokens — fonte única de cor, espaço e tipografia
+├── theme.ts                fonte única de cor, espaço e tipografia
 ├── data/mock.ts            conteúdo de exemplo, grade horária, sub-modos, plataformas
-├── store/FlowContext.tsx    estado da captura em andamento
-├── services/               análise ao vivo — o único ponto que toca a rede
-├── hooks/                  useReduzirMovimento
+├── store/FlowContext.tsx   estado da captura em andamento
+├── services/               análise ao vivo, o único ponto que toca a rede
+├── hooks/                  2 hooks
 ├── components/             8 componentes reutilizáveis
 ├── navigation/             RootStack, MainTabs e os tipos de rota
 └── screens/                13 telas
 ```
 
----
+## Regras do projeto
+
+Quem for mexer no código precisa respeitar estas, que já custaram caro para descobrir:
+
+O SDK fica no 54. Atualizar quebra o app no aparelho da apresentação.
+
+A rede vive isolada em `src/services/analiseAoVivo.ts`. Nenhum outro arquivo faz chamada externa.
+
+Nada de `any` nem de `@ts-ignore`.
+
+Nenhuma cor escrita fora de `src/theme.ts`.
+
+Emoji nunca entra como ícone. O motivo está no `DESIGN.md`.
+
+Todo texto visível ao usuário em português do Brasil.
+
+### Uma armadilha conhecida
+
+Se o Metro reclamar de um módulo que existe, quase sempre é um processo Node órfão segurando a porta 8081 com o mapa de módulos antigo. Mate o processo e suba de novo com `npx expo start --clear`.
 
 ## Qualidade
 
 ```bash
-npx tsc --noEmit     # zero erro de tipo
-npx expo-doctor      # zero problema de dependência
+npx tsc --noEmit
 ```
 
-O código não usa `any` nem `@ts-ignore`, e nenhuma cor é escrita fora de `src/theme.ts`.
+```bash
+npx expo-doctor
+```
 
-**Acessibilidade:** áreas tocáveis de no mínimo 44×44 pt, `accessibilityRole` e `accessibilityLabel` em todo elemento acionável, estado nunca comunicado apenas por cor, e animações reduzidas quando o sistema pede menos movimento.
+Os dois passam sem erro. O código não usa `any` nem `@ts-ignore`, e nenhuma cor é escrita fora de `src/theme.ts`.
 
----
+Sobre acessibilidade: área tocável de no mínimo 44×44 pt, `accessibilityRole` e `accessibilityLabel` em todo elemento acionável, estado nunca comunicado só por cor, e animação reduzida quando o sistema pede menos movimento.
 
 ## Antes de apresentar
 
-- [ ] Desligar **atualização automática de apps** no iPhone — se o Expo Go atualizar, o app não abre
-- [ ] Desligar o **Wi-Fi** e ficar só no 5G — o iOS prefere Wi-Fi mesmo quando ele está congestionado
-- [ ] Rodar o fluxo completo algumas vezes seguidas, usando **Perfil → Reiniciar demonstração** entre as voltas
-- [ ] Abrir o app no celular **antes** de subir ao palco, para o bundle já estar em memória
+- [ ] Desligar atualização automática de apps no iPhone, senão o Expo Go atualiza e o app não abre
+- [ ] Desligar o Wi-Fi e ficar só no 5G, porque o iOS prefere Wi-Fi mesmo quando ele está congestionado
+- [ ] Rodar o fluxo completo algumas vezes seguidas, usando Perfil → Reiniciar demonstração entre as voltas
+- [ ] Abrir o app no celular antes de subir ao palco, para o bundle já estar em memória
 - [ ] Gravar um vídeo de tela do fluxo funcionando, como plano B
-- [ ] Depois da apresentação: **revogar a chave da API**
+- [ ] Depois da apresentação, revogar a chave da API

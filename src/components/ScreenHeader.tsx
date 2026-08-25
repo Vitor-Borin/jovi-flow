@@ -18,7 +18,7 @@ type Props = {
  * Cabecalho de tela: voltar a esquerda, titulo ao centro, slot livre a direita.
  *
  * Os slots laterais tem largura fixa para o titulo nao dancar entre telas.
- * O recuo do topo respeita a area segura — sem isso o cabecalho fica embaixo do
+ * O recuo do topo respeita a area segura. Sem isso o cabecalho fica embaixo do
  * notch ou da Dynamic Island. O recuo vai num container proprio para nao se
  * misturar com a altura minima da barra.
  */

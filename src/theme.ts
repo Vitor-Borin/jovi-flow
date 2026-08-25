@@ -62,7 +62,7 @@ export const font = {
   tiny: { fontSize: 11, fontWeight: '600' as const, letterSpacing: 0.3 },
 };
 
-/** Monoespacado nativo das duas plataformas — sem dependencia de fonte externa.
+/** Monoespacado nativo das duas plataformas, sem dependencia de fonte externa.
  *  Usado em numero, porcentagem, angulo, horario e contador, no estilo de um
  *  visor de camera. Ver DESIGN.md. */
 export const fontMono = Platform.select({ ios: 'Menlo', default: 'monospace' });

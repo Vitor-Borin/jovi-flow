@@ -73,7 +73,7 @@ export function QuestionsScreen({ navigation }: Props) {
               {questao.alt.map((alternativa, indiceAlternativa) => {
                 const ehCerta = indiceAlternativa === questao.certa;
                 const ehEscolhida = indiceAlternativa === escolhida;
-                // Depois de responder, a certa sempre se revela — mesmo que o
+                // Depois de responder, a certa sempre se revela, mesmo que o
                 // usuario tenha errado.
                 const marcarCerta = respondida && ehCerta;
                 const marcarErrada = respondida && ehEscolhida && !ehCerta;

@@ -54,7 +54,7 @@ export function SummaryScreen({ navigation }: Props) {
   const compartilhar = async () => {
     try {
       await Share.share({
-        message: `Resumo — ${conteudo.tema}\n\n${bullets.map((b) => `• ${b}`).join('\n\n')}`,
+        message: `Resumo: ${conteudo.tema}\n\n${bullets.map((b) => `• ${b}`).join('\n\n')}`,
       });
     } catch {
       // O usuario fechou a folha de compartilhamento.

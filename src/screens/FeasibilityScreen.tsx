@@ -29,7 +29,7 @@ type Grupo = {
 
 /**
  * Entregavel pedido no brief da JOVI: viabilidade tecnica usando APIs abertas do
- * Google. Serve tambem para responder a pergunta mais provavel da banca — se o
+ * Google. Serve tambem para responder a pergunta mais provavel da banca: se o
  * Flow depende de tecnologia que ainda nao existe. Nao depende.
  */
 const GRUPOS: Grupo[] = [
@@ -78,7 +78,7 @@ const GRUPOS: Grupo[] = [
       {
         id: 'prototipo',
         o_que: 'No protótipo, a leitura real é feita por um modelo multimodal',
-        api: 'Claude (Anthropic) — demonstra o conceito ponta a ponta',
+        api: 'Claude (Anthropic), que demonstra o conceito ponta a ponta',
         onde: 'nuvem',
       },
     ],
@@ -186,7 +186,7 @@ export function FeasibilityScreen({ navigation }: Props) {
           <MaterialCommunityIcons name="airplane" size={16} color={colors.textDim} />
           <Text style={styles.textoNota}>
             As capacidades marcadas como "no aparelho" funcionam sem internet. É por isso que a
-            captura e a leitura do quadro continuam operando numa sala com sinal ruim — que é
+            captura e a leitura do quadro continuam operando numa sala com sinal ruim, que é
             exatamente onde o estudante mais precisa delas.
           </Text>
         </View>
@@ -194,7 +194,7 @@ export function FeasibilityScreen({ navigation }: Props) {
         <Text style={styles.rodape}>
           Por padrão o protótipo simula todas as etapas localmente, para que a demonstração não
           dependa da rede. O modo de análise ao vivo, no Perfil, liga a leitura real da foto por um
-          modelo multimodal — e volta sozinho para o conteúdo de exemplo se a rede falhar. Numa
+          modelo multimodal, e volta sozinho para o conteúdo de exemplo se a rede falhar. Numa
           JOVI de verdade, esse papel seria do Gemini Nano, rodando no próprio aparelho.
         </Text>
       </ScrollView>

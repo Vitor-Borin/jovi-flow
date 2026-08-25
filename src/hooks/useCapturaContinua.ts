@@ -9,7 +9,7 @@ import { SaveFormat, manipulateAsync } from 'expo-image-manipulator';
  *
  * COMO A MUDANCA E DETECTADA
  *
- * O Expo Go nao expoe stream de frames da camera — isso exigiria build nativa
+ * O Expo Go nao expoe stream de frames da camera. Isso exigiria build nativa
  * com vision-camera. O que existe e `takePictureAsync`, entao a deteccao usa um
  * sinal que da para medir com ele: o TAMANHO DO JPEG comprimido em baixa
  * resolucao.
@@ -21,7 +21,7 @@ import { SaveFormat, manipulateAsync } from 'expo-image-manipulator';
  * limiar.
  *
  * Limitacao honesta: alguem passando na frente tambem muda o tamanho. Na pratica
- * isso e aceitavel — capturar um quadro a mais custa pouco, e perder o momento em
+ * isso e aceitavel: capturar um quadro a mais custa pouco, e perder o momento em
  * que o professor terminou a demonstracao custa a aula inteira.
  *
  * Os valores medidos vao para o console a cada ciclo, para o limiar poder ser

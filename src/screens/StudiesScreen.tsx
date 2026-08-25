@@ -15,12 +15,44 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Badge } from '../components/Badge';
 import { ScreenHeader } from '../components/ScreenHeader';
 import type { Aula, Pasta } from '../data/mock';
-import { aulaCapturada, biblioteca } from '../data/mock';
+import { aulaCapturada, biblioteca, conteudoIdentificado } from '../data/mock';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
+import { useFlow } from '../store/FlowContext';
 import { TOQUE_MIN, colors, font, fontDado, radius, spacing } from '../theme';
 
 type AbaAtiva = 'pastas' | 'recentes';
 type AulaComCaminho = Aula & { caminho: string };
+
+/** Coloca a aula recem-capturada no caminho para onde o Flow disse que ela foi.
+ *  Antes ela caia sempre na primeira pasta da lista, entao a tela de organizacao
+ *  podia anunciar "Culinaria > Risoto" e a aba Estudos mostrar o item em Design.
+ *  Se a materia ou a subpasta ainda nao existirem, elas sao criadas aqui, que e
+ *  o que a tela de organizacao promete quando o assunto e novo. */
+function inserirNoDestino(acervo: Pasta[], destino: string[], nova: Aula): Pasta[] {
+  const [materia, subpasta] = destino;
+  if (!materia || !subpasta) return acervo;
+
+  const jaExiste = acervo.some((pasta) => pasta.nome === materia);
+  const atualizado = acervo.map((pasta) => {
+    if (pasta.nome !== materia) return pasta;
+    const temSub = pasta.subpastas.some((sub) => sub.nome === subpasta);
+    return {
+      ...pasta,
+      subpastas: temSub
+        ? pasta.subpastas.map((sub) =>
+            sub.nome === subpasta ? { ...sub, aulas: [nova, ...sub.aulas] } : sub
+          )
+        : [{ nome: subpasta, aulas: [nova] }, ...pasta.subpastas],
+    };
+  });
+
+  return jaExiste
+    ? atualizado
+    : [
+        { nome: materia, icone: 'folder-outline', subpastas: [{ nome: subpasta, aulas: [nova] }] },
+        ...atualizado,
+      ];
+}
 
 /** Converte a data dd/mm/aaaa e a hora hh:mm num numero comparavel. */
 function paraOrdem(aula: Aula): number {
@@ -36,23 +68,21 @@ export function StudiesScreen() {
   const [aba, setAba] = useState<AbaAtiva>('pastas');
   const [buscando, setBuscando] = useState(false);
   const [busca, setBusca] = useState('');
-  const [expandidas, setExpandidas] = useState<string[]>(['Matemática']);
+  const { destino, classificacao } = useFlow();
 
-  // A aula recem-capturada entra na pasta de Calculo, no topo, com selo de nova.
-  const nova = useMemo(() => aulaCapturada(), []);
+  // A materia de destino ja abre expandida: sem isso o usuario chegava aqui
+  // depois de capturar e o item novo ficava escondido dentro de uma pasta fechada.
+  const [expandidas, setExpandidas] = useState<string[]>(() =>
+    destino[0] ? [destino[0]] : ['Design']
+  );
+
+  const nova = useMemo(
+    () => aulaCapturada(classificacao?.topico ?? conteudoIdentificado.topico),
+    [classificacao]
+  );
   const acervo = useMemo<Pasta[]>(
-    () =>
-      biblioteca.map((pasta, indice) =>
-        indice === 0
-          ? {
-              ...pasta,
-              subpastas: pasta.subpastas.map((sub, i) =>
-                i === 0 ? { ...sub, aulas: [nova, ...sub.aulas] } : sub
-              ),
-            }
-          : pasta
-      ),
-    [nova]
+    () => inserirNoDestino(biblioteca, destino, nova),
+    [destino, nova]
   );
 
   const todasAulas = useMemo<AulaComCaminho[]>(

@@ -2,15 +2,15 @@
  * Modo ao vivo: le a foto capturada de verdade, em vez de usar o conteudo
  * simulado. Este e o UNICO ponto do aplicativo que toca a rede.
  *
- * ARQUITETURA — duas chamadas paralelas, e nao uma
+ * ARQUITETURA: duas chamadas paralelas, e nao uma
  *
  * Medido contra a API real, sobre a mesma lousa:
  *
  *   so classificar (49 tokens de saida)     Sonnet 5   2,1s
  *   transcrever tudo (682 tokens de saida)  Sonnet 5   8,2s
  *
- * O gargalo e a GERACAO da resposta, nao a rede. E a parte cara de gerar — a
- * transcricao inteira — e justamente a que aparece embaixo da tela, num card com
+ * O gargalo e a GERACAO da resposta, nao a rede. A parte cara de gerar, que e a
+ * transcricao inteira, e justamente a que aparece embaixo da tela, num card com
  * rolagem. Materia, tema e topico ficam no topo e sao os primeiros que alguem le.
  *
  * Entao o trabalho e dividido:
@@ -46,7 +46,7 @@ export const LIMITE_CLASSIFICACAO_MS = 12000;
 export const LIMITE_TRANSCRICAO_MS = 20000;
 
 /** Lado maior de cada imagem. A de transcricao usa 1568px porque e a faixa para
- *  a qual a API de visao ja reduz internamente — mandar mais nao melhora nada. */
+ *  a qual a API de visao ja reduz internamente. Mandar mais nao melhora nada. */
 const PX_CLASSIFICACAO = 768;
 const PX_TRANSCRICAO = 1568;
 const QUALIDADE_ENVIO = 0.82;
@@ -99,7 +99,7 @@ function promptClassificacao(subModo: string, pastas: string[]): string {
     '- pasta: onde salvar, como caminho de dois ou três níveis.',
     '  Se UMA das pastas existentes acima couber para este conteúdo, repita exatamente',
     '  os nomes dela, separando os níveis no array, e devolva pastaNova como false.',
-    '  Só proponha nomes novos quando nenhuma das existentes fizer sentido — nesse',
+    '  Só proponha nomes novos quando nenhuma das existentes fizer sentido. Nesse',
     '  caso devolva pastaNova como true.',
     '',
     'Tudo em português do Brasil.',
@@ -203,7 +203,7 @@ async function chamarUmaVez(
         model: MODELO,
         max_tokens: maxTokens,
         // A tarefa e ler e classificar, nao raciocinar. Esforco baixo corta
-        // varios segundos sem prejudicar a leitura — medido.
+        // varios segundos sem prejudicar a leitura. Medido.
         output_config: { effort: 'low' },
         messages: [
           {
@@ -251,7 +251,7 @@ async function chamarUmaVez(
 
 /**
  * Chama com uma repeticao em caso de falha de rede. Wifi de campus derruba
- * conexao com frequencia, e uma segunda tentativa imediata costuma passar —
+ * conexao com frequencia, e uma segunda tentativa imediata costuma passar,
  * mas nao repete quando o problema e de chave ou de formato, que repetir nao
  * resolve.
  */

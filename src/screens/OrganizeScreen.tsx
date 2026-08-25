@@ -8,7 +8,7 @@ import { Badge } from '../components/Badge';
 import { GhostButton } from '../components/GhostButton';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
-import { aulaCapturada, biblioteca } from '../data/mock';
+import { aulaCapturada, biblioteca, conteudoIdentificado } from '../data/mock';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
 import type { RootStackParamList } from '../navigation/types';
 import { useFlow } from '../store/FlowContext';
@@ -26,7 +26,12 @@ export function OrganizeScreen({ navigation }: Props) {
   const reduzir = useReduzirMovimento();
   const [modalAberto, setModalAberto] = useState(false);
 
-  const aula = useMemo(() => aulaCapturada(), []);
+  // Mesmo titulo que a aba Estudos vai mostrar depois: a arvore aqui e a
+  // previa do que vai ser gravado, entao os dois precisam bater.
+  const aula = useMemo(
+    () => aulaCapturada(classificacao?.topico ?? conteudoIdentificado.topico),
+    [classificacao]
+  );
   // A ultima linha da arvore e o arquivo, e nao uma pasta.
   const linhas = useMemo(
     () => [...destino.map((nome) => ({ nome, pasta: true })), { nome: aula.titulo, pasta: false }],
@@ -45,7 +50,7 @@ export function OrganizeScreen({ navigation }: Props) {
       >
         <Text style={styles.titulo}>Será salvo em:</Text>
 
-        {/* Quando nenhuma pasta existente servia, o Flow abre uma — e diz que
+        {/* Quando nenhuma pasta existente servia, o Flow abre uma, e diz que
             abriu, em vez de deixar o estudante descobrir depois. */}
         {pastaNova ? (
           <View style={styles.avisoNova}>

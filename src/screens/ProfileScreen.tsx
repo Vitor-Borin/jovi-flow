@@ -15,7 +15,7 @@ import { useFlow } from '../store/FlowContext';
 import { TOQUE_MIN, colors, font, fontDado, radius, spacing } from '../theme';
 
 const NOME = 'Vitor Mazer';
-const CURSO = 'Engenharia de Software — FIAP';
+const CURSO = 'Engenharia de Software · FIAP';
 
 const ITENS: { id: string; titulo: string; icone: NomeIcone }[] = [
   { id: 'grade', titulo: 'Grade horária', icone: 'calendar-month-outline' },

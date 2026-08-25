@@ -106,7 +106,7 @@ export function CameraScreen({ navigation }: Props) {
   const mostrarCamera = permissao?.granted === true && !erroCamera;
 
   // A captura continua so roda com o Modo Aula ligado, camera disponivel e fora
-  // da folha de confirmacao — capturar por baixo do sheet nao faria sentido.
+  // da folha de confirmacao: capturar por baixo do sheet nao faria sentido.
   const continuaAtiva = capturaContinua && etapa === 'ativo' && mostrarCamera;
   const sequencia = useCapturaContinua({
     ativo: continuaAtiva,
@@ -264,7 +264,7 @@ export function CameraScreen({ navigation }: Props) {
   return (
     <View style={[styles.tela, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       {/* A camera e a raiz do app: "sair" nao volta, avanca para as demais
-          superficies do Flow — como a galeria numa camera nativa. */}
+          superficies do Flow, como a galeria numa camera nativa. */}
       <BarraSuperior
         flashLigado={flashLigado}
         onAlternarFlash={() => setFlashLigado((v) => !v)}
