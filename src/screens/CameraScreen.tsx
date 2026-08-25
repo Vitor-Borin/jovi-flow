@@ -21,7 +21,7 @@ import { GhostButton } from '../components/GhostButton';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { WhiteboardFallback } from '../components/WhiteboardFallback';
 import type { Chip, SubModo } from '../data/mock';
-import { pastasExistentes, subModos } from '../data/mock';
+import { aulaAgora, pastasExistentes, subModos } from '../data/mock';
 import type { FrameContinuo } from '../hooks/useCapturaContinua';
 import { useCapturaContinua } from '../hooks/useCapturaContinua';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
@@ -697,6 +697,11 @@ function SeletorSubModo({
 
 /** Aparece uma unica vez, no instante em que o Modo Aula liga sozinho. Existe
  *  porque recurso que nao se apresenta e recurso que ninguem usa. */
+/** Aviso de que o Modo Aula ligou sozinho.
+ *
+ *  O texto so menciona a grade quando existe aula acontecendo de verdade. Antes
+ *  ele afirmava "sua agenda confirma que voce esta em aula" a qualquer hora, e
+ *  bastava abrir o app numa terca as 13h para a tela mentir. */
 function CartaoDescoberta({
   reduzir,
   onFechar,
@@ -704,6 +709,7 @@ function CartaoDescoberta({
   reduzir: boolean;
   onFechar: () => void;
 }) {
+  const emAula = useMemo(() => aulaAgora() !== null, []);
   const entrada = useRef(new Animated.Value(reduzir ? 1 : 0)).current;
 
   useEffect(() => {
@@ -741,8 +747,9 @@ function CartaoDescoberta({
         </Pressable>
       </View>
       <Text style={styles.textoDescoberta}>
-        A câmera reconheceu uma lousa e sua agenda confirma que você está em aula. A captura foi
-        ajustada para texto, não para rosto.
+        {emAula
+          ? 'A câmera reconheceu uma lousa e sua grade confirma que você está em aula. A captura foi ajustada para texto, não para rosto.'
+          : 'A câmera reconheceu uma lousa. A captura foi ajustada para texto, não para rosto.'}
       </Text>
     </Animated.View>
   );
