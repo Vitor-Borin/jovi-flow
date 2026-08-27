@@ -79,6 +79,13 @@ export function StudiesScreen() {
     destino[0] ? [destino[0]] : ['Design']
   );
 
+  // A subpasta de destino ja nasce aberta, para a captura recente aparecer sem
+  // o usuario ter de cavar. As outras ficam fechadas: abrir a materia inteira de
+  // uma vez era o que deixava a tela com cara de listagem de arquivos.
+  const [subsExpandidas, setSubsExpandidas] = useState<string[]>(() =>
+    destino[0] && destino[1] ? [`${destino[0]}/${destino[1]}`] : []
+  );
+
   const nova = useMemo(
     () => aulaCapturada(classificacao?.topico ?? conteudoIdentificado.topico),
     [classificacao]
@@ -116,6 +123,11 @@ export function StudiesScreen() {
   const alternarPasta = (nome: string) =>
     setExpandidas((atual) =>
       atual.includes(nome) ? atual.filter((n) => n !== nome) : [...atual, nome]
+    );
+
+  const alternarSubpasta = (chave: string) =>
+    setSubsExpandidas((atual) =>
+      atual.includes(chave) ? atual.filter((n) => n !== chave) : [...atual, chave]
     );
 
   return (
@@ -164,13 +176,20 @@ export function StudiesScreen() {
       >
         {aba === 'pastas'
           ? acervo.map((pasta) => {
-              const aberta = expandidas.includes(pasta.nome);
+              // Durante a busca tudo abre, senao o resultado ficaria escondido
+              // dentro de pasta fechada.
+              const aberta = termo !== '' || expandidas.includes(pasta.nome);
+              const totalPasta = pasta.subpastas.reduce(
+                (t, sub) => t + filtrar(sub.aulas.map((a) => ({ ...a, caminho: sub.nome }))).length,
+                0
+              );
+              if (termo !== '' && totalPasta === 0) return null;
               return (
                 <View key={pasta.nome} style={styles.grupo}>
                   <Pressable
                     onPress={() => alternarPasta(pasta.nome)}
                     accessibilityRole="button"
-                    accessibilityLabel={pasta.nome}
+                    accessibilityLabel={`${pasta.nome}, ${totalPasta} ${totalPasta === 1 ? 'aula' : 'aulas'}`}
                     accessibilityState={{ expanded: aberta }}
                     style={styles.cabecalhoPasta}
                   >
@@ -181,6 +200,7 @@ export function StudiesScreen() {
                       color={colors.textDim}
                     />
                     <Text style={styles.nomePasta}>{pasta.nome}</Text>
+                    <Text style={styles.contagem}>{totalPasta}</Text>
                   </Pressable>
 
                   {aberta
@@ -189,12 +209,39 @@ export function StudiesScreen() {
                           sub.aulas.map((a) => ({ ...a, caminho: sub.nome }))
                         );
                         if (aulas.length === 0) return null;
+                        const chave = `${pasta.nome}/${sub.nome}`;
+                        const subAberta = termo !== '' || subsExpandidas.includes(chave);
                         return (
                           <View key={sub.nome} style={styles.subpasta}>
-                            <Text style={styles.nomeSubpasta}>{sub.nome}</Text>
-                            {aulas.map((aula) => (
-                              <ItemAula key={aula.id} aula={aula} onMenu={() => abrirMenu(aula)} />
-                            ))}
+                            <Pressable
+                              onPress={() => alternarSubpasta(chave)}
+                              accessibilityRole="button"
+                              accessibilityLabel={`${sub.nome}, ${aulas.length} ${aulas.length === 1 ? 'aula' : 'aulas'}`}
+                              accessibilityState={{ expanded: subAberta }}
+                              style={({ pressed }) => [
+                                styles.cabecalhoSubpasta,
+                                pressed && styles.subpastaPressionada,
+                              ]}
+                            >
+                              <Chevron aberto={subAberta} reduzir={reduzir} />
+                              <MaterialCommunityIcons
+                                name={subAberta ? 'folder-open-outline' : 'folder-outline'}
+                                size={16}
+                                color={colors.textFaint}
+                              />
+                              <Text style={styles.nomeSubpasta}>{sub.nome}</Text>
+                              <Text style={styles.contagem}>{aulas.length}</Text>
+                            </Pressable>
+
+                            {subAberta
+                              ? aulas.map((aula) => (
+                                  <ItemAula
+                                    key={aula.id}
+                                    aula={aula}
+                                    onMenu={() => abrirMenu(aula)}
+                                  />
+                                ))
+                              : null}
                           </View>
                         );
                       })
@@ -415,15 +462,32 @@ const styles = StyleSheet.create({
   nomePasta: {
     ...font.h3,
     color: colors.text,
+    flex: 1,
   },
   subpasta: {
     marginLeft: spacing(6),
     marginTop: spacing(1),
   },
+  cabecalhoSubpasta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing(2),
+    minHeight: TOQUE_MIN,
+  },
+  subpastaPressionada: {
+    opacity: 0.6,
+  },
   nomeSubpasta: {
     ...fontDado.rotulo,
     color: colors.textFaint,
-    marginBottom: spacing(2),
+    flex: 1,
+  },
+  /* Contagem em monoespacado: o mesmo tratamento que o resto do app da a dado
+     numerico, e evita o numero dancar quando a busca filtra a lista. */
+  contagem: {
+    ...fontDado.rotulo,
+    fontVariant: ['tabular-nums'],
+    color: colors.textFaint,
   },
 
   itemAula: {

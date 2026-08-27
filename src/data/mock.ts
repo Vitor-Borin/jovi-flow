@@ -378,6 +378,10 @@ export type Plataforma = {
   icone: NomeIcone;
   papel: string;
   conectadaPorPadrao: boolean;
+  /** Envia sozinho, sem perguntar. Fica ligado so onde o conteudo continua
+   *  sendo privado do estudante. Publicar para a turma ou commitar num
+   *  repositorio e coisa que sai do controle dele, entao pergunta antes. */
+  automaticaPorPadrao: boolean;
 };
 
 /** A missao do Flow e facilitar a vida do estudante, e boa parte disso e nao
@@ -390,6 +394,7 @@ export const plataformas: Plataforma[] = [
     icone: 'google-drive',
     papel: 'Salva a aula na pasta da disciplina',
     conectadaPorPadrao: true,
+    automaticaPorPadrao: true,
   },
   {
     id: 'classroom',
@@ -397,6 +402,7 @@ export const plataformas: Plataforma[] = [
     icone: 'google-classroom',
     papel: 'Publica o material para a turma',
     conectadaPorPadrao: true,
+    automaticaPorPadrao: false,
   },
   {
     id: 'github',
@@ -404,6 +410,7 @@ export const plataformas: Plataforma[] = [
     icone: 'github',
     papel: 'Commita anotações no repositório da matéria',
     conectadaPorPadrao: true,
+    automaticaPorPadrao: false,
   },
   {
     id: 'notion',
@@ -411,6 +418,7 @@ export const plataformas: Plataforma[] = [
     icone: 'note-text-outline',
     papel: 'Cria a página de estudo já formatada',
     conectadaPorPadrao: false,
+    automaticaPorPadrao: false,
   },
   {
     id: 'teams',
@@ -418,6 +426,7 @@ export const plataformas: Plataforma[] = [
     icone: 'microsoft-teams',
     papel: 'Envia para o canal da disciplina',
     conectadaPorPadrao: false,
+    automaticaPorPadrao: false,
   },
 ];
 

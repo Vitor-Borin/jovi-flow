@@ -3,16 +3,16 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GhostButton } from '../components/GhostButton';
 import { ScreenHeader } from '../components/ScreenHeader';
 import type { NomeIcone } from '../data/mock';
 import type { RootStackParamList } from '../navigation/types';
-import { temChaveConfigurada } from '../services/analiseAoVivo';
+import { definirChaveManual, temChaveConfigurada } from '../services/analiseAoVivo';
 import { useFlow } from '../store/FlowContext';
-import { TOQUE_MIN, colors, font, fontDado, radius, spacing } from '../theme';
+import { TOQUE_MIN, colors, font, fontDado, fontMono, radius, spacing } from '../theme';
 
 const NOME = 'Vitor Mazer';
 const CURSO = 'Engenharia de Software · FIAP';
@@ -33,8 +33,16 @@ export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { reiniciar, modoAoVivo, alternarModoAoVivo } = useFlow();
+  const [chaveDigitada, setChaveDigitada] = useState('');
+  // Recalculado a cada tecla: assim o interruptor destrava assim que a chave
+  // colada fica valida, sem precisar sair da tela e voltar.
   const chaveOk = temChaveConfigurada();
   const [reiniciado, setReiniciado] = useState(false);
+
+  const aplicarChave = (valor: string) => {
+    setChaveDigitada(valor);
+    definirChaveManual(valor);
+  };
 
   const aoReiniciar = () => {
     reiniciar();
@@ -129,7 +137,27 @@ export function ProfileScreen() {
               ? modoAoVivo
                 ? 'A foto capturada é lida de verdade por IA. Se a rede falhar ou demorar mais que 8 segundos, o app usa o conteúdo de exemplo sem interromper a demonstração.'
                 : 'Desligada, o aplicativo funciona inteiramente offline, com o conteúdo de exemplo.'
-              : 'Nenhuma chave configurada. Defina EXPO_PUBLIC_ANTHROPIC_API_KEY no arquivo .env e reinicie o servidor para habilitar.'}
+              : 'Nenhuma chave configurada. Cole uma chave da Anthropic no campo abaixo para habilitar, ou defina EXPO_PUBLIC_ANTHROPIC_API_KEY no arquivo .env.'}
+          </Text>
+
+          {/* A chave pode ser colada aqui em vez de vir do .env, para o app
+              funcionar numa maquina que nao tem o arquivo do projeto. O campo e
+              protegido porque a tela costuma estar num projetor. */}
+          <TextInput
+            value={chaveDigitada}
+            onChangeText={aplicarChave}
+            placeholder="Colar chave da API"
+            placeholderTextColor={colors.textFaint}
+            secureTextEntry
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={styles.campoChave}
+            accessibilityLabel="Chave da API para a análise ao vivo"
+          />
+          <Text style={styles.notaChave}>
+            {chaveDigitada.trim().length > 0
+              ? 'Chave colada. Ela fica só na memória e some quando o app fecha.'
+              : 'Serve para apresentar em outra máquina, sem editar arquivo nenhum.'}
           </Text>
         </View>
 
@@ -155,6 +183,24 @@ export function ProfileScreen() {
 }
 
 const styles = StyleSheet.create({
+  campoChave: {
+    marginTop: spacing(3),
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingHorizontal: spacing(3.5),
+    paddingVertical: spacing(3),
+    fontFamily: fontMono,
+    fontSize: 12,
+    color: colors.text,
+  },
+  notaChave: {
+    ...font.tiny,
+    color: colors.textFaint,
+    marginTop: spacing(2),
+    lineHeight: 15,
+  },
   tela: {
     flex: 1,
     backgroundColor: colors.bg,

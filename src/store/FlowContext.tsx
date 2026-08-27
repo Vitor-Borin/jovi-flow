@@ -5,6 +5,7 @@ import { caminhoSalvar, conteudoIdentificado, plataformas, subModos } from '../d
 import type { ClassificacaoAoVivo, TranscricaoAoVivo } from '../services/analiseAoVivo';
 
 const CONECTADAS_PADRAO = plataformas.filter((p) => p.conectadaPorPadrao).map((p) => p.id);
+const AUTOMATICAS_PADRAO = plataformas.filter((p) => p.automaticaPorPadrao).map((p) => p.id);
 const SUBMODO_PADRAO = subModos[0]?.id ?? 'lousa';
 
 export type FlowState = {
@@ -21,6 +22,10 @@ export type FlowState = {
   subModo: string;
   /** Ids das plataformas que o estudante conectou. */
   plataformasConectadas: string[];
+  /** Subconjunto das conectadas que envia sem perguntar. */
+  plataformasAutomaticas: string[];
+  /** Conectadas que perguntam antes e que o usuario ja mandou na mao. */
+  enviadasManualmente: string[];
   /** O Modo Aula ja se apresentou nesta sessao? A pesquisa do grupo mostrou que
    *  recurso que nao se apresenta e recurso que ninguem descobre. */
   jaApresentouModoAula: boolean;
@@ -48,6 +53,8 @@ export type FlowState = {
   definirTexto: (t: string) => void;
   definirSubModo: (id: string) => void;
   alternarPlataforma: (id: string) => void;
+  alternarAutomatico: (id: string) => void;
+  enviarAgora: (id: string) => void;
   marcarApresentacaoVista: () => void;
   alternarModoAoVivo: () => void;
   definirFotoBase64: (b64: string | null) => void;
@@ -70,6 +77,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   const [resumoSalvo, setResumoSalvo] = useState(false);
   const [subModo, setSubModo] = useState(SUBMODO_PADRAO);
   const [plataformasConectadas, setPlataformasConectadas] = useState<string[]>(CONECTADAS_PADRAO);
+  const [plataformasAutomaticas, setPlataformasAutomaticas] = useState<string[]>(AUTOMATICAS_PADRAO);
+  const [enviadasManualmente, setEnviadasManualmente] = useState<string[]>([]);
   const [jaApresentouModoAula, setJaApresentou] = useState(false);
   const [modoAoVivo, setModoAoVivo] = useState(false);
   const [fotoBase64, setFotoBase64] = useState<string | null>(null);
@@ -103,6 +112,20 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     setPlataformasConectadas((atual) =>
       atual.includes(id) ? atual.filter((p) => p !== id) : [...atual, id]
     );
+    // Desconectar tambem tira do automatico: plataforma desligada nao pode
+    // continuar marcada para receber sozinha.
+    setPlataformasAutomaticas((atual) => atual.filter((p) => p !== id));
+  }, []);
+
+  const alternarAutomatico = useCallback((id: string) => {
+    setPlataformasAutomaticas((atual) =>
+      atual.includes(id) ? atual.filter((p) => p !== id) : [...atual, id]
+    );
+  }, []);
+
+  /** Envio disparado pelo usuario, para as plataformas que perguntam antes. */
+  const enviarAgora = useCallback((id: string) => {
+    setEnviadasManualmente((atual) => (atual.includes(id) ? atual : [...atual, id]));
   }, []);
 
   const reiniciar = useCallback(() => {
@@ -113,6 +136,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     setResumoSalvo(false);
     setSubModo(SUBMODO_PADRAO);
     setPlataformasConectadas(CONECTADAS_PADRAO);
+    setPlataformasAutomaticas(AUTOMATICAS_PADRAO);
+    setEnviadasManualmente([]);
     setJaApresentou(false);
     setFotoBase64(null);
     setClassificacao(null);
@@ -133,6 +158,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       resumoSalvo,
       subModo,
       plataformasConectadas,
+      plataformasAutomaticas,
+      enviadasManualmente,
       jaApresentouModoAula,
       modoAoVivo,
       fotoBase64,
@@ -147,6 +174,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       definirTexto,
       definirSubModo,
       alternarPlataforma,
+      alternarAutomatico,
+      enviarAgora,
       marcarApresentacaoVista,
       alternarModoAoVivo,
       definirFotoBase64,
@@ -165,6 +194,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       resumoSalvo,
       subModo,
       plataformasConectadas,
+      plataformasAutomaticas,
+      enviadasManualmente,
       jaApresentouModoAula,
       modoAoVivo,
       fotoBase64,
@@ -179,6 +210,8 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       definirTexto,
       definirSubModo,
       alternarPlataforma,
+      alternarAutomatico,
+      enviarAgora,
       marcarApresentacaoVista,
       alternarModoAoVivo,
       definirFotoBase64,

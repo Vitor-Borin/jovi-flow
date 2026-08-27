@@ -31,12 +31,30 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Actions'>;
 export function ActionsScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const reduzir = useReduzirMovimento();
-  const { destino, textoExtraido, definirTexto, resumoSalvo, plataformasConectadas, classificacao } =
-    useFlow();
+  const {
+    destino,
+    textoExtraido,
+    definirTexto,
+    resumoSalvo,
+    plataformasConectadas,
+    plataformasAutomaticas,
+    enviadasManualmente,
+    enviarAgora,
+    classificacao,
+  } = useFlow();
   const conteudo = classificacao ?? conteudoIdentificado;
   const [editando, setEditando] = useState(false);
 
+  // Tres grupos: o que saiu sozinho, o que o usuario ja mandou na mao, e o que
+  // ainda esta esperando a decisao dele. O terceiro grupo e o que sustenta a
+  // promessa da tela de plataformas: nada sai para fora sem escolha.
   const conectadas = plataformas.filter((p) => plataformasConectadas.includes(p.id));
+  const jaForam = conectadas.filter(
+    (p) => plataformasAutomaticas.includes(p.id) || enviadasManualmente.includes(p.id)
+  );
+  const pendentes = conectadas.filter(
+    (p) => !plataformasAutomaticas.includes(p.id) && !enviadasManualmente.includes(p.id)
+  );
   const eco = economiaFormatada();
 
   const compartilhar = async () => {
@@ -118,17 +136,47 @@ export function ActionsScreen({ navigation }: Props) {
 
         {/* O conteudo ja saiu para as ferramentas que o estudante usa: e o
             diferencial que a entrega da Sprint 1 do grupo prometia. */}
-        {conectadas.length > 0 ? (
+        {jaForam.length > 0 ? (
           <View style={styles.blocoEnvio}>
-            <Text style={styles.rotuloEnvio}>ENVIADO TAMBÉM PARA</Text>
+            <Text style={styles.rotuloEnvio}>ENVIADO SOZINHO PARA</Text>
             <View style={styles.linhaPlataformas}>
-              {conectadas.map((p) => (
+              {jaForam.map((p) => (
                 <View key={p.id} style={styles.chipPlataforma}>
-                  <MaterialCommunityIcons name={p.icone} size={14} color={colors.primaryHi} />
+                  <MaterialCommunityIcons name="check" size={13} color={colors.primaryHi} />
                   <Text style={styles.textoPlataforma}>{p.nome}</Text>
                 </View>
               ))}
             </View>
+          </View>
+        ) : null}
+
+        {pendentes.length > 0 ? (
+          <View style={styles.blocoEnvio}>
+            <Text style={styles.rotuloEnvio}>ESPERANDO VOCÊ DECIDIR</Text>
+            <View style={styles.linhaPlataformas}>
+              {pendentes.map((p) => (
+                <Pressable
+                  key={p.id}
+                  onPress={() => {
+                    void Haptics.selectionAsync();
+                    enviarAgora(p.id);
+                  }}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Enviar para ${p.nome}. ${p.papel}`}
+                  style={({ pressed }) => [
+                    styles.chipPendente,
+                    pressed && styles.chipPendentePressionado,
+                  ]}
+                >
+                  <MaterialCommunityIcons name={p.icone} size={14} color={colors.textDim} />
+                  <Text style={styles.textoPendente}>Enviar para {p.nome}</Text>
+                </Pressable>
+              ))}
+            </View>
+            <Text style={styles.notaPendente}>
+              Estas publicam o seu conteúdo para outras pessoas, então o Flow não manda sem você
+              mandar.
+            </Text>
           </View>
         ) : null}
 
@@ -323,6 +371,32 @@ const styles = StyleSheet.create({
   textoPlataforma: {
     ...font.tiny,
     color: colors.primaryHi,
+  },
+  chipPendente: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing(1.5),
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderStyle: 'dashed',
+    borderRadius: radius.pill,
+    paddingVertical: spacing(1.5),
+    paddingHorizontal: spacing(2.5),
+  },
+  chipPendentePressionado: {
+    backgroundColor: colors.surfaceAlt,
+  },
+  textoPendente: {
+    ...font.tiny,
+    color: colors.textDim,
+  },
+  notaPendente: {
+    ...font.tiny,
+    color: colors.textFaint,
+    textAlign: 'center',
+    lineHeight: 15,
+    marginTop: spacing(2.5),
+    paddingHorizontal: spacing(4),
   },
 
   linhaEconomia: {

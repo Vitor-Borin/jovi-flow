@@ -123,9 +123,27 @@ const PROMPT_TRANSCRICAO = [
 type BlocoTexto = { type: string; text?: string };
 type RespostaApi = { content?: BlocoTexto[] };
 
+/** Chave colada dentro do app, pelo Perfil. Vive so em memoria: nao vai para
+ *  disco, e some quando o app fecha. */
+let chaveManual: string | null = null;
+
+/** Guarda a chave digitada no Perfil. Existe porque a apresentacao pode
+ *  acontecer numa maquina que nao tem o .env do projeto, e nesse caso editar
+ *  arquivo e reiniciar o Metro no meio do pitch nao e opcao. */
+export function definirChaveManual(valor: string): void {
+  const limpa = valor.trim();
+  chaveManual = limpa.length > 0 ? limpa : null;
+}
+
+/** A chave colada no app vence a do .env, para dar como corrigir na hora. */
+function chaveAtual(): string | null {
+  if (chaveManual !== null) return chaveManual;
+  const doAmbiente = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;
+  return typeof doAmbiente === 'string' && doAmbiente.length > 0 ? doAmbiente : null;
+}
+
 export function temChaveConfigurada(): boolean {
-  const c = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;
-  return typeof c === 'string' && c.length > 0;
+  return chaveAtual() !== null;
 }
 
 /**
@@ -182,8 +200,8 @@ async function chamarUmaVez(
   maxTokens: number,
   limiteMs: number
 ): Promise<{ ok: true; texto: string } | { ok: false; resultado: Resultado<never> }> {
-  const chave = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;
-  if (typeof chave !== 'string' || chave.length === 0) {
+  const chave = chaveAtual();
+  if (chave === null) {
     return { ok: false, resultado: { estado: 'sem-chave' } };
   }
 
