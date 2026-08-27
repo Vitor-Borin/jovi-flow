@@ -65,7 +65,10 @@ export function StudiesScreen() {
   const insets = useSafeAreaInsets();
   const reduzir = useReduzirMovimento();
 
-  const [aba, setAba] = useState<AbaAtiva>('pastas');
+  // Abre em Recentes, e nao na arvore. Cada item da lista ja mostra o caminho
+  // da pasta ao lado do titulo, entao a organizacao automatica continua visivel
+  // sem a tela ter cara de gerenciador de arquivos. A arvore fica a um toque.
+  const [aba, setAba] = useState<AbaAtiva>('recentes');
   const [buscando, setBuscando] = useState(false);
   const [busca, setBusca] = useState('');
   const { destino, classificacao } = useFlow();
