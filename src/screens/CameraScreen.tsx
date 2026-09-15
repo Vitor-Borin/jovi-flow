@@ -40,19 +40,20 @@ import { TOQUE_MIN, colors, font, fontModo, radius, spacing } from '../theme';
 type Props = NativeStackScreenProps<RootStackParamList, 'Camera'>;
 
 /**
- * O visor copia o layout da camera da JOVI (Funtouch OS): preto de ponta a
- * ponta, visor 4:3 sem borda, icones brancos em cima, zoom sobre a imagem,
- * modos em caixa alta e obturador branco. AULA e um modo do carrossel, igual a
- * RETRATO ou NOITE. E assim que o Flow entraria no aparelho de verdade, e a
+ * O visor copia a camera do JOVI V50, medida em capturas reais do aparelho:
+ * preto de ponta a ponta, visor 4:3 sem borda, icones soltos em cima, zoom em
+ * texto sobre a imagem, modos com capitalizacao normal, selecionado em amarelo
+ * e obturador vazado com anel amarelo. Aula e um modo do carrossel, igual a
+ * Retrato ou Noite. E assim que o Flow entraria no aparelho de verdade, e a
  * tela precisa sustentar isso sem explicacao verbal.
  */
 
-type Modo = 'NOITE' | 'RETRATO' | 'FOTO' | 'AULA' | 'VÍDEO';
+type Modo = 'Noite' | 'Retrato' | 'Foto' | 'Aula' | 'Vídeo';
 
-/** Os cinco modos que o prototipo implementa. MAIS fecha a regua, como na
+/** Os cinco modos que o prototipo implementa. Mais fecha a regua, como na
  *  camera da JOVI, e abre a folha com os modos reais do aparelho. */
-const MODOS: Modo[] = ['NOITE', 'RETRATO', 'FOTO', 'AULA', 'VÍDEO'];
-const MAIS = 'MAIS';
+const MODOS: Modo[] = ['Noite', 'Retrato', 'Foto', 'Aula', 'Vídeo'];
+const MAIS = 'Mais';
 const ITENS_REGUA: string[] = [...MODOS, MAIS];
 
 function ehModo(v: string): v is Modo {
@@ -60,13 +61,25 @@ function ehModo(v: string): v is Modo {
 }
 
 const ALTURA_BARRA = 48;
-const ALTURA_SUBMODOS = 44;
 const ALTURA_MODOS = 44;
-const ALTURA_OBTURADOR = 104;
-const TAMANHO_OBTURADOR = 72;
-const TAMANHO_MINIATURA = 44;
+/** No V50 o centro do obturador fica 94 pt abaixo do visor: 44 da regua de
+ *  modos mais metade desta faixa. */
+const ALTURA_OBTURADOR = 100;
 
-/** Tempo ate a camera "reconhecer" a lousa e deslizar sozinha para AULA. */
+/** Obturador do V50: 68 pt, anel branco de 4, vao de 3 e anel amarelo de 1,5
+ *  com o centro vazio. */
+const TAMANHO_OBTURADOR = 68;
+const ANEL_BRANCO = 4;
+const VAO_ANEL = 3;
+const ANEL_AMARELO = 1.5;
+const TAMANHO_MIOLO = TAMANHO_OBTURADOR - 2 * (ANEL_BRANCO + VAO_ANEL);
+
+const TAMANHO_MINIATURA = 40;
+const ALTURA_PILULA = 32;
+/** Completa a pilula ate a area tocavel minima sem aumentar o desenho. */
+const FOLGA_PILULA = (TOQUE_MIN - ALTURA_PILULA) / 2;
+
+/** Tempo ate a camera "reconhecer" a lousa e deslizar sozinha para Aula. */
 const MS_ATE_DETECTAR = 2500;
 const MS_AVISO_DETECCAO = 2200;
 
@@ -77,8 +90,8 @@ const ZOOMS: { rotulo: string; valor: number }[] = [
 ];
 
 /** A camera lembra o ultimo modo, como uma camera de verdade. Voltar do fluxo
- *  de salvar reabre direto em AULA, sem repetir a deteccao. */
-let ultimoModo: Modo = 'FOTO';
+ *  de salvar reabre direto em Aula, sem repetir a deteccao. */
+let ultimoModo: Modo = 'Foto';
 
 export function CameraScreen({ navigation }: Props) {
   const { width, height } = useWindowDimensions();
@@ -105,8 +118,6 @@ export function CameraScreen({ navigation }: Props) {
 
   const [modo, setModoEstado] = useState<Modo>(ultimoModo);
   const [flashLigado, setFlashLigado] = useState(false);
-  const [hdr, setHdr] = useState(true);
-  const [fotoAoVivo, setFotoAoVivo] = useState(false);
   const [lente, setLente] = useState<CameraType>('back');
   const [zoom, setZoom] = useState(0);
   const [capturaContinua, setCapturaContinua] = useState(false);
@@ -124,7 +135,7 @@ export function CameraScreen({ navigation }: Props) {
   const capturaAtual = useRef(0);
   const cameraOcupada = useRef(false);
 
-  const modoAula = modo === 'AULA';
+  const modoAula = modo === 'Aula';
 
   const setModo = useCallback((m: Modo) => {
     ultimoModo = m;
@@ -155,14 +166,14 @@ export function CameraScreen({ navigation }: Props) {
   });
 
   // A deteccao da lousa: uma vez por abertura da camera, quando ela esta em
-  // FOTO. O carrossel desliza para AULA sozinho e um aviso curto diz por que.
+  // Foto. O carrossel desliza para Aula sozinho e um aviso curto diz por que.
   useEffect(() => {
-    if (modo !== 'FOTO' || jaDetectou.current) return;
+    if (modo !== 'Foto' || jaDetectou.current) return;
     const timer = setTimeout(() => {
       if (!montado.current) return;
       jaDetectou.current = true;
       void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setModo('AULA');
+      setModo('Aula');
       setAvisoDeteccao(true);
     }, MS_ATE_DETECTAR);
     return () => clearTimeout(timer);
@@ -187,13 +198,7 @@ export function CameraScreen({ navigation }: Props) {
 
   const dimensoesVisor = useMemo(() => {
     const disponivel =
-      height -
-      insets.top -
-      insets.bottom -
-      ALTURA_BARRA -
-      ALTURA_SUBMODOS -
-      ALTURA_MODOS -
-      ALTURA_OBTURADOR;
+      height - insets.top - insets.bottom - ALTURA_BARRA - ALTURA_MODOS - ALTURA_OBTURADOR;
     // 4:3 ocupando a largura toda. Em aparelho curto o visor encolhe para os
     // controles nunca saírem da tela.
     return { largura: width, altura: Math.min(width * (4 / 3), Math.max(disponivel, spacing(60))) };
@@ -320,13 +325,9 @@ export function CameraScreen({ navigation }: Props) {
     <View style={[styles.tela, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
       <BarraSuperior
         flashLigado={flashLigado}
-        hdr={hdr}
-        fotoAoVivo={fotoAoVivo}
         modoAula={modoAula}
         continua={capturaContinua}
         onAlternarFlash={() => setFlashLigado((v) => !v)}
-        onAlternarHdr={() => setHdr((v) => !v)}
-        onAlternarFotoAoVivo={() => setFotoAoVivo((v) => !v)}
         onAlternarContinua={() => {
           void Haptics.selectionAsync();
           setCapturaContinua((v) => !v);
@@ -366,16 +367,16 @@ export function CameraScreen({ navigation }: Props) {
             <AvisoPermissao onPermitir={() => void pedirPermissao()} />
           ) : null}
 
+          {/* Onde o Retrato da JOVI mostra 23 / 35 / 50 mm, na base do visor, o
+              Modo Aula mostra a superficie: lousa, slide e caderno pedem
+              tratamentos opticos opostos. Fica sobre a imagem para a regua de
+              modos continuar colada no visor, como no V50. */}
+          {modoAula ? (
+            <SeletorSubModo selecionado={modoAtual.id} onSelecionar={definirSubModo} />
+          ) : null}
+
           <SeletorZoom valor={zoom} onSelecionar={setZoom} />
         </View>
-      </View>
-
-      {/* Onde o Retrato da JOVI mostra 23 / 35 / 50 mm, o Modo Aula mostra a
-          superficie: lousa, slide e caderno pedem tratamentos opticos opostos. */}
-      <View style={styles.faixaSubModos}>
-        {modoAula ? (
-          <SeletorSubModo selecionado={modoAtual.id} onSelecionar={definirSubModo} />
-        ) : null}
       </View>
 
       <CarrosselModos
@@ -408,28 +409,22 @@ export function CameraScreen({ navigation }: Props) {
 
 /* ---------------------------------------------------------------- barra superior */
 
-/** Quatro controles, que e o teto da barra de atalhos da camera da vivo. Em
- *  AULA o terceiro deixa de ser a foto ao vivo e vira a captura continua. */
+/** So os atalhos que agem de verdade, no layout reduzido que o proprio V50 usa
+ *  fora do modo Foto: flash na ponta esquerda, ajustes na direita e, em Aula,
+ *  a captura continua no meio. HDR e foto ao vivo sairam: nao mudavam a
+ *  captura, e no V50 o HDR nem fica nesta barra, fica no painel de ajustes. */
 function BarraSuperior({
   flashLigado,
-  hdr,
-  fotoAoVivo,
   modoAula,
   continua,
   onAlternarFlash,
-  onAlternarHdr,
-  onAlternarFotoAoVivo,
   onAlternarContinua,
   onAbrirAjustes,
 }: {
   flashLigado: boolean;
-  hdr: boolean;
-  fotoAoVivo: boolean;
   modoAula: boolean;
   continua: boolean;
   onAlternarFlash: () => void;
-  onAlternarHdr: () => void;
-  onAlternarFotoAoVivo: () => void;
   onAlternarContinua: () => void;
   onAbrirAjustes: () => void;
 }) {
@@ -444,24 +439,13 @@ function BarraSuperior({
       >
         <Ionicons
           name={flashLigado ? 'flash' : 'flash-off-outline'}
-          size={20}
-          color={flashLigado ? colors.warn : colors.visor.icone}
+          size={22}
+          color={flashLigado ? colors.visor.destaque : colors.visor.icone}
         />
       </Pressable>
 
-      <Pressable
-        onPress={onAlternarHdr}
-        accessibilityRole="button"
-        accessibilityLabel={hdr ? 'Desligar o HDR' : 'Ligar o HDR'}
-        accessibilityState={{ selected: hdr }}
-        style={styles.itemBarra}
-      >
-        <Text style={[styles.textoBarra, !hdr && styles.textoBarraApagado]}>HDR</Text>
-      </Pressable>
-
       {modoAula ? (
-        // Em AULA o lugar da foto ao vivo vira a captura continua: a camera
-        // fotografa sozinha durante a aula e guarda so o que mudou.
+        // A camera fotografa sozinha durante a aula e guarda so o que mudou.
         <Pressable
           onPress={onAlternarContinua}
           accessibilityRole="switch"
@@ -472,24 +456,10 @@ function BarraSuperior({
           <MaterialCommunityIcons
             name="camera-burst"
             size={22}
-            color={continua ? colors.warn : colors.visor.icone}
+            color={continua ? colors.visor.destaque : colors.visor.icone}
           />
         </Pressable>
-      ) : (
-        <Pressable
-          onPress={onAlternarFotoAoVivo}
-          accessibilityRole="button"
-          accessibilityLabel={fotoAoVivo ? 'Desligar a foto ao vivo' : 'Ligar a foto ao vivo'}
-          accessibilityState={{ selected: fotoAoVivo }}
-          style={styles.itemBarra}
-        >
-          <MaterialCommunityIcons
-            name="circle-double"
-            size={20}
-            color={fotoAoVivo ? colors.warn : colors.visor.icone}
-          />
-        </Pressable>
-      )}
+      ) : null}
 
       <Pressable
         onPress={onAbrirAjustes}
@@ -497,7 +467,7 @@ function BarraSuperior({
         accessibilityLabel="Ajustes da câmera"
         style={styles.itemBarra}
       >
-        <Ionicons name="settings-outline" size={20} color={colors.visor.icone} />
+        <Ionicons name="settings-outline" size={22} color={colors.visor.icone} />
       </Pressable>
     </View>
   );
@@ -506,7 +476,7 @@ function BarraSuperior({
 /* ---------------------------------------------------------- moldura de deteccao */
 
 /** Quatro cantos encaixando na lousa. E o unico sinal visual de que a camera
- *  entrou em AULA, alem do proprio carrossel. */
+ *  entrou em Aula, alem do proprio carrossel. */
 function MolduraDeteccao({ reduzir }: { reduzir: boolean }) {
   const encaixe = useRef(new Animated.Value(reduzir ? 1 : 0)).current;
 
@@ -537,7 +507,7 @@ function MolduraDeteccao({ reduzir }: { reduzir: boolean }) {
 
 /* ------------------------------------------------------------ aviso de deteccao */
 
-/** Aparece por dois segundos quando a camera troca para AULA sozinha. Diz o
+/** Aparece por dois segundos quando a camera troca para Aula sozinha. Diz o
  *  que aconteceu e some: a tela nao fica explicando o modo que ja esta escrito
  *  no carrossel. */
 function AvisoDeteccao({ reduzir, nome }: { reduzir: boolean; nome: string }) {
@@ -623,27 +593,34 @@ function TiraSequencia({
 
 /* ------------------------------------------------------------------- zoom */
 
+/** Zoom como no V50: numeros soltos sobre a imagem, separados por pontos. O
+ *  ativo fica amarelo, com o "x", sobre um circulo escuro que o mantem legivel
+ *  mesmo com a camera apontada para uma lousa branca. */
 function SeletorZoom({ valor, onSelecionar }: { valor: number; onSelecionar: (v: number) => void }) {
   return (
     <View style={styles.zoom}>
-      {ZOOMS.map((z) => {
+      {ZOOMS.map((z, i) => {
         const ativo = z.valor === valor;
         return (
-          <Pressable
-            key={z.rotulo}
-            onPress={() => {
-              void Haptics.selectionAsync();
-              onSelecionar(z.valor);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={`Zoom ${z.rotulo} vezes`}
-            accessibilityState={{ selected: ativo }}
-            style={[styles.bolinhaZoom, ativo && styles.bolinhaZoomAtiva]}
-          >
-            <Text style={[styles.textoZoom, ativo && styles.textoZoomAtivo]}>
-              {ativo ? `${z.rotulo}×` : z.rotulo}
-            </Text>
-          </Pressable>
+          <View key={z.rotulo} style={styles.itemZoom}>
+            {i > 0 ? <Text style={styles.separadorZoom}>···</Text> : null}
+            <Pressable
+              onPress={() => {
+                void Haptics.selectionAsync();
+                onSelecionar(z.valor);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Zoom ${z.rotulo} vezes`}
+              accessibilityState={{ selected: ativo }}
+              style={styles.toqueZoom}
+            >
+              <View style={[styles.circuloZoom, ativo && styles.circuloZoomAtivo]}>
+                <Text style={[styles.textoZoom, ativo && styles.textoZoomAtivo]}>
+                  {ativo ? `${z.rotulo}x` : z.rotulo}
+                </Text>
+              </View>
+            </Pressable>
+          </View>
         );
       })}
     </View>
@@ -652,6 +629,9 @@ function SeletorZoom({ valor, onSelecionar }: { valor: number; onSelecionar: (v:
 
 /* --------------------------------------------------------------- sub-modos */
 
+/** Mesmo desenho do seletor Vivido / Texturizado / Natural do V50: a opcao
+ *  ativa numa pilula amarela com texto preto, as outras so em texto. O veu
+ *  escuro por tras faz o papel do preto que o V50 tem atras do seletor. */
 function SeletorSubModo({
   selecionado,
   onSelecionar,
@@ -670,16 +650,12 @@ function SeletorSubModo({
               void Haptics.selectionAsync();
               onSelecionar(m.id);
             }}
+            hitSlop={{ top: FOLGA_PILULA, bottom: FOLGA_PILULA }}
             accessibilityRole="button"
             accessibilityLabel={`${m.nome}. ${m.problema}`}
             accessibilityState={{ selected: ativo }}
             style={[styles.pilulaSubModo, ativo && styles.pilulaSubModoAtiva]}
           >
-            <MaterialCommunityIcons
-              name={m.icone}
-              size={14}
-              color={ativo ? colors.visor.fundo : colors.visor.icone}
-            />
             <Text style={[styles.textoSubModo, ativo && styles.textoSubModoAtivo]}>{m.nome}</Text>
           </Pressable>
         );
@@ -708,7 +684,8 @@ function CarrosselModos({
   const [larguras, setLarguras] = useState<Record<string, number>>({});
   const deslocamento = useRef(new Animated.Value(0)).current;
 
-  const ESPACO = spacing(7);
+  // 26 pt entre os rotulos, medido na regua do V50.
+  const ESPACO = spacing(6.5);
 
   // Posicao x do centro de cada rotulo dentro da regua.
   const centros = useMemo(() => {
@@ -804,8 +781,8 @@ function LinhaObturador({
   onInverter: () => void;
   onAbrirGaleria: () => void;
 }) {
-  const video = modo === 'VÍDEO';
-  const aula = modo === 'AULA';
+  const video = modo === 'Vídeo';
+  const aula = modo === 'Aula';
 
   return (
     <View style={styles.linhaObturador}>
@@ -813,13 +790,15 @@ function LinhaObturador({
         onPress={onAbrirGaleria}
         accessibilityRole="button"
         accessibilityLabel="Abrir as aulas capturadas"
-        style={({ pressed }) => [styles.miniatura, pressed && styles.pressionado]}
+        style={({ pressed }) => [styles.toqueCanto, pressed && styles.pressionado]}
       >
-        {miniatura ? (
-          <Image source={{ uri: miniatura }} style={styles.imagemMiniatura} resizeMode="cover" />
-        ) : (
-          <Ionicons name="images-outline" size={18} color={colors.visor.icone} />
-        )}
+        <View style={styles.miniatura}>
+          {miniatura ? (
+            <Image source={{ uri: miniatura }} style={styles.imagemMiniatura} resizeMode="cover" />
+          ) : (
+            <Ionicons name="images-outline" size={18} color={colors.visor.icone} />
+          )}
+        </View>
       </Pressable>
 
       <Pressable
@@ -830,20 +809,16 @@ function LinhaObturador({
         accessibilityState={{ disabled: capturando }}
         style={({ pressed }) => [styles.obturador, pressed && styles.obturadorPressionado]}
       >
-        <View style={[styles.miolodObturador, video && styles.miolodVideo]}>
-          {aula ? (
-            <MaterialCommunityIcons name="school-outline" size={22} color={colors.visor.fundo} />
-          ) : null}
-        </View>
+        <View style={video ? styles.mioloVideo : styles.anelAmarelo} />
       </Pressable>
 
       <Pressable
         onPress={onInverter}
         accessibilityRole="button"
         accessibilityLabel="Inverter câmera"
-        style={({ pressed }) => [styles.botaoInverter, pressed && styles.pressionado]}
+        style={({ pressed }) => [styles.toqueCanto, pressed && styles.pressionado]}
       >
-        <Ionicons name="camera-reverse-outline" size={22} color={colors.visor.icone} />
+        <Ionicons name="sync-outline" size={30} color={colors.visor.icone} />
       </Pressable>
     </View>
   );
@@ -880,28 +855,19 @@ const styles = StyleSheet.create({
     backgroundColor: colors.visor.fundo,
   },
 
+  // Flash e ajustes com o centro a ~32 pt das bordas, como no V50.
   barra: {
     height: ALTURA_BARRA,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
-    paddingHorizontal: spacing(2),
+    justifyContent: 'space-between',
+    paddingHorizontal: spacing(2.5),
   },
   itemBarra: {
     minWidth: TOQUE_MIN,
     height: TOQUE_MIN,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  textoBarra: {
-    fontSize: 11,
-    fontWeight: '700',
-    letterSpacing: 0.5,
-    color: colors.visor.icone,
-  },
-  textoBarraApagado: {
-    color: colors.visor.iconeFraco,
-    textDecorationLine: 'line-through',
   },
 
   areaVisor: {
@@ -917,10 +883,11 @@ const styles = StyleSheet.create({
     borderRadius: 0,
   },
 
+  // A base da moldura para acima do seletor de superficie e do zoom.
   moldura: {
     position: 'absolute',
     top: spacing(6),
-    bottom: spacing(14),
+    bottom: spacing(25),
     left: spacing(5),
     right: spacing(5),
   },
@@ -1004,61 +971,82 @@ const styles = StyleSheet.create({
     color: colors.visor.icone,
   },
 
+  // No V50 o centro do zoom fica 28 pt acima da base do visor.
   zoom: {
     position: 'absolute',
-    bottom: spacing(3),
+    bottom: spacing(1.5),
     alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    gap: spacing(2),
-    padding: spacing(1),
-    borderRadius: radius.pill,
-    backgroundColor: colors.visor.pilula,
   },
-  bolinhaZoom: {
-    minWidth: spacing(8),
+  itemZoom: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  toqueZoom: {
+    width: TOQUE_MIN,
+    height: TOQUE_MIN,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  circuloZoom: {
+    width: spacing(8),
     height: spacing(8),
-    paddingHorizontal: spacing(2),
     borderRadius: radius.pill,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  bolinhaZoomAtiva: {
-    backgroundColor: colors.visor.icone,
+  circuloZoomAtivo: {
+    backgroundColor: colors.visor.veu,
   },
   textoZoom: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
     color: colors.visor.icone,
+    textShadowColor: colors.visor.sombra,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
   },
   textoZoomAtivo: {
-    color: colors.visor.fundo,
+    color: colors.visor.destaque,
+    textShadowRadius: 0,
+  },
+  // Margem negativa aproxima os numeros: no V50 os centros ficam a ~45 pt.
+  separadorZoom: {
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 1,
+    marginHorizontal: -spacing(1),
+    color: colors.visor.icone,
+    textShadowColor: colors.visor.sombra,
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
   },
 
-  faixaSubModos: {
-    height: ALTURA_SUBMODOS,
+  subModos: {
+    position: 'absolute',
+    bottom: spacing(1.5) + TOQUE_MIN + spacing(1),
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing(1),
+    padding: spacing(0.75),
+    borderRadius: radius.sm,
+    backgroundColor: colors.visor.veu,
+  },
+  pilulaSubModo: {
+    height: ALTURA_PILULA,
+    paddingHorizontal: spacing(3.5),
+    borderRadius: radius.xs,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  subModos: {
-    flexDirection: 'row',
-    gap: spacing(2),
-  },
-  pilulaSubModo: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing(1.5),
-    height: spacing(8),
-    paddingHorizontal: spacing(3.5),
-    borderRadius: radius.pill,
-    backgroundColor: colors.surfaceAlt,
-  },
   pilulaSubModoAtiva: {
-    backgroundColor: colors.visor.icone,
+    backgroundColor: colors.visor.destaque,
   },
   textoSubModo: {
-    ...font.small,
-    fontWeight: '600',
+    fontSize: 13,
+    fontWeight: '700',
     color: colors.visor.icone,
   },
   textoSubModoAtivo: {
@@ -1081,27 +1069,31 @@ const styles = StyleSheet.create({
   },
   textoModo: {
     ...fontModo,
-    color: colors.visor.iconeFraco,
+    color: colors.visor.icone,
   },
   textoModoAtivo: {
-    color: colors.visor.icone,
-    fontWeight: '700',
+    color: colors.visor.destaque,
   },
 
+  // Miniatura e inverter com o centro a ~41 pt das bordas, como no V50. O
+  // espaco que sobra embaixo fica vazio, e o obturador nao desce com ele.
   linhaObturador: {
-    flex: 1,
-    minHeight: ALTURA_OBTURADOR,
+    height: ALTURA_OBTURADOR,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing(9),
+    paddingHorizontal: spacing(5),
+  },
+  toqueCanto: {
+    width: TOQUE_MIN,
+    height: TOQUE_MIN,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   miniatura: {
     width: TAMANHO_MINIATURA,
     height: TAMANHO_MINIATURA,
-    borderRadius: radius.sm,
-    borderWidth: 1.5,
-    borderColor: colors.visor.pilulaBorda,
+    borderRadius: radius.xs,
     backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1118,7 +1110,7 @@ const styles = StyleSheet.create({
     width: TAMANHO_OBTURADOR,
     height: TAMANHO_OBTURADOR,
     borderRadius: radius.pill,
-    borderWidth: 4,
+    borderWidth: ANEL_BRANCO,
     borderColor: colors.visor.obturador,
     alignItems: 'center',
     justifyContent: 'center',
@@ -1126,27 +1118,18 @@ const styles = StyleSheet.create({
   obturadorPressionado: {
     opacity: 0.7,
   },
-  miolodObturador: {
-    width: TAMANHO_OBTURADOR - 16,
-    height: TAMANHO_OBTURADOR - 16,
+  anelAmarelo: {
+    width: TAMANHO_MIOLO,
+    height: TAMANHO_MIOLO,
     borderRadius: radius.pill,
-    backgroundColor: colors.visor.obturador,
-    alignItems: 'center',
-    justifyContent: 'center',
+    borderWidth: ANEL_AMARELO,
+    borderColor: colors.visor.destaque,
   },
-  miolodVideo: {
-    width: spacing(6),
-    height: spacing(6),
+  mioloVideo: {
+    width: TAMANHO_MIOLO,
+    height: TAMANHO_MIOLO,
     borderRadius: radius.pill,
     backgroundColor: colors.danger,
-  },
-  botaoInverter: {
-    width: TAMANHO_MINIATURA,
-    height: TAMANHO_MINIATURA,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surfaceAlt,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
   aviso: {
