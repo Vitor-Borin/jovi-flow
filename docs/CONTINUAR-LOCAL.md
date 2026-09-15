@@ -11,13 +11,12 @@ Para as regras do projeto e a lista do que falta, o arquivo é o
 ```bash
 git clone https://github.com/Vitor-Borin/jovi-flow.git
 cd jovi-flow
-git checkout claude/significado-prototipo-nltojc
 npm install
 npx expo start
 ```
 
-Ler o QR com a câmera do iPhone ou pelo Expo Go no Android. Celular e computador
-na mesma rede.
+O trabalho vai direto na `main`, que é a branch padrão. Ler o QR com a câmera
+do iPhone ou pelo Expo Go no Android. Celular e computador na mesma rede.
 
 Para o modo ao vivo: `cp .env.example .env` e colar uma chave da Anthropic, ou
 colar direto no app em Perfil → Análise ao vivo.
