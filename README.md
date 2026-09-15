@@ -58,7 +58,7 @@ Botão de play no resumo e na tela da aula. Usa a síntese de voz nativa do apar
 
 ## Como rodar
 
-Precisa de Node.js 20 ou mais novo, e do app Expo Go no celular.
+Precisa de Node.js 20.19.4 ou mais novo, e do app Expo Go no celular.
 
 ```bash
 npm install
@@ -72,9 +72,9 @@ Leia o QR code com a câmera do iPhone, ou pelo próprio Expo Go no Android. O c
 
 ### Atenção à versão do Expo Go
 
-O projeto está fixado no Expo SDK 54, que é a versão suportada pelo Expo Go do aparelho usado na apresentação.
+O projeto está no Expo SDK 57, que é a versão do Expo Go na App Store.
 
-Não atualize o SDK. Se o Expo Go do celular for atualizado para uma versão mais nova, o app para de abrir e mostra *"Project is incompatible with this version of Expo Go"*. Antes de apresentar, desligue a atualização automática de apps no aparelho.
+O projeto e o Expo Go do celular precisam estar no mesmo SDK. Foi o que aconteceu em 15/09/2026: o Expo Go atualizou sozinho do 54 para o 57, o app parou de abrir com *"Project is incompatible with this version of Expo Go"*, e o projeto teve de subir junto, porque no iOS não existe como instalar um Expo Go antigo. Antes de apresentar, desligue a atualização automática de apps no aparelho.
 
 ## Modo de análise ao vivo
 
@@ -157,10 +157,10 @@ O protótipo usa a API da Anthropic no modo ao vivo para demonstrar o conceito p
 
 | Item | Versão |
 |---|---|
-| Expo SDK | 54 |
-| React Native | 0.81.5 |
-| React | 19.1.0 |
-| TypeScript | 5.9, modo estrito |
+| Expo SDK | 57 |
+| React Native | 0.86 |
+| React | 19.2 |
+| TypeScript | 6.0, modo estrito |
 
 Navegação com React Navigation, usando stack nativo e abas. Gráficos com `react-native-svg`, câmera com `expo-camera`, redimensionamento de imagem com `expo-image-manipulator`, ícones do `@expo/vector-icons`.
 
@@ -187,7 +187,7 @@ src/
 
 Quem for mexer no código precisa respeitar estas, que já custaram caro para descobrir:
 
-O SDK fica no 54. Atualizar quebra o app no aparelho da apresentação.
+O SDK do projeto acompanha o do Expo Go do aparelho da apresentação, hoje o 57. Mudar um sem o outro quebra o app na banca.
 
 A rede vive isolada em `src/services/analiseAoVivo.ts`. Nenhum outro arquivo faz chamada externa.
 

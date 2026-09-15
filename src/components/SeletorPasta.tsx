@@ -193,7 +193,7 @@ const styles = StyleSheet.create({
     justifyContent: 'flex-end',
   },
   scrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: colors.scrim,
   },
   folha: {

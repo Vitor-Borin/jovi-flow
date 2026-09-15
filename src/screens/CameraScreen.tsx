@@ -879,7 +879,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface,
   },
   fallback: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 0,
   },
 

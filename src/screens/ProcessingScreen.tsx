@@ -304,11 +304,11 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   foto: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     borderRadius: 0,
   },
   veuLavado: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: colors.board,
   },
   reflexo: {
