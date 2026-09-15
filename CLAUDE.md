@@ -31,6 +31,7 @@ Cada uma destas já custou caro para descobrir.
 | Regra | Motivo |
 |---|---|
 | Expo SDK fica no **57** | É o que o Expo Go da App Store roda desde que o iPhone da apresentação se atualizou em 15/09/2026. No iOS não dá para instalar Expo Go antigo: o SDK do projeto segue o do app, e mudar o SDK sem o Expo Go do aparelho acompanhar quebra o app na banca. |
+| Logado na **mesma conta Expo** no terminal e no Expo Go | Exigencia nova do SDK 57 no iOS. Sem isso o app nem abre. `npx expo login` no PC e o mesmo login no app. |
 | Nenhuma cor fora de `src/theme.ts` | Fonte única de cor, raio e espaçamento. Faltou token? Adicione lá. |
 | Sem `any`, sem `@ts-ignore` | TypeScript estrito. |
 | Emoji nunca como ícone | Depende da fonte do sistema e não aceita token de cor. Use `Ionicons` ou `MaterialCommunityIcons`. |

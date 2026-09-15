@@ -74,6 +74,8 @@ Leia o QR code com a câmera do iPhone, ou pelo próprio Expo Go no Android. O c
 
 O projeto está no Expo SDK 57, que é a versão do Expo Go na App Store.
 
+Desde o SDK 57, o Expo Go do iOS exige **login na mesma conta Expo nos dois lados**: rode `npx expo login` no computador e entre com a mesma conta no Expo Go (aba Home, avatar no canto superior direito). Sem isso ele mostra *"You need to be signed in to Expo Go and Expo CLI"*. Confira com `npx expo whoami`.
+
 O projeto e o Expo Go do celular precisam estar no mesmo SDK. Foi o que aconteceu em 15/09/2026: o Expo Go atualizou sozinho do 54 para o 57, o app parou de abrir com *"Project is incompatible with this version of Expo Go"*, e o projeto teve de subir junto, porque no iOS não existe como instalar um Expo Go antigo. Antes de apresentar, desligue a atualização automática de apps no aparelho.
 
 ## Modo de análise ao vivo
