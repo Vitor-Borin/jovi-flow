@@ -152,6 +152,44 @@ export const etapasCamera: Etapa[] = [
   { id: 'texto', label: 'Realçando traço de caneta', detalhe: 'Contraste otimizado' },
 ];
 
+/**
+ * Os modos que a camera do JOVI V50 tem de verdade, na traducao oficial em
+ * portugues da ficha tecnica da JOVI Brasil (camera principal traseira).
+ *
+ * Isto nao e enfeite: a lista existe para a folha "Mais" mostrar a camera real
+ * do aparelho, e para a banca ver que "Documento em Ultra HD" ja e um modo da
+ * JOVI. O Modo Aula nao inventa capacidade nova, ele especializa essa.
+ */
+export type ModoJovi = {
+  nome: string;
+  icone: NomeIcone;
+  /** true quando o modo existe neste prototipo. */
+  noPrototipo?: boolean;
+  /** Texto curto abaixo do nome, quando ha algo a dizer. */
+  nota?: string;
+};
+
+export const modosJovi: ModoJovi[] = [
+  { nome: 'Aula', icone: 'school-outline', noPrototipo: true, nota: 'O Flow' },
+  { nome: 'Foto', icone: 'camera-outline', noPrototipo: true },
+  { nome: 'Retrato', icone: 'account-outline', noPrototipo: true },
+  { nome: 'Noite', icone: 'weather-night', noPrototipo: true },
+  { nome: 'Vídeo', icone: 'video-outline', noPrototipo: true },
+  { nome: 'Documento em Ultra HD', icone: 'file-document-outline', nota: 'Base do Aula' },
+  { nome: 'Microfilme', icone: 'movie-open-outline' },
+  { nome: 'Alta Resolução', icone: 'image-size-select-actual' },
+  { nome: 'Panorâmica', icone: 'panorama-horizontal-outline' },
+  { nome: 'Câmera Lenta', icone: 'motion-play-outline' },
+  { nome: 'Intervalo', icone: 'timelapse' },
+  { nome: 'Superlua', icone: 'moon-waning-crescent' },
+  { nome: 'Astro', icone: 'star-outline' },
+  { nome: 'Profissional', icone: 'tune-variant' },
+  { nome: 'Instantâneo', icone: 'flash-outline' },
+  { nome: 'Comida', icone: 'silverware-fork-knife' },
+  { nome: 'Visualização Dupla', icone: 'square-outline' },
+  { nome: 'Foto em Movimento', icone: 'circle-double' },
+];
+
 export type Chip = { id: string; icone: NomeIcone; label: string };
 
 export type SubModo = {

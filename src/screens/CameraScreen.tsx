@@ -17,6 +17,7 @@ import {
 import type { LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { FolhaModos } from '../components/FolhaModos';
 import { WhiteboardFallback } from '../components/WhiteboardFallback';
 import { ordenarAulas } from '../data/acervo';
 import type { SubModo } from '../data/mock';
@@ -47,7 +48,16 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Camera'>;
  */
 
 type Modo = 'NOITE' | 'RETRATO' | 'FOTO' | 'AULA' | 'VÍDEO';
+
+/** Os cinco modos que o prototipo implementa. MAIS fecha a regua, como na
+ *  camera da JOVI, e abre a folha com os modos reais do aparelho. */
 const MODOS: Modo[] = ['NOITE', 'RETRATO', 'FOTO', 'AULA', 'VÍDEO'];
+const MAIS = 'MAIS';
+const ITENS_REGUA: string[] = [...MODOS, MAIS];
+
+function ehModo(v: string): v is Modo {
+  return (MODOS as string[]).includes(v);
+}
 
 const ALTURA_BARRA = 48;
 const ALTURA_SUBMODOS = 44;
@@ -104,6 +114,7 @@ export function CameraScreen({ navigation }: Props) {
   const [capturando, setCapturando] = useState(false);
   const [avisoDeteccao, setAvisoDeteccao] = useState(false);
   const [ultimaFoto, setUltimaFoto] = useState<string | null>(null);
+  const [modosAbertos, setModosAbertos] = useState(false);
 
   const [permissao, pedirPermissao] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
@@ -367,7 +378,21 @@ export function CameraScreen({ navigation }: Props) {
         ) : null}
       </View>
 
-      <CarrosselModos selecionado={modo} onSelecionar={setModo} reduzir={reduzir} />
+      <CarrosselModos
+        selecionado={modo}
+        onSelecionar={setModo}
+        onAbrirMais={() => setModosAbertos(true)}
+        reduzir={reduzir}
+      />
+
+      <FolhaModos
+        aberto={modosAbertos}
+        selecionado={modo}
+        onSelecionar={(nome) => {
+          if (ehModo(nome)) setModo(nome);
+        }}
+        onFechar={() => setModosAbertos(false)}
+      />
 
       <LinhaObturador
         modo={modo}
@@ -383,6 +408,8 @@ export function CameraScreen({ navigation }: Props) {
 
 /* ---------------------------------------------------------------- barra superior */
 
+/** Quatro controles, que e o teto da barra de atalhos da camera da vivo. Em
+ *  AULA o terceiro deixa de ser a foto ao vivo e vira a captura continua. */
 function BarraSuperior({
   flashLigado,
   hdr,
@@ -463,10 +490,6 @@ function BarraSuperior({
           />
         </Pressable>
       )}
-
-      <View style={styles.itemBarra}>
-        <Text style={styles.textoBarra}>4:3</Text>
-      </View>
 
       <Pressable
         onPress={onAbrirAjustes}
@@ -673,10 +696,12 @@ function SeletorSubModo({
 function CarrosselModos({
   selecionado,
   onSelecionar,
+  onAbrirMais,
   reduzir,
 }: {
   selecionado: Modo;
   onSelecionar: (m: Modo) => void;
+  onAbrirMais: () => void;
   reduzir: boolean;
 }) {
   const { width } = useWindowDimensions();
@@ -689,7 +714,7 @@ function CarrosselModos({
   const centros = useMemo(() => {
     const resultado: Record<string, number> = {};
     let x = 0;
-    MODOS.forEach((m) => {
+    ITENS_REGUA.forEach((m) => {
       const l = larguras[m] ?? 0;
       resultado[m] = x + l / 2;
       x += l + ESPACO;
@@ -697,7 +722,7 @@ function CarrosselModos({
     return resultado;
   }, [larguras, ESPACO]);
 
-  const pronto = MODOS.every((m) => larguras[m] !== undefined);
+  const pronto = ITENS_REGUA.every((m) => larguras[m] !== undefined);
 
   useEffect(() => {
     if (!pronto) return;
@@ -716,7 +741,7 @@ function CarrosselModos({
     return () => anim.stop();
   }, [selecionado, centros, pronto, width, reduzir, deslocamento]);
 
-  const medir = (m: Modo) => (e: LayoutChangeEvent) => {
+  const medir = (m: string) => (e: LayoutChangeEvent) => {
     const l = e.nativeEvent.layout.width;
     setLarguras((atual) => (atual[m] === l ? atual : { ...atual, [m]: l }));
   };
@@ -731,19 +756,25 @@ function CarrosselModos({
           { gap: ESPACO, opacity: pronto ? 1 : 0, transform: [{ translateX: deslocamento }] },
         ]}
       >
-        {MODOS.map((m) => {
+        {ITENS_REGUA.map((m) => {
+          const ehMais = m === MAIS;
           const ativo = m === selecionado;
           return (
             <Pressable
               key={m}
               onLayout={medir(m)}
               onPress={() => {
-                if (ativo) return;
+                if (ehMais) {
+                  void Haptics.selectionAsync();
+                  onAbrirMais();
+                  return;
+                }
+                if (ativo || !ehModo(m)) return;
                 void Haptics.selectionAsync();
                 onSelecionar(m);
               }}
               accessibilityRole="button"
-              accessibilityLabel={`Modo ${m}`}
+              accessibilityLabel={ehMais ? 'Mais modos da câmera' : `Modo ${m}`}
               accessibilityState={{ selected: ativo }}
               style={styles.itemModo}
             >

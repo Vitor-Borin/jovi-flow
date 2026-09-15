@@ -92,18 +92,29 @@ TechTudo](https://www.techtudo.com.br/review/2025/05/jovi-lanca-v50-no-brasil-co
 [mudanças do Funtouch OS
 15](https://www.smartprix.com/bytes/15-changes-in-funtouch-os-15-nobodys-talking-about/).
 
-### O que fazer local com isso
+### O que já foi aplicado
 
-1. Abrir um review do JOVI V50 com fotos da interface (o do TechTudo e o do
-   Oficina da Net têm), ou pegar um aparelho emprestado, e comparar com
-   `src/screens/CameraScreen.tsx`.
+Depois que a rede do ambiente foi liberada, deu para confirmar e aplicar:
+
+- **MAIS entrou no carrossel** e abre a folha com os modos reais do JOVI V50
+  (`src/components/FolhaModos.tsx`). Os cinco que o protótipo implementa são
+  tocáveis; os outros aparecem apagados, com o aviso de que existem no aparelho
+  e ficaram fora do protótipo. É onde "Documento em Ultra HD" aparece ao lado do
+  "Aula", que é a deixa do apresentador.
+- **A barra de cima caiu para quatro controles** (flash, HDR, foto ao vivo ou
+  captura contínua, ajustes). Quatro é o teto da barra de atalhos da câmera da
+  vivo, e era o que se via numa foto da tela do V50.
+
+### O que ainda vale conferir local
+
+1. Abrir um review do JOVI V50 com fotos da interface principal e comparar com
+   `src/screens/CameraScreen.tsx`. Nem a GSMArena nem os reviews brasileiros que
+   consegui abrir traziam captura do visor comum: os que têm estão em artigos
+   bloqueados por Cloudflare, e um navegador com sessão real resolve.
 2. Conferir, nesta ordem de impacto: ordem dos ícones na barra de cima, tamanho
    e peso da fonte dos modos, cor do modo selecionado, formato das bolinhas de
    zoom, diâmetro do obturador.
-3. Avaliar acrescentar **MAIS** ao carrossel, abrindo uma folha com os modos
-   reais da lista acima. Ganha realismo e dá ao apresentador a deixa para
-   mostrar o "Documento em Ultra HD" e explicar o Modo Aula em cima dele.
-   Regra do `DESIGN.md`: se entrar, tem que fazer alguma coisa.
+3. Ver se o carrossel real da JOVI usa caixa alta ou capitalização normal.
 
 ## Onde mexer
 
