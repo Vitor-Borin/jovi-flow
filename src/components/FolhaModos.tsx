@@ -44,7 +44,7 @@ export function FolhaModos({ aberto, selecionado, onSelecionar, onFechar }: Prop
 
           <ScrollView contentContainerStyle={styles.grade}>
             {modosJovi.map((m) => {
-              const ativo = m.nome.toUpperCase() === selecionado;
+              const ativo = m.nome === selecionado;
               const disponivel = m.noPrototipo === true;
               return (
                 <Pressable
@@ -53,7 +53,7 @@ export function FolhaModos({ aberto, selecionado, onSelecionar, onFechar }: Prop
                     disponivel
                       ? () => {
                           void Haptics.selectionAsync();
-                          onSelecionar(m.nome.toUpperCase());
+                          onSelecionar(m.nome);
                           onFechar();
                         }
                       : undefined
@@ -78,7 +78,7 @@ export function FolhaModos({ aberto, selecionado, onSelecionar, onFechar }: Prop
                     size={22}
                     color={
                       ativo
-                        ? colors.primaryHi
+                        ? colors.visor.destaque
                         : disponivel
                           ? colors.visor.icone
                           : colors.textFaint
@@ -161,8 +161,9 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     backgroundColor: colors.surface,
   },
+  // Dentro da camera o selecionado e amarelo, como na regua de modos.
   itemAtivo: {
-    backgroundColor: colors.primarySoft,
+    backgroundColor: colors.surfaceHi,
   },
   itemForaDoEscopo: {
     backgroundColor: 'transparent',
@@ -177,7 +178,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   nomeAtivo: {
-    color: colors.primaryHi,
+    color: colors.visor.destaque,
   },
   nomeForaDoEscopo: {
     color: colors.textFaint,

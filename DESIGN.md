@@ -20,9 +20,13 @@ Contraste conferido antes de adotar a paleta:
 | Preenchimento de botão | `#1E46E6` com texto branco | 6.83 | aprovado |
 | Texto e ícone sobre escuro | `#6E8BFF` (`primaryHi`) | 6.29 | aprovado |
 | `#1E46E6` como texto sobre escuro | | 2.84 | reprovado |
+| Amarelo da câmera sobre preto | `#F6CE3A` (`visor.destaque`) | 13.8 | aprovado |
+| Amarelo da câmera sobre lousa branca | | 1.4 | reprovado |
+| Amarelo sobre o véu escuro (`visor.veu`) por cima da lousa | | 5.07 | aprovado |
 
 Ou seja: `primary` é cor de preenchimento. Para texto e ícone sobre o tema
-escuro, sempre `primaryHi`.
+escuro, sempre `primaryHi`. E todo amarelo que cai por cima da imagem do visor
+precisa do véu por trás, senão some na lousa branca.
 
 ## O Flow vive dentro da câmera
 
@@ -38,32 +42,45 @@ estudante precisaria baixar.
 
 ## O visor é a câmera da JOVI
 
-A JOVI é a marca da vivo no Brasil e roda Funtouch OS. O visor copia o layout
-dessa câmera para a banca acreditar que está olhando o app nativo:
+A JOVI é a marca da vivo no Brasil. O V50 saiu de fábrica com Funtouch OS 15 e
+**recebe o OriginOS 6 desde meados de dezembro de 2025**, então quem abrir a
+câmera de um V50 hoje vê o OriginOS. Nos pontos que este visor copia, os dois
+sistemas desenham igual; a diferença é que o OriginOS põe um círculo escuro
+atrás dos ícones da barra de cima. As medidas abaixo vieram de capturas reais do
+V50 (1080 × 2392, que dá ≈ 393 dp, praticamente a escala de um iPhone), e não de
+estimativa:
 
 | Elemento | Como é |
 |---|---|
 | Fundo | Preto de ponta a ponta. Nada de card com borda e raio. |
 | Visor | 4:3 na largura toda, sem borda. |
-| Barra de cima | Flash, HDR, foto ao vivo (em AULA vira captura contínua), 4:3, engrenagem. Ícone branco. |
-| Zoom | Bolinhas sobre a imagem, na base do visor. |
-| Modos | Caixa alta, o selecionado em branco e negrito, os outros apagados. Centrado no selecionado. |
-| AULA | Um modo do carrossel, entre FOTO e VÍDEO. A superfície (Lousa / Slide / Caderno) aparece como pílulas acima dos modos, no lugar onde o Retrato da JOVI mostra 23 / 35 / 50 mm. |
-| Obturador | Branco. Em VÍDEO o miolo fica vermelho. |
-| Cantos | Miniatura da galeria à esquerda, inverter câmera à direita. |
-| MAIS | Fecha a régua e abre a folha com os modos reais do V50. Os cinco do protótipo são tocáveis; os outros aparecem apagados, dizendo que existem no aparelho e ficaram fora daqui. |
+| Barra de cima | Ícones brancos soltos, sem fundo, com desenho de ~19 pt (tamanho 22 no código). Flash na ponta esquerda e ajustes na direita, com o centro a 32 pt da borda. Só entram atalhos que agem. |
+| Zoom | Números soltos sobre a imagem, separados por `···`, na base do visor. O ativo leva o `x` e fica amarelo sobre um círculo escuro; os outros são brancos com halo. |
+| Modos | Capitalização normal, 15 pt, negrito em todos. Só a cor separa: o selecionado em amarelo, os outros em branco. Centrado no selecionado, 26 pt entre rótulos, colado na base do visor. |
+| Aula | Um modo do carrossel, entre Foto e Vídeo. A superfície (Lousa / Slide / Caderno) aparece na base do visor, no lugar onde o Retrato da JOVI mostra 23 / 35 / 50 mm, com a ativa numa pílula amarela e as outras só em texto. |
+| Obturador | 68 pt, vazado: anel branco de 4, vão de 3 e anel amarelo de 1,5. Em Vídeo o miolo fica vermelho. Sem ícone dentro. |
+| Cantos | Miniatura da galeria à esquerda e inverter câmera à direita, soltos, com o centro a 41 pt da borda. |
+| Mais | Fecha a régua e abre a folha com os modos reais do V50. Os cinco do protótipo são tocáveis; os outros aparecem apagados, dizendo que existem no aparelho e ficaram fora daqui. |
 
-A barra de cima tem **quatro** controles, que é o teto da barra de atalhos da
-câmera da vivo: flash, HDR, foto ao vivo (em AULA vira captura contínua) e
-ajustes.
+O amarelo `#F6CE3A` é a cor de seleção da câmera da vivo, medida nas áreas
+sólidas das capturas. Ele vale **só dentro do visor**: fora dele, a cor de ação
+continua sendo o azul da JOVI. Sobre lousa branca o amarelo tem contraste 1,4, e
+por isso todo texto amarelo sobre a imagem fica sobre o véu escuro.
 
-Mostrar os modos que o protótipo não faz não é contradição com "controle que não
-muda nada". É o contrário: esconder a câmera real seria afirmar que o Flow é a
-câmera inteira. A folha diz o que existe no aparelho e o que é do protótipo.
+A barra de cima do V50 no modo Foto tem seis ícones, e o HDR não é um deles: ele
+mora no painel de ajustes. Fora do modo Foto, o próprio V50 reduz a barra a
+flash e ajustes. O protótipo usa essa barra reduzida, porque só o flash, a
+captura contínua e os ajustes agem de verdade aqui. HDR e foto ao vivo saíram na
+Sprint 4: trocavam o desenho do ícone e não mudavam a captura, o que é
+exatamente o que "controle que não muda nada" proíbe.
+
+Mostrar os modos que o protótipo não faz não é contradição com essa regra. É o
+contrário: esconder a câmera real seria afirmar que o Flow é a câmera inteira. A
+folha diz o que existe no aparelho e o que é do protótipo.
 
 Nenhum badge por cima do visor. O modo já está escrito no carrossel; repetir em
 cima da imagem era dizer a mesma coisa duas vezes. Quando a câmera reconhece a
-lousa, o carrossel desliza para AULA e um aviso de dois segundos diz por quê.
+lousa, o carrossel desliza para Aula e um aviso de dois segundos diz por quê.
 
 ## A direção visual
 
@@ -132,7 +149,7 @@ existe na tela, ele faz alguma coisa.
 | Fonte custom | Faz o app parecer app de terceiro, o que contradiz a tese do pitch | Fonte nativa do sistema |
 | Afirmar contexto sem confirmação | Ver "Honestidade da interface" | Dizer o que se sabe, no nível de certeza que se tem |
 | Controle que não muda nada | Ver "Honestidade da interface" | Ou o controle age, ou sai da tela |
-| Badge de estado por cima do visor | O modo já está no carrossel. Repetir é ruído sobre a imagem | O carrossel e, em AULA, os cantos da moldura |
+| Badge de estado por cima do visor | O modo já está no carrossel. Repetir é ruído sobre a imagem | O carrossel e, em Aula, os cantos da moldura |
 | Borda em card | Pesa a tela e afasta do modo escuro do sistema | Superfície cinza sobre fundo preto |
 
 ## Obrigatório

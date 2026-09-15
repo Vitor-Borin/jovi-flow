@@ -12,7 +12,7 @@ O JOVI Flow pega essa foto e faz o resto do caminho:
 
 `Capturar → Entender → Organizar → Estudar`
 
-O Flow é uma funcionalidade da câmera do aparelho, do mesmo jeito que a galeria é. Por isso o protótipo abre direto no visor em vez de abrir num menu, e o visor copia o layout da câmera da JOVI (a marca da vivo no Brasil, com Funtouch OS): preto de ponta a ponta, ícones brancos em cima, zoom sobre a imagem, modos em caixa alta e obturador branco. **AULA é um modo do carrossel**, entre FOTO e VÍDEO, igual a RETRATO ou NOITE. As outras telas são o que o Flow produziu, e você chega nelas a partir da câmera, pela miniatura da galeria.
+O Flow é uma funcionalidade da câmera do aparelho, do mesmo jeito que a galeria é. Por isso o protótipo abre direto no visor em vez de abrir num menu, e o visor copia a câmera do JOVI V50 (a JOVI é a marca da vivo no Brasil), medida em capturas reais do aparelho: preto de ponta a ponta, ícones brancos soltos em cima, zoom em texto sobre a imagem, modos com capitalização normal e o selecionado em amarelo, obturador vazado com anel amarelo. **Aula é um modo do carrossel**, entre Foto e Vídeo, igual a Retrato ou Noite. As outras telas são o que o Flow produziu, e você chega nelas a partir da câmera, pela miniatura da galeria.
 
 ### O que o protótipo faz de verdade
 
@@ -221,7 +221,7 @@ Sobre acessibilidade: área tocável de no mínimo 44×44 pt, `accessibilityRole
 
 ## Roteiro dos 4 minutos
 
-1. Abre no visor. Em dois segundos o carrossel desliza sozinho para AULA.
+1. Abre no visor. Em dois segundos o carrossel desliza sozinho para Aula.
 2. Foto. Processamento: primeiro a câmera trabalha, depois a IA.
 3. "Confirmado pela sua grade". Salvar, criando pasta na hora se precisar.
 4. Resumo. Play: o celular lê.

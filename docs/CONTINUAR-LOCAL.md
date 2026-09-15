@@ -28,7 +28,19 @@ colar direto no app em Perfil → Análise ao vivo.
 
 ## A pesquisa sobre a câmera da JOVI
 
-A JOVI é a marca da vivo no Brasil. O V50 roda Funtouch OS 15, sobre Android 15.
+A JOVI é a marca da vivo no Brasil. O V50 saiu de fábrica com Funtouch OS 15,
+sobre Android 15, mas **recebe o OriginOS 6, sobre Android 16, desde meados de
+dezembro de 2025** ([Canaltech](https://canaltech.com.br/apps/originos-6-leva-o-android-16-aos-celulares-da-jovi-confira-novidades/),
+[Mundo Conectado](https://www.mundoconectado.com.br/smartphones/jovi-originos-6-atualizacao/),
+ambos de 19/01/2026). A vivo aposentou o Funtouch no mundo todo a partir da
+linha X300. Quem abrir a câmera de um V50 atualizado hoje vê o OriginOS, e o
+site da JOVI Brasil já tem "OriginOS" no menu.
+
+Isso importa para a fidelidade: o artigo do Android Authority mostra o
+**OriginOS 6** num X300 Ultra, que é topo de linha com outro conjunto de lentes.
+Nos pontos que o visor do Flow copia, os dois sistemas desenham igual. A
+diferença é que o OriginOS põe um círculo escuro atrás dos ícones da barra de
+cima e do inverter câmera; o Funtouch deixa os ícones soltos.
 
 ### Os modos que a câmera tem de verdade
 
@@ -39,7 +51,7 @@ Foto, Retrato, Noite, Vídeo, Microfilme, Alta Resolução, Panorâmica,
 Profissional, Instantâneo, Comida, Visualização Dupla, Foto em Movimento.
 
 Esta lista está em `src/data/mock.ts`, em `modosJovi`, e alimenta a folha que o
-`MAIS` abre no visor.
+`Mais` abre no visor.
 
 ### Por que o "Documento em Ultra HD" importa
 
@@ -53,21 +65,45 @@ resposta no `DESIGN.md`: um modo documento genérico trata os três do mesmo jei
 e erra nos três.
 
 Isso entrou em dois lugares do app: na tela Perfil → Viabilidade técnica, como
-item e nota de fecho, e na folha do `MAIS`, onde "Documento em Ultra HD" aparece
+item e nota de fecho, e na folha do `Mais`, onde "Documento em Ultra HD" aparece
 ao lado do "Aula".
 
 ### O que se sabe da interface
 
 - O carrossel de modos fica embaixo e pode ser simplificado para Foto, Vídeo,
   Retrato e Mais.
-- A barra de cima é uma barra de atalhos personalizável com **até quatro**
-  controles. O protótipo usa quatro: flash, HDR, foto ao vivo (que em AULA vira
-  captura contínua) e ajustes.
+- A barra de cima é personalizável. No OriginOS 6 cabem **até quatro** atalhos
+  mais os ajustes; no V50 com Funtouch, o modo Foto mostra seis ícones: Google
+  Lens, flash, foto ao vivo, estilos, supermacro e ajustes. **HDR não fica
+  nessa barra**, e sim no painel de ajustes.
+- Fora do modo Foto, o próprio V50 reduz a barra a flash e ajustes. É esse
+  layout reduzido que o protótipo usa, porque só flash, captura contínua e
+  ajustes agem de verdade aqui.
 - Existe um botão de 2× no visor, sem teleobjetiva dedicada.
-- O Funtouch OS 15 refez os menus de seleção, inclusive na câmera, com cantos
-  mais arredondados.
 - Existem cinco predefinições de interface de câmera, que reorganizam o
   carrossel e a barra de ferramentas.
+
+### As medidas do visor, tiradas de capturas reais do V50
+
+Das capturas da review da FoneArena (1080 × 2392; com densidade 2,75× dá ≈ 393
+dp, quase a mesma escala de pontos de um iPhone) e da foto da barra de cima na
+review da Digital Camera World:
+
+| Elemento | Medida |
+|---|---|
+| Amarelo da seleção | `#F6CE3A`, medido nas áreas sólidas. No anel fino do obturador o JPEG desbota a cor, então a área sólida é a medida boa. |
+| Obturador | 187 px, ou 68 pt: anel branco de 4, vão de 3, anel amarelo de 1,5, centro vazio. |
+| Modos | Maiúscula de 29 px, o que dá fonte de ~15 pt. Traço de 6 px no ativo e nos outros: **todos negrito**, só a cor muda. 26 pt entre rótulos. |
+| Zoom | Algarismos de 21 px, fonte de ~11 pt, negrito. Texto solto, separado por `···`, com o ativo em amarelo. |
+| Barra de cima | Ícones de ~19 pt, soltos. Flash a 32 pt da borda esquerda, ajustes a 32 pt da direita. |
+| Miniatura e inverter | 40 pt e ~26 pt, com o centro a 41 pt da borda. |
+| Distâncias | O visor 4:3 começa a 119 pt do topo; o carrossel fica 25 pt abaixo dele e o centro do obturador, 94 pt. |
+
+Fontes das capturas: [review do V50 na
+FoneArena](https://www.fonearena.com/blog/446971/vivo-v50-review.html) (série
+`vivo-V50-screenshots_fonearena-*.jpg`, com a 11 e a 13 mostrando a câmera) e
+[review do V50 na Digital Camera
+World](https://www.digitalcameraworld.com/tech/android-phones/vivo-v50-review).
 
 Fontes: [ficha técnica do JOVI
 V50](https://www.jovimobile.com/br/products/param/v50), [review do V50 na
@@ -78,18 +114,24 @@ vivo](https://www.androidauthority.com/vivo-x300-ultra-camera-app-customization-
 15](https://www.smartprix.com/bytes/15-changes-in-funtouch-os-15-nobodys-talking-about/),
 [review do V50 na PetaPixel](https://petapixel.com/2025/03/28/vivo-v50-review-marvelous-mid-range-photo-prowess/).
 
-### O que ficou faltando, e por quê
+### Onde as capturas estavam, depois de procurar
 
-Falta uma captura do **visor comum** da câmera, para comparar pixel a pixel.
+Ficou registrado para ninguém repetir a busca:
 
-A GSMArena não publicou nenhuma no review do V50: a página de câmera só tem
-amostras de foto. Os reviews brasileiros que abriram também não trazem. A
-PetaPixel tem uma foto da tela, mas do modo Film, que é uma pele diferente — dela
-veio a confirmação do padrão de quatro ícones na barra de cima.
+- **GSMArena não serve.** Nem no review do V50 nem no do X200 FE: as páginas de
+  câmera só têm amostras de foto, nenhuma da interface.
+- **Reviews brasileiras não servem.** A da Oficina da Net tem galeria grande, mas
+  só de fotos tiradas com o aparelho.
+- **A página oficial da JOVI não serve.** Ela monta o conteúdo por rolagem e as
+  imagens não ficam no HTML.
+- **FoneArena serve**, e é a melhor fonte: série numerada de 25 capturas reais do
+  V50, com a câmera na 11, na 12 e na 13.
+- **Digital Camera World serve** para a barra de cima no modo Foto.
+- **Android Authority** abre num navegador normal (bloqueia `curl` por
+  Cloudflare) e é a referência do OriginOS 6, não do Funtouch.
 
-O artigo do Android Authority é exatamente sobre o app de câmera da vivo e tem
-muitas capturas, mas bloqueia `curl` por Cloudflare. Num navegador normal, na
-sua máquina, ele abre.
+Uma coisa continua faltando: captura do visor de um V50 **já com OriginOS 6**.
+Só existe de X300 Ultra.
 
 ## Como conferir tela sem celular
 
@@ -106,7 +148,7 @@ igual ao aparelho. Dá para dirigir por Playwright e tirar capturas de cada pass
 
 ## Roteiro dos 4 minutos
 
-1. Abre no visor. Em dois segundos o carrossel desliza sozinho para AULA.
+1. Abre no visor. Em dois segundos o carrossel desliza sozinho para Aula.
 2. Foto. Processamento: primeiro a câmera trabalha, depois a IA.
 3. "Confirmado pela sua grade". Salvar, criando pasta na hora se precisar.
 4. Resumo. Play: o celular lê.
@@ -114,5 +156,5 @@ igual ao aparelho. Dá para dirigir por Playwright e tirar capturas de cada pass
 6. Segunda foto. "Entra na aula de hoje como página 2".
 7. Estudos: abre a pasta, abre a aula, renomeia.
 
-Se sobrar tempo, ou se a banca perguntar de viabilidade: `MAIS` no visor mostra
+Se sobrar tempo, ou se a banca perguntar de viabilidade: `Mais` no visor mostra
 os modos reais da JOVI, com o "Documento em Ultra HD" ao lado do "Aula".

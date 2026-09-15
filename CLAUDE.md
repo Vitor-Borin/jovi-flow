@@ -67,10 +67,12 @@ Tudo abaixo está implementado e verificado rodando o build web e dirigindo por
 Playwright (a câmera cai no `WhiteboardFallback` sem permissão, o resto se
 comporta igual ao aparelho).
 
-- **Câmera no layout da JOVI.** Preto de ponta a ponta, visor 4:3 sem borda,
-  barra de cima com 4 controles, zoom 1×/2 funcional, modos em caixa alta.
-  `AULA` é um modo do carrossel; `MAIS` abre a folha com os modos reais do V50.
-  A detecção da lousa desliza o carrossel sozinho depois de 2 s.
+- **Câmera no layout da JOVI, medida em capturas reais do V50.** Preto de ponta
+  a ponta, visor 4:3 sem borda, barra de cima só com atalho que age, zoom 1x/2
+  em texto, modos com capitalização normal e o selecionado em amarelo,
+  obturador vazado de 68 pt com anel amarelo. `Aula` é um modo do carrossel;
+  `Mais` abre a folha com os modos reais do V50. A detecção da lousa desliza o
+  carrossel sozinho depois de 2 s.
 - **Acervo real.** Pastas e aulas gravadas com AsyncStorage; a foto é copiada
   para o diretório de documentos. Criar, renomear, mover e excluir funcionam.
 - **Tela Aula.** Páginas, resumo, texto, flashcards, questões, ouvir, menu.
@@ -88,27 +90,28 @@ Nada disso dá para fechar sem um aparelho ou sem um navegador com sessão real.
 
 ### No celular
 
-- [ ] Câmera real em AULA: foto → processamento → a sua foto no topo de
+- [ ] Câmera real em Aula: foto → processamento → a sua foto no topo de
       "Conteúdo identificado".
 - [ ] Modo ao vivo com chave: matéria, tema, tópico, transcrição, resumo,
       flashcards e questões vindos da foto.
 - [ ] Ouvir: a voz em pt-BR depende do que está instalado no aparelho.
 - [ ] Fechar e reabrir o app: as aulas capturadas continuam lá, com foto.
-- [ ] Captura contínua (ícone na barra de cima, só em AULA).
+- [ ] Captura contínua (ícone na barra de cima, só em Aula).
 - [ ] Háptico e a rolagem do carrossel de modos.
 
 ### Fidelidade visual à câmera da JOVI
 
-- [ ] Abrir [este artigo do Android
-      Authority](https://www.androidauthority.com/vivo-x300-ultra-camera-app-customization-google-samsung-3666874/),
-      que é só sobre o app de câmera da vivo e tem muitas capturas de tela.
-      Ele bloqueia `curl` por Cloudflare; num navegador normal abre.
-- [ ] Comparar com `src/screens/CameraScreen.tsx` nesta ordem de impacto: ordem
-      dos ícones na barra de cima, peso e tamanho da fonte dos modos, cor do
-      modo selecionado, formato das bolinhas de zoom, diâmetro do obturador.
-- [ ] Conferir se o carrossel real usa caixa alta ou capitalização normal.
+Fechada na Sprint 4, com capturas reais do V50 no lugar de estimativa. O que
+mudou e as medidas estão em `DESIGN.md` → "O visor é a câmera da JOVI", e as
+fontes em `docs/CONTINUAR-LOCAL.md`.
 
-Contexto da pesquisa já feita: `docs/CONTINUAR-LOCAL.md`.
+Ficou de fora, por decisão e não por esquecimento:
+
+- [ ] Círculo escuro atrás dos ícones da barra de cima. É o único ponto em que o
+      OriginOS 6 desenha diferente do Funtouch OS 15, e as medidas vieram do
+      V50 com Funtouch. Se for copiar, copie do OriginOS inteiro.
+- [ ] Conferir no aparelho, se alguém tiver um V50 à mão, se a régua de modos e
+      o obturador continuam com as mesmas medidas depois do OriginOS 6.
 
 ### Antes de apresentar
 

@@ -49,6 +49,16 @@ export const colors = {
     pilulaBorda: 'rgba(255,255,255,0.22)',
     obturador: '#FFFFFF',
     obturadorBorda: 'rgba(255,255,255,0.35)',
+    // Amarelo da camera da vivo, medido nas areas solidas das capturas do
+    // JOVI V50: modo selecionado, zoom ativo, anel do obturador, atalho ligado.
+    // Vale so dentro do visor. Fora dele, a cor de acao continua o azul da JOVI.
+    destaque: '#F6CE3A',
+    // Veu atras de texto sobre a imagem. Sobre lousa branca o amarelo tem
+    // contraste 1.4; com este veu passa de 5.
+    veu: 'rgba(0,0,0,0.66)',
+    // Halo do texto branco solto sobre a imagem. Forte o bastante para o
+    // numero do zoom continuar legivel com a camera apontada para lousa branca.
+    sombra: 'rgba(0,0,0,0.85)',
   },
 
   onPrimary: '#FFFFFF',
@@ -59,7 +69,9 @@ export const colors = {
   boardLine: '#D3DAD6',
 };
 
-export const radius = { sm: 10, md: 14, lg: 18, xl: 24, pill: 999 };
+/** xs e o canto da camera da vivo (miniatura e pilula do seletor, ~3 pt
+ *  medidos no JOVI V50). */
+export const radius = { xs: 4, sm: 10, md: 14, lg: 18, xl: 24, pill: 999 };
 
 export const spacing = (n: number) => n * 4;
 
@@ -84,12 +96,11 @@ export const fontDado = {
   rotulo: { fontSize: 10, fontWeight: '600' as const, letterSpacing: 1, textTransform: 'uppercase' as const },
 };
 
-/** Modo da camera, em caixa alta, como a regua de modos da camera da JOVI. */
+/** Modo da camera, como a regua de modos do JOVI V50: capitalizacao normal,
+ *  15 pt e negrito em todos. So a cor separa o selecionado dos outros. */
 export const fontModo = {
-  fontSize: 13,
-  fontWeight: '600' as const,
-  letterSpacing: 1.2,
-  textTransform: 'uppercase' as const,
+  fontSize: 15,
+  fontWeight: '700' as const,
 };
 
 export const shadow = {
