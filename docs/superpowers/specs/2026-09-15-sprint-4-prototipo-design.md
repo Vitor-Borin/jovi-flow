@@ -106,8 +106,12 @@ Vídeo, Retrato e Mais; a barra de cima é uma shortcut bar personalizável com 
 quatro controles, com flash, HDR e foto ao vivo; o Funtouch OS 15 arredondou os
 menus de seleção, inclusive na câmera.
 
-A comparação pixel a pixel fica para a máquina local, com um review aberto ao
-lado. Ver `docs/CONTINUAR-LOCAL.md`.
+Com a rede do ambiente liberada depois, duas coisas foram aplicadas: o `MAIS`
+entrou no carrossel abrindo a folha com os modos reais do V50, e a barra de cima
+caiu para quatro controles, que é o teto da barra de atalhos da vivo.
+
+A comparação pixel a pixel do visor comum fica para a máquina local, com um
+review aberto ao lado. Ver `docs/CONTINUAR-LOCAL.md`.
 
 ## Fora do escopo
 

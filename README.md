@@ -135,7 +135,7 @@ Na primeira abertura o acervo nasce com cinco aulas de exemplo, cada uma com res
 
 Login, cadastro, onboarding e configurações ficaram fora do escopo.
 
-As regras visuais estão em [`DESIGN.md`](DESIGN.md). A direção é a de um instrumento de câmera, com dado numérico à mostra, e não a de um aplicativo de notas com tema escuro.
+As regras do projeto para quem for mexer no código estão em [`CLAUDE.md`](CLAUDE.md), e as visuais em [`DESIGN.md`](DESIGN.md). A direção é a de um instrumento de câmera, com dado numérico à mostra, e não a de um aplicativo de notas com tema escuro.
 
 ## Viabilidade técnica
 
@@ -215,7 +215,7 @@ npx tsc --noEmit
 npx expo-doctor
 ```
 
-Os dois passam sem erro. O código não usa `any` nem `@ts-ignore`, e nenhuma cor é escrita fora de `src/theme.ts`.
+Os dois passam sem erro: o `expo-doctor` fecha 18 de 18. O código não usa `any` nem `@ts-ignore`, e nenhuma cor é escrita fora de `src/theme.ts`.
 
 Sobre acessibilidade: área tocável de no mínimo 44×44 pt, `accessibilityRole` e `accessibilityLabel` em todo elemento acionável, estado nunca comunicado só por cor, e animação reduzida quando o sistema pede menos movimento.
 

@@ -51,6 +51,15 @@ dessa câmera para a banca acreditar que está olhando o app nativo:
 | AULA | Um modo do carrossel, entre FOTO e VÍDEO. A superfície (Lousa / Slide / Caderno) aparece como pílulas acima dos modos, no lugar onde o Retrato da JOVI mostra 23 / 35 / 50 mm. |
 | Obturador | Branco. Em VÍDEO o miolo fica vermelho. |
 | Cantos | Miniatura da galeria à esquerda, inverter câmera à direita. |
+| MAIS | Fecha a régua e abre a folha com os modos reais do V50. Os cinco do protótipo são tocáveis; os outros aparecem apagados, dizendo que existem no aparelho e ficaram fora daqui. |
+
+A barra de cima tem **quatro** controles, que é o teto da barra de atalhos da
+câmera da vivo: flash, HDR, foto ao vivo (em AULA vira captura contínua) e
+ajustes.
+
+Mostrar os modos que o protótipo não faz não é contradição com "controle que não
+muda nada". É o contrário: esconder a câmera real seria afirmar que o Flow é a
+câmera inteira. A folha diz o que existe no aparelho e o que é do protótipo.
 
 Nenhum badge por cima do visor. O modo já está escrito no carrossel; repetir em
 cima da imagem era dizer a mesma coisa duas vezes. Quando a câmera reconhece a
