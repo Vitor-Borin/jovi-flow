@@ -237,7 +237,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   face: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backfaceVisibility: 'hidden',
     backgroundColor: colors.surface,
     borderRadius: radius.lg,

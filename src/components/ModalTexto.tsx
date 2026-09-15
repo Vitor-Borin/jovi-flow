@@ -107,7 +107,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing(4),
   },
   scrim: {
-    ...StyleSheet.absoluteFillObject,
+    ...StyleSheet.absoluteFill,
     backgroundColor: colors.scrim,
   },
   folha: {
