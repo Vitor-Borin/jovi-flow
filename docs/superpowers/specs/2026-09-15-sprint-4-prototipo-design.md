@@ -84,6 +84,31 @@ sistema) e o azul JOVI fica só onde é ação.
 6. Segunda foto. "Página 2 da mesma aula".
 7. Estudos: abre a pasta, abre a aula, renomeia.
 
+## O que a pesquisa sobre a câmera da JOVI mostrou
+
+A saída de rede do ambiente em nuvem é uma lista de permissão curta, então não
+deu para abrir review com imagem nem o site da JOVI. O que veio por busca:
+
+O JOVI V50 roda Funtouch OS 15 e a câmera principal traseira tem estes modos:
+Foto, Retrato, Noite, Vídeo, Microfilme, Alta Resolução, Panorâmica, **Documento
+em Ultra HD**, Câmera Lenta, Intervalo, Superlua, Astro, Profissional,
+Instantâneo, Comida, Visualização Dupla, Foto em Movimento.
+
+O modo Documento já existir muda o argumento do pitch para melhor: o Modo Aula
+deixa de ser "uma capacidade nova que a JOVI teria que construir" e passa a ser
+"a especialização de um modo que a JOVI já vende". A objeção natural, "por que
+não usar o modo documento?", já tinha resposta no DESIGN.md: um modo documento
+genérico trata lousa, slide e caderno do mesmo jeito e erra nos três. Isso
+entrou na tela de Viabilidade técnica.
+
+Sobre a interface: o carrossel fica embaixo e pode ser simplificado para Foto,
+Vídeo, Retrato e Mais; a barra de cima é uma shortcut bar personalizável com até
+quatro controles, com flash, HDR e foto ao vivo; o Funtouch OS 15 arredondou os
+menus de seleção, inclusive na câmera.
+
+A comparação pixel a pixel fica para a máquina local, com um review aberto ao
+lado. Ver `docs/CONTINUAR-LOCAL.md`.
+
 ## Fora do escopo
 
 Login, backend, envio real para Classroom/Drive, chat sobre a aula.

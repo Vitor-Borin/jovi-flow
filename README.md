@@ -34,6 +34,8 @@ Quando reconhece uma superfície de estudo, a captura passa a combinar vários f
 
 Um "modo documento" genérico trata os três do mesmo jeito e erra nos três.
 
+E isso não é hipótese: a câmera do JOVI V50 **já tem** "Documento em Ultra HD" na lista de modos. O Modo Aula não inventa capacidade nova — ele especializa uma que a JOVI já vende, e liga a captura ao horário do estudante. A tela Perfil → Viabilidade técnica diz isso com todas as letras.
+
 **A grade horária do estudante entra como contexto.**
 
 O app não chuta a matéria. Quando não dá para confirmar, a tela avisa que não deu, em vez de inventar. São três situações possíveis:
