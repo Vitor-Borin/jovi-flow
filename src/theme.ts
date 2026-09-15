@@ -8,14 +8,16 @@
 import { Platform } from 'react-native';
 
 export const colors = {
-  // Neutros com vies azul, alinhados a marca. Antes tinham vies verde.
-  bg: '#0A0D14',
-  bgElev: '#0F131C',
-  surface: '#141926',
-  surfaceAlt: '#1A2030',
-  surfaceHi: '#232B3D',
-  border: '#2A3347',
-  borderSoft: '#1E2536',
+  // Neutros sem vies de cor, como o modo escuro do sistema da JOVI. A versao
+  // anterior tinha fundo azulado, e o app parecia um aplicativo de terceiro em
+  // vez de uma tela do proprio aparelho.
+  bg: '#000000',
+  bgElev: '#0E0E10',
+  surface: '#151517',
+  surfaceAlt: '#1C1C1F',
+  surfaceHi: '#26262A',
+  border: '#2A2A2F',
+  borderSoft: '#1E1E22',
 
   // Azul da JOVI, extraido do material oficial da marca.
   // primary e cor de PREENCHIMENTO: sobre fundo escuro tem contraste 2.84 e
@@ -26,20 +28,29 @@ export const colors = {
   primarySoft: 'rgba(30,70,230,0.16)',
   primaryEdge: 'rgba(30,70,230,0.50)',
 
-  text: '#EEF1F7',
-  textDim: '#9AA4BC',
-  textFaint: '#5F6980',
+  text: '#F2F2F4',
+  textDim: '#A0A0A8',
+  textFaint: '#66666F',
 
   warn: '#F0B429',
   danger: '#FF6B6B',
-  info: '#5B9BFF',
+  success: '#4CD964',
 
-  overlay: 'rgba(6,9,16,0.84)',
+  overlay: 'rgba(0,0,0,0.84)',
   scrim: 'rgba(0,0,0,0.58)',
 
-  // --- Tokens acrescentados (nao constam na secao 4.1 do plano) ---
-  // Necessarios porque o plano pede texto branco sobre o botao primario e um
-  // quadro branco no WhiteboardFallback, que inverte o tema escuro do app.
+  // Visor da camera. A camera da JOVI e preta de ponta a ponta, com icone
+  // branco e controle translucido por cima da imagem.
+  visor: {
+    fundo: '#000000',
+    icone: '#FFFFFF',
+    iconeFraco: 'rgba(255,255,255,0.55)',
+    pilula: 'rgba(0,0,0,0.45)',
+    pilulaBorda: 'rgba(255,255,255,0.22)',
+    obturador: '#FFFFFF',
+    obturadorBorda: 'rgba(255,255,255,0.35)',
+  },
+
   onPrimary: '#FFFFFF',
   board: '#F2F5F3',
   boardInk: '#1F2937',
@@ -63,8 +74,7 @@ export const font = {
 };
 
 /** Monoespacado nativo das duas plataformas, sem dependencia de fonte externa.
- *  Usado em numero, porcentagem, angulo, horario e contador, no estilo de um
- *  visor de camera. Ver DESIGN.md. */
+ *  Usado em numero, horario e contador, no estilo de um visor de camera. */
 export const fontMono = Platform.select({ ios: 'Menlo', default: 'monospace' });
 
 /** Rotulo tecnico em caixa alta, acompanhando o numeral monoespacado. */
@@ -72,6 +82,14 @@ export const fontDado = {
   valor: { fontSize: 20, fontWeight: '600' as const, fontFamily: fontMono, letterSpacing: -0.5 },
   valorGrande: { fontSize: 28, fontWeight: '700' as const, fontFamily: fontMono, letterSpacing: -1 },
   rotulo: { fontSize: 10, fontWeight: '600' as const, letterSpacing: 1, textTransform: 'uppercase' as const },
+};
+
+/** Modo da camera, em caixa alta, como a regua de modos da camera da JOVI. */
+export const fontModo = {
+  fontSize: 13,
+  fontWeight: '600' as const,
+  letterSpacing: 1.2,
+  textTransform: 'uppercase' as const,
 };
 
 export const shadow = {

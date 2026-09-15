@@ -1,7 +1,8 @@
 # Regras de design do JOVI Flow
 
 Este arquivo manda na aparência do app. Onde ele conflitar com qualquer outra
-anotação de escopo, vale o que está escrito aqui. Combinado em 21/08/2026.
+anotação de escopo, vale o que está escrito aqui. Combinado em 21/08/2026 e
+revisto em 15/09/2026 para a Sprint 4.
 
 ## Identidade da marca
 
@@ -35,11 +36,32 @@ câmera, do mesmo jeito que chega na galeria de dentro de qualquer câmera nativ
 Regra prática: nenhuma tela pode sugerir que isto é um aplicativo separado, que o
 estudante precisaria baixar.
 
+## O visor é a câmera da JOVI
+
+A JOVI é a marca da vivo no Brasil e roda Funtouch OS. O visor copia o layout
+dessa câmera para a banca acreditar que está olhando o app nativo:
+
+| Elemento | Como é |
+|---|---|
+| Fundo | Preto de ponta a ponta. Nada de card com borda e raio. |
+| Visor | 4:3 na largura toda, sem borda. |
+| Barra de cima | Flash, HDR, foto ao vivo (em AULA vira captura contínua), 4:3, engrenagem. Ícone branco. |
+| Zoom | Bolinhas sobre a imagem, na base do visor. |
+| Modos | Caixa alta, o selecionado em branco e negrito, os outros apagados. Centrado no selecionado. |
+| AULA | Um modo do carrossel, entre FOTO e VÍDEO. A superfície (Lousa / Slide / Caderno) aparece como pílulas acima dos modos, no lugar onde o Retrato da JOVI mostra 23 / 35 / 50 mm. |
+| Obturador | Branco. Em VÍDEO o miolo fica vermelho. |
+| Cantos | Miniatura da galeria à esquerda, inverter câmera à direita. |
+
+Nenhum badge por cima do visor. O modo já está escrito no carrossel; repetir em
+cima da imagem era dizer a mesma coisa duas vezes. Quando a câmera reconhece a
+lousa, o carrossel desliza para AULA e um aviso de dois segundos diz por quê.
+
 ## A direção visual
 
-O JOVI Flow se parece com um instrumento de câmera. Denso, técnico, com dado
-numérico à mostra. Ele não se parece com um aplicativo de notas de tema escuro,
-e não se parece com um app genérico de produtividade.
+Fora do visor, o app parece o modo escuro do próprio sistema: fundo preto
+neutro, superfícies cinza sem borda, azul só onde é ação. A versão anterior
+tinha fundo azulado e cara de aplicativo de terceiro. Dado técnico continua em
+monoespaçado, mas com menos rótulo em caixa alta e menos caixa com borda.
 
 Isso não é questão de gosto. O pitch afirma que o Flow mora no sistema de câmera
 da JOVI, e não numa loja de aplicativos. Se a interface parece qualquer app de
@@ -61,15 +83,19 @@ fingir, e sobrevive a alguém da banca abrir o aplicativo fora do horário.
 
 **Número apresentado como medição precisa ser medição.**
 
-Os "Ganhos da captura" (`+62%`, `3 pontos`, `-12°`) são ilustrativos, e a tela
-diz "estimativa". Numa interface onde o resto passou a ser leitura real de IA, um
-número inventado sem rótulo seria o único ponto sem resposta se alguém
-perguntasse como ele foi obtido, e contaminaria a credibilidade do que é
-verdadeiro.
+Os "Ganhos da captura" (`+62%`, `3 pontos`, `-12°`) eram ilustrativos, com a
+etiqueta "estimativa". Saíram na Sprint 4: numa interface onde o resto é leitura
+real de IA e acervo real, um número inventado seria o único ponto sem resposta
+se alguém perguntasse como foi obtido.
 
-Vale para contagem também. A tela Início mostrava 12 aulas e 4 matérias com os
-números escritos no código, enquanto a aba Estudos tinha 5 aulas em 3 matérias.
-Hoje ela conta o acervo de verdade.
+Vale para contagem também. A tela Início conta o acervo de verdade, incluindo o
+que foi capturado.
+
+**Botão que existe funciona.**
+
+Na Sprint 3, "Abrir", "Renomear" e "Excluir" no menu da aula não faziam nada, e
+não existia criar pasta. Hoje o acervo é estado real e cada uma dessas ações
+muda esse estado. Se uma ação não puder ser implementada, ela sai da tela.
 
 **Controle decorativo é proibido.**
 
@@ -97,6 +123,8 @@ existe na tela, ele faz alguma coisa.
 | Fonte custom | Faz o app parecer app de terceiro, o que contradiz a tese do pitch | Fonte nativa do sistema |
 | Afirmar contexto sem confirmação | Ver "Honestidade da interface" | Dizer o que se sabe, no nível de certeza que se tem |
 | Controle que não muda nada | Ver "Honestidade da interface" | Ou o controle age, ou sai da tela |
+| Badge de estado por cima do visor | O modo já está no carrossel. Repetir é ruído sobre a imagem | O carrossel e, em AULA, os cantos da moldura |
+| Borda em card | Pesa a tela e afasta do modo escuro do sistema | Superfície cinza sobre fundo preto |
 
 ## Obrigatório
 

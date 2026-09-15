@@ -27,11 +27,11 @@ function BotaoCaptura({ onPress }: BottomTabBarButtonProps) {
       <Pressable
         onPress={(evento) => onPress?.(evento)}
         accessibilityRole="button"
-        accessibilityLabel="Abrir o Modo Aula"
+        accessibilityLabel="Abrir a câmera"
         accessibilityHint="Abre a câmera para capturar o conteúdo da aula"
         style={({ pressed }) => [styles.circulo, pressed && styles.circuloPressionado]}
       >
-        <Ionicons name="add" size={30} color={colors.onPrimary} />
+        <Ionicons name="camera" size={26} color={colors.onPrimary} />
       </Pressable>
     </View>
   );

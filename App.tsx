@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { RootStack } from './src/navigation/RootStack';
+import { AcervoProvider } from './src/store/AcervoContext';
 import { FlowProvider } from './src/store/FlowContext';
 import { colors } from './src/theme';
 
@@ -24,12 +25,14 @@ const temaNavegacao: Theme = {
 export default function App() {
   return (
     <SafeAreaProvider>
-      <FlowProvider>
-        <NavigationContainer theme={temaNavegacao}>
-          <RootStack />
-        </NavigationContainer>
-        <StatusBar style="light" />
-      </FlowProvider>
+      <AcervoProvider>
+        <FlowProvider>
+          <NavigationContainer theme={temaNavegacao}>
+            <RootStack />
+          </NavigationContainer>
+          <StatusBar style="light" />
+        </FlowProvider>
+      </AcervoProvider>
     </SafeAreaProvider>
   );
 }

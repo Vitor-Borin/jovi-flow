@@ -2,7 +2,7 @@
  * Modo ao vivo: le a foto capturada de verdade, em vez de usar o conteudo
  * simulado. Este e o UNICO ponto do aplicativo que toca a rede.
  *
- * ARQUITETURA: duas chamadas paralelas, e nao uma
+ * ARQUITETURA: tres chamadas paralelas, e nao uma
  *
  * Medido contra a API real, sobre a mesma lousa:
  *
@@ -17,6 +17,11 @@
  *
  *   classificar   imagem de 768px  (~21 KB)   ~1,7s   -> preenche o topo da tela
  *   transcrever   imagem de 1568px (~250 KB)  ~8,2s   -> preenche o texto extraido
+ *   estudar       imagem de 1568px (~250 KB)  ~8s     -> flashcards e questoes
+ *
+ * A terceira existe porque, sem ela, a revisao e as questoes mostravam sempre o
+ * exemplo de Flexbox, fosse la o que estivesse na lousa. Ela e independente das
+ * outras duas: se falhar, so os cartoes caem no exemplo.
  *
  * A classificacao usa imagem pequena de proposito: medido, ela acerta igual com
  * 768px e com 1568px, e 21 KB sobem mesmo num wifi congestionado de campus. A
@@ -33,6 +38,8 @@
 
 import { SaveFormat, manipulateAsync } from 'expo-image-manipulator';
 
+import type { Flashcard, Questao } from '../data/mock';
+
 const ENDPOINT = 'https://api.anthropic.com/v1/messages';
 const VERSAO_API = '2023-06-01';
 
@@ -44,6 +51,7 @@ const MODELO = 'claude-sonnet-5';
  *  navegacao, entao esperar mais so aumenta a chance de o conteudo real chegar. */
 export const LIMITE_CLASSIFICACAO_MS = 12000;
 export const LIMITE_TRANSCRICAO_MS = 20000;
+export const LIMITE_ESTUDO_MS = 20000;
 
 /** Lado maior de cada imagem. A de transcricao usa 1568px porque e a faixa para
  *  a qual a API de visao ja reduz internamente. Mandar mais nao melhora nada. */
@@ -55,8 +63,8 @@ export type ClassificacaoAoVivo = {
   materia: string;
   tema: string;
   topico: string;
-  /** Caminho de pasta onde a aula sera salva. */
-  pasta: string[];
+  /** Caminho de pasta onde a aula sera salva: [materia, subpasta]. */
+  pasta: [string, string];
   /** true quando nenhuma pasta existente servia e uma nova foi proposta. */
   pastaNova: boolean;
 };
@@ -64,6 +72,11 @@ export type ClassificacaoAoVivo = {
 export type TranscricaoAoVivo = {
   textoExtraido: string;
   resumo: string[];
+};
+
+export type EstudoAoVivo = {
+  flashcards: Flashcard[];
+  questoes: Questao[];
 };
 
 export type Resultado<T> =
@@ -96,7 +109,7 @@ function promptClassificacao(subModo: string, pastas: string[]): string {
     '- materia: a área de estudo em uma ou duas palavras. Ex.: Design, Programação, Matemática.',
     '- tema: a disciplina ou assunto maior.',
     '- topico: o assunto específico da imagem, em uma linha curta.',
-    '- pasta: onde salvar, como caminho de dois ou três níveis.',
+    '- pasta: onde salvar, como caminho de exatamente dois níveis: [área, disciplina ou assunto maior].',
     '  Se UMA das pastas existentes acima couber para este conteúdo, repita exatamente',
     '  os nomes dela, separando os níveis no array, e devolva pastaNova como false.',
     '  Só proponha nomes novos quando nenhuma das existentes fizer sentido. Nesse',
@@ -116,6 +129,19 @@ const PROMPT_TRANSCRICAO = [
   '',
   '- textoExtraido: a transcrição fiel, preservando as quebras de linha do original.',
   '- resumo: de 4 a 6 frases curtas, cada uma completa em si.',
+  '',
+  'Tudo em português do Brasil. Não invente conteúdo que não está na imagem.',
+].join('\n');
+
+const PROMPT_ESTUDO = [
+  'Esta é a foto de uma lousa, slide ou caderno de aula. Crie material de revisão SOMENTE com o que está na imagem.',
+  '',
+  'Responda SOMENTE com JSON válido, sem cercas de código e sem texto ao redor:',
+  '{"flashcards":[{"p":"pergunta","r":"resposta"}],"questoes":[{"q":"enunciado","alt":["a","b","c","d"],"certa":0}]}',
+  '',
+  '- flashcards: de 5 a 8 cartões. Pergunta curta na frente, resposta de uma ou duas frases no verso.',
+  '- questoes: 3 questões de múltipla escolha, cada uma com exatamente 4 alternativas plausíveis,',
+  '  e "certa" é o índice (0 a 3) da alternativa correta. Varie a posição da correta.',
   '',
   'Tudo em português do Brasil. Não invente conteúdo que não está na imagem.',
 ].join('\n');
@@ -319,8 +345,14 @@ export async function classificarCaptura(
   const tema = texto(o.tema);
   const topico = texto(o.topico);
 
-  const pasta = Array.isArray(o.pasta) ? o.pasta.map(texto).filter((n) => n.length > 0) : [];
+  const pastaBruta = Array.isArray(o.pasta) ? o.pasta.map(texto).filter((n) => n.length > 0) : [];
   const temaFinal = tema === '' ? materia : tema;
+  // Sempre dois niveis. Se a IA mandou tres, o terceiro era o tema, que ja vai
+  // no titulo da aula; se mandou um so, a subpasta e o proprio tema.
+  const pasta: [string, string] =
+    pastaBruta.length >= 2
+      ? [pastaBruta[0] ?? materia, pastaBruta[1] ?? temaFinal]
+      : [materia, temaFinal];
 
   return {
     estado: 'ok',
@@ -329,9 +361,7 @@ export async function classificarCaptura(
       materia,
       tema: temaFinal,
       topico: topico === '' ? temaFinal : topico,
-      // Sem caminho valido na resposta, deriva um da propria leitura em vez de
-      // deixar a arvore de destino vazia.
-      pasta: pasta.length >= 2 ? pasta : [materia, temaFinal],
+      pasta,
       pastaNova: o.pastaNova === true,
     },
   };
@@ -365,4 +395,48 @@ ${PROMPT_TRANSCRICAO}`;
     : [];
 
   return { estado: 'ok', ms: r.ms, dados: { textoExtraido, resumo } };
+}
+
+export async function gerarEstudo(
+  b64: string | null,
+  subModo: string
+): Promise<Resultado<EstudoAoVivo>> {
+  if (b64 === null || b64.length === 0) return { estado: 'sem-foto' };
+
+  const dica = DICA_SUBMODO[subModo];
+  const prompt = dica === undefined ? PROMPT_ESTUDO : `${dica}\n\n${PROMPT_ESTUDO}`;
+
+  const r = await chamarComRetentativa(b64, prompt, 2000, LIMITE_ESTUDO_MS);
+  if (!r.ok) return r.resultado;
+
+  const d = extrairJson(r.texto);
+  if (typeof d !== 'object' || d === null) {
+    return { estado: 'falha', motivo: 'resposta fora do formato' };
+  }
+  const o = d as Record<string, unknown>;
+
+  const flashcards: Flashcard[] = Array.isArray(o.flashcards)
+    ? o.flashcards
+        .map((f) => {
+          const x = (typeof f === 'object' && f !== null ? f : {}) as Record<string, unknown>;
+          return { p: texto(x.p), r: texto(x.r) };
+        })
+        .filter((f) => f.p !== '' && f.r !== '')
+    : [];
+
+  const questoes: Questao[] = Array.isArray(o.questoes)
+    ? o.questoes
+        .map((q) => {
+          const x = (typeof q === 'object' && q !== null ? q : {}) as Record<string, unknown>;
+          const alt = Array.isArray(x.alt) ? x.alt.map(texto).filter((a) => a !== '') : [];
+          const certa = typeof x.certa === 'number' ? Math.trunc(x.certa) : -1;
+          return { q: texto(x.q), alt, certa };
+        })
+        .filter((q) => q.q !== '' && q.alt.length === 4 && q.certa >= 0 && q.certa < 4)
+    : [];
+
+  if (flashcards.length === 0 && questoes.length === 0) {
+    return { estado: 'falha', motivo: 'material vazio' };
+  }
+  return { estado: 'ok', ms: r.ms, dados: { flashcards, questoes } };
 }

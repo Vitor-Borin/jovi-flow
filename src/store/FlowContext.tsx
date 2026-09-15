@@ -2,22 +2,29 @@ import type { ReactNode } from 'react';
 import { createContext, useCallback, useContext, useMemo, useState } from 'react';
 
 import { caminhoSalvar, conteudoIdentificado, plataformas, subModos } from '../data/mock';
-import type { ClassificacaoAoVivo, TranscricaoAoVivo } from '../services/analiseAoVivo';
+import type {
+  ClassificacaoAoVivo,
+  EstudoAoVivo,
+  TranscricaoAoVivo,
+} from '../services/analiseAoVivo';
+
+/**
+ * A captura em andamento: o que vai da camera ate a tela de acoes. Depois de
+ * salva, a aula mora no acervo (store/AcervoContext) e este estado pode ser
+ * reaproveitado pela proxima foto.
+ */
 
 const CONECTADAS_PADRAO = plataformas.filter((p) => p.conectadaPorPadrao).map((p) => p.id);
 const AUTOMATICAS_PADRAO = plataformas.filter((p) => p.automaticaPorPadrao).map((p) => p.id);
 const SUBMODO_PADRAO = subModos[0]?.id ?? 'lousa';
 
 export type FlowState = {
-  /** Modo Aula ligado/desligado. */
-  flowAtivo: boolean;
-  /** Foto REAL capturada pelo usuario na Fase 4. */
+  /** Foto REAL capturada pelo usuario. */
   fotoUri: string | null;
-  /** Caminho de pastas onde a aula sera salva. Ex.: ['Matemática','Cálculo','Funções'] */
-  destino: string[];
+  /** Pasta onde a captura vai ser salva: [materia, subpasta]. */
+  destino: [string, string];
   /** Texto reconhecido. Fica no estado porque a tela de Acoes permite edita-lo. */
   textoExtraido: string;
-  resumoSalvo: boolean;
   /** Lousa, slide ou caderno: cada um pede um tratamento optico diferente. */
   subModo: string;
   /** Ids das plataformas que o estudante conectou. */
@@ -26,78 +33,69 @@ export type FlowState = {
   plataformasAutomaticas: string[];
   /** Conectadas que perguntam antes e que o usuario ja mandou na mao. */
   enviadasManualmente: string[];
-  /** O Modo Aula ja se apresentou nesta sessao? A pesquisa do grupo mostrou que
-   *  recurso que nao se apresenta e recurso que ninguem descobre. */
-  jaApresentouModoAula: boolean;
   /** Liga a analise real pela API. Desligado, o app continua 100% offline. */
   modoAoVivo: boolean;
   /** Imagem capturada em base64, usada apenas pelo modo ao vivo. */
   fotoBase64: string | null;
-  /** Materia, tema e topico lidos da foto. Nulo = usar o exemplo.
-   *  Chega rapido (~2s) porque a saida e curta. */
+  /** Materia, tema e topico lidos da foto. Nulo = usar o exemplo. */
   classificacao: ClassificacaoAoVivo | null;
-  /** Transcricao e resumo lidos da foto. Chega depois (~8s), e tudo bem:
-   *  e o que aparece embaixo da tela e nas telas seguintes. */
+  /** Transcricao e resumo lidos da foto. Chega depois, e tudo bem. */
   transcricao: TranscricaoAoVivo | null;
-  /** Ha alguma das duas chamadas em andamento. */
+  /** Flashcards e questoes lidos da foto. */
+  estudo: EstudoAoVivo | null;
+  /** Ha alguma chamada em andamento. */
   analisando: boolean;
-  /** Quantos quadros a captura continua guardou nesta sessao. Zero quando ela
-   *  nao foi usada. */
+  /** Quantos quadros a captura continua guardou nesta sessao. */
   quadrosSequencia: number;
-  /** Horario do primeiro e do ultimo quadro guardado, para a tela seguinte
-   *  poder mostrar a janela de tempo coberta. */
   janelaSequencia: { inicio: string; fim: string } | null;
-  ativarFlow: (v: boolean) => void;
   definirFoto: (uri: string | null) => void;
-  definirDestino: (d: string[]) => void;
+  definirDestino: (d: [string, string]) => void;
   definirTexto: (t: string) => void;
   definirSubModo: (id: string) => void;
   alternarPlataforma: (id: string) => void;
   alternarAutomatico: (id: string) => void;
   enviarAgora: (id: string) => void;
-  marcarApresentacaoVista: () => void;
   alternarModoAoVivo: () => void;
   definirFotoBase64: (b64: string | null) => void;
   definirClassificacao: (c: ClassificacaoAoVivo | null) => void;
   definirTranscricao: (t: TranscricaoAoVivo | null) => void;
+  definirEstudo: (e: EstudoAoVivo | null) => void;
   definirAnalisando: (v: boolean) => void;
   definirSequencia: (quadros: number, janela: { inicio: string; fim: string } | null) => void;
-  salvarResumo: () => void;
-  /** Volta ao estado inicial. Permite refazer o pitch varias vezes sem fechar o app. */
+  /** Limpa a captura em andamento. A proxima foto comeca do zero. */
+  limparCaptura: () => void;
+  /** Volta ao estado inicial, incluindo as plataformas. */
   reiniciar: () => void;
 };
 
 const FlowContext = createContext<FlowState | null>(null);
 
 export function FlowProvider({ children }: { children: ReactNode }) {
-  const [flowAtivo, setFlowAtivo] = useState(false);
   const [fotoUri, setFotoUri] = useState<string | null>(null);
-  const [destino, setDestino] = useState<string[]>(caminhoSalvar);
+  const [destino, setDestino] = useState<[string, string]>(caminhoSalvar);
   const [textoExtraido, setTextoExtraido] = useState(conteudoIdentificado.textoExtraido);
-  const [resumoSalvo, setResumoSalvo] = useState(false);
   const [subModo, setSubModo] = useState(SUBMODO_PADRAO);
   const [plataformasConectadas, setPlataformasConectadas] = useState<string[]>(CONECTADAS_PADRAO);
   const [plataformasAutomaticas, setPlataformasAutomaticas] = useState<string[]>(AUTOMATICAS_PADRAO);
   const [enviadasManualmente, setEnviadasManualmente] = useState<string[]>([]);
-  const [jaApresentouModoAula, setJaApresentou] = useState(false);
   const [modoAoVivo, setModoAoVivo] = useState(false);
   const [fotoBase64, setFotoBase64] = useState<string | null>(null);
   const [classificacao, setClassificacao] = useState<ClassificacaoAoVivo | null>(null);
   const [transcricao, setTranscricao] = useState<TranscricaoAoVivo | null>(null);
+  const [estudo, setEstudo] = useState<EstudoAoVivo | null>(null);
   const [analisando, setAnalisando] = useState(false);
   const [quadrosSequencia, setQuadros] = useState(0);
   const [janelaSequencia, setJanela] = useState<{ inicio: string; fim: string } | null>(null);
 
-  const ativarFlow = useCallback((v: boolean) => setFlowAtivo(v), []);
   const definirFoto = useCallback((uri: string | null) => setFotoUri(uri), []);
-  const definirDestino = useCallback((d: string[]) => setDestino(d), []);
+  const definirDestino = useCallback((d: [string, string]) => setDestino(d), []);
   const definirTexto = useCallback((t: string) => setTextoExtraido(t), []);
   const definirSubModo = useCallback((id: string) => setSubModo(id), []);
-  const marcarApresentacaoVista = useCallback(() => setJaApresentou(true), []);
   const alternarModoAoVivo = useCallback(() => setModoAoVivo((v) => !v), []);
   const definirFotoBase64 = useCallback((b64: string | null) => setFotoBase64(b64), []);
   const definirClassificacao = useCallback((c: ClassificacaoAoVivo | null) => setClassificacao(c), []);
   const definirTranscricao = useCallback((t: TranscricaoAoVivo | null) => setTranscricao(t), []);
+  const definirEstudo = useCallback((e: EstudoAoVivo | null) => setEstudo(e), []);
   const definirAnalisando = useCallback((v: boolean) => setAnalisando(v), []);
   const definirSequencia = useCallback(
     (quadros: number, janela: { inicio: string; fim: string } | null) => {
@@ -106,7 +104,6 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     },
     []
   );
-  const salvarResumo = useCallback(() => setResumoSalvo(true), []);
 
   const alternarPlataforma = useCallback((id: string) => {
     setPlataformasConectadas((atual) =>
@@ -128,47 +125,46 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     setEnviadasManualmente((atual) => (atual.includes(id) ? atual : [...atual, id]));
   }, []);
 
-  const reiniciar = useCallback(() => {
-    setFlowAtivo(false);
+  const limparCaptura = useCallback(() => {
     setFotoUri(null);
     setDestino(caminhoSalvar);
     setTextoExtraido(conteudoIdentificado.textoExtraido);
-    setResumoSalvo(false);
-    setSubModo(SUBMODO_PADRAO);
-    setPlataformasConectadas(CONECTADAS_PADRAO);
-    setPlataformasAutomaticas(AUTOMATICAS_PADRAO);
     setEnviadasManualmente([]);
-    setJaApresentou(false);
     setFotoBase64(null);
     setClassificacao(null);
     setTranscricao(null);
+    setEstudo(null);
     setAnalisando(false);
     setQuadros(0);
     setJanela(null);
+  }, []);
+
+  const reiniciar = useCallback(() => {
+    limparCaptura();
+    setSubModo(SUBMODO_PADRAO);
+    setPlataformasConectadas(CONECTADAS_PADRAO);
+    setPlataformasAutomaticas(AUTOMATICAS_PADRAO);
     // modoAoVivo nao e limpo de proposito: e uma escolha do apresentador, e nao
     // parte do estado da captura. Reiniciar a demo nao deve desligar a API.
-  }, []);
+  }, [limparCaptura]);
 
   const valor = useMemo<FlowState>(
     () => ({
-      flowAtivo,
       fotoUri,
       destino,
       textoExtraido,
-      resumoSalvo,
       subModo,
       plataformasConectadas,
       plataformasAutomaticas,
       enviadasManualmente,
-      jaApresentouModoAula,
       modoAoVivo,
       fotoBase64,
       classificacao,
       transcricao,
+      estudo,
       analisando,
       quadrosSequencia,
       janelaSequencia,
-      ativarFlow,
       definirFoto,
       definirDestino,
       definirTexto,
@@ -176,35 +172,32 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       alternarPlataforma,
       alternarAutomatico,
       enviarAgora,
-      marcarApresentacaoVista,
       alternarModoAoVivo,
       definirFotoBase64,
       definirClassificacao,
       definirTranscricao,
+      definirEstudo,
       definirAnalisando,
       definirSequencia,
-      salvarResumo,
+      limparCaptura,
       reiniciar,
     }),
     [
-      flowAtivo,
       fotoUri,
       destino,
       textoExtraido,
-      resumoSalvo,
       subModo,
       plataformasConectadas,
       plataformasAutomaticas,
       enviadasManualmente,
-      jaApresentouModoAula,
       modoAoVivo,
       fotoBase64,
       classificacao,
       transcricao,
+      estudo,
       analisando,
       quadrosSequencia,
       janelaSequencia,
-      ativarFlow,
       definirFoto,
       definirDestino,
       definirTexto,
@@ -212,14 +205,14 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       alternarPlataforma,
       alternarAutomatico,
       enviarAgora,
-      marcarApresentacaoVista,
       alternarModoAoVivo,
       definirFotoBase64,
       definirClassificacao,
       definirTranscricao,
+      definirEstudo,
       definirAnalisando,
       definirSequencia,
-      salvarResumo,
+      limparCaptura,
       reiniciar,
     ]
   );

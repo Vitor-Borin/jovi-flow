@@ -14,38 +14,61 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Badge } from '../components/Badge';
-import { GhostButton } from '../components/GhostButton';
-import { PrimaryButton } from '../components/PrimaryButton';
 import { WhiteboardFallback } from '../components/WhiteboardFallback';
-import type { Chip, SubModo } from '../data/mock';
-import { aulaAgora, pastasExistentes, subModos } from '../data/mock';
+import { ordenarAulas } from '../data/acervo';
+import type { SubModo } from '../data/mock';
+import { subModos } from '../data/mock';
 import type { FrameContinuo } from '../hooks/useCapturaContinua';
 import { useCapturaContinua } from '../hooks/useCapturaContinua';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
+import type { RootStackParamList } from '../navigation/types';
 import {
   PX,
   classificarCaptura,
+  gerarEstudo,
   prepararImagem,
   transcreverCaptura,
 } from '../services/analiseAoVivo';
-import type { RootStackParamList } from '../navigation/types';
+import { useAcervo } from '../store/AcervoContext';
 import { useFlow } from '../store/FlowContext';
-import { TOQUE_MIN, colors, font, fontDado, radius, shadow, spacing } from '../theme';
+import { TOQUE_MIN, colors, font, fontModo, radius, spacing } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Camera'>;
 
-type Etapa = 'inativo' | 'ativo' | 'confirmar';
+/**
+ * O visor copia o layout da camera da JOVI (Funtouch OS): preto de ponta a
+ * ponta, visor 4:3 sem borda, icones brancos em cima, zoom sobre a imagem,
+ * modos em caixa alta e obturador branco. AULA e um modo do carrossel, igual a
+ * RETRATO ou NOITE. E assim que o Flow entraria no aparelho de verdade, e a
+ * tela precisa sustentar isso sem explicacao verbal.
+ */
 
-const MODOS = ['Noite', 'Retrato', 'Foto', 'Vídeo', 'Mais'];
+type Modo = 'NOITE' | 'RETRATO' | 'FOTO' | 'AULA' | 'VÍDEO';
+const MODOS: Modo[] = ['NOITE', 'RETRATO', 'FOTO', 'AULA', 'VÍDEO'];
 
 const ALTURA_BARRA = 48;
-const ALTURA_CARROSSEL = 44;
+const ALTURA_SUBMODOS = 44;
+const ALTURA_MODOS = 44;
 const ALTURA_OBTURADOR = 104;
 const TAMANHO_OBTURADOR = 72;
+const TAMANHO_MINIATURA = 44;
+
+/** Tempo ate a camera "reconhecer" a lousa e deslizar sozinha para AULA. */
 const MS_ATE_DETECTAR = 2500;
+const MS_AVISO_DETECCAO = 2200;
+
+/** Niveis de zoom oferecidos. O valor vai direto para a camera (0 a 1). */
+const ZOOMS: { rotulo: string; valor: number }[] = [
+  { rotulo: '1', valor: 0 },
+  { rotulo: '2', valor: 0.12 },
+];
+
+/** A camera lembra o ultimo modo, como uma camera de verdade. Voltar do fluxo
+ *  de salvar reabre direto em AULA, sem repetir a deteccao. */
+let ultimoModo: Modo = 'FOTO';
 
 export function CameraScreen({ navigation }: Props) {
   const { width, height } = useWindowDimensions();
@@ -53,41 +76,49 @@ export function CameraScreen({ navigation }: Props) {
   const reduzir = useReduzirMovimento();
   const {
     definirFoto,
-    ativarFlow,
     subModo,
     definirSubModo,
-    jaApresentouModoAula,
-    marcarApresentacaoVista,
     modoAoVivo,
     definirFotoBase64,
     definirClassificacao,
     definirTranscricao,
+    definirEstudo,
     definirAnalisando,
     definirTexto,
     definirDestino,
     definirSequencia,
+    limparCaptura,
   } = useFlow();
+  const { acervo, caminhos } = useAcervo();
 
   const modoAtual: SubModo = subModos.find((m) => m.id === subModo) ?? subModos[0];
 
-  const [etapa, setEtapa] = useState<Etapa>('inativo');
+  const [modo, setModoEstado] = useState<Modo>(ultimoModo);
   const [flashLigado, setFlashLigado] = useState(false);
+  const [hdr, setHdr] = useState(true);
+  const [fotoAoVivo, setFotoAoVivo] = useState(false);
   const [lente, setLente] = useState<CameraType>('back');
-  const [modo, setModo] = useState('Foto');
+  const [zoom, setZoom] = useState(0);
   const [capturaContinua, setCapturaContinua] = useState(false);
   const [erroCamera, setErroCamera] = useState(false);
   const [capturando, setCapturando] = useState(false);
+  const [avisoDeteccao, setAvisoDeteccao] = useState(false);
+  const [ultimaFoto, setUltimaFoto] = useState<string | null>(null);
 
   const [permissao, pedirPermissao] = useCameraPermissions();
   const cameraRef = useRef<CameraView>(null);
   const montado = useRef(true);
   const jaPediuPermissao = useRef(false);
-  // Numero de sequencia da captura: se o usuario cancelar e capturar de novo,
-  // so o resultado da captura mais recente vale.
+  const jaDetectou = useRef(false);
   const capturaAtual = useRef(0);
-  // Trava da camera: a captura manual e o ciclo continuo passam pela mesma, para
-  // nunca chamarem takePictureAsync ao mesmo tempo.
   const cameraOcupada = useRef(false);
+
+  const modoAula = modo === 'AULA';
+
+  const setModo = useCallback((m: Modo) => {
+    ultimoModo = m;
+    setModoEstado(m);
+  }, []);
 
   useEffect(() => {
     montado.current = true;
@@ -96,7 +127,6 @@ export function CameraScreen({ navigation }: Props) {
     };
   }, []);
 
-  // Pede a permissao uma unica vez. Sem a trava, um "negar" reabriria o dialogo em loop.
   useEffect(() => {
     if (!permissao || permissao.granted || jaPediuPermissao.current) return;
     jaPediuPermissao.current = true;
@@ -105,9 +135,7 @@ export function CameraScreen({ navigation }: Props) {
 
   const mostrarCamera = permissao?.granted === true && !erroCamera;
 
-  // A captura continua so roda com o Modo Aula ligado, camera disponivel e fora
-  // da folha de confirmacao: capturar por baixo do sheet nao faria sentido.
-  const continuaAtiva = capturaContinua && etapa === 'ativo' && mostrarCamera;
+  const continuaAtiva = capturaContinua && modoAula && mostrarCamera;
   const sequencia = useCapturaContinua({
     ativo: continuaAtiva,
     cameraRef,
@@ -115,32 +143,49 @@ export function CameraScreen({ navigation }: Props) {
     ocupada: cameraOcupada,
   });
 
-  // Gatilho da demo: a lousa e "detectada" sozinha. O toque no badge FLOW e a
-  // garantia manual caso o tempo nao caia bem durante o pitch.
+  // A deteccao da lousa: uma vez por abertura da camera, quando ela esta em
+  // FOTO. O carrossel desliza para AULA sozinho e um aviso curto diz por que.
   useEffect(() => {
-    if (etapa !== 'inativo') return;
+    if (modo !== 'FOTO' || jaDetectou.current) return;
     const timer = setTimeout(() => {
-      if (montado.current) setEtapa('ativo');
+      if (!montado.current) return;
+      jaDetectou.current = true;
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      setModo('AULA');
+      setAvisoDeteccao(true);
     }, MS_ATE_DETECTAR);
     return () => clearTimeout(timer);
-  }, [etapa]);
+  }, [modo, setModo]);
 
   useEffect(() => {
-    ativarFlow(etapa !== 'inativo');
-  }, [etapa, ativarFlow]);
+    if (!avisoDeteccao) return;
+    const timer = setTimeout(() => setAvisoDeteccao(false), MS_AVISO_DETECCAO);
+    return () => clearTimeout(timer);
+  }, [avisoDeteccao]);
+
+  // Miniatura da galeria: a foto mais recente do acervo, ate uma foto nova ser
+  // tirada nesta sessao.
+  const miniaturaAcervo = useMemo(() => {
+    for (const aula of ordenarAulas(acervo.aulas)) {
+      const pagina = [...aula.paginas].reverse().find((p) => p.fotoUri !== null);
+      if (pagina?.fotoUri) return pagina.fotoUri;
+    }
+    return null;
+  }, [acervo.aulas]);
+  const miniatura = ultimaFoto ?? miniaturaAcervo;
 
   const dimensoesVisor = useMemo(() => {
-    const largura = width - spacing(4) * 2;
     const disponivel =
       height -
       insets.top -
       insets.bottom -
       ALTURA_BARRA -
-      ALTURA_CARROSSEL -
-      ALTURA_OBTURADOR -
-      spacing(4);
-    // Nunca deixa o visor estourar a tela em aparelho pequeno.
-    return { largura, altura: Math.min(largura * (4 / 3), Math.max(disponivel, spacing(40))) };
+      ALTURA_SUBMODOS -
+      ALTURA_MODOS -
+      ALTURA_OBTURADOR;
+    // 4:3 ocupando a largura toda. Em aparelho curto o visor encolhe para os
+    // controles nunca saírem da tela.
+    return { largura: width, altura: Math.min(width * (4 / 3), Math.max(disponivel, spacing(60))) };
   }, [width, height, insets.top, insets.bottom]);
 
   const aoTocarObturador = useCallback(async () => {
@@ -150,140 +195,142 @@ export function CameraScreen({ navigation }: Props) {
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
     try {
+      let foto: { uri: string; width: number; height: number } | null = null;
       if (mostrarCamera && cameraRef.current) {
-        // A foto real e tirada ANTES da folha subir: as telas seguintes usam ela.
-        // Qualidade alta na captura: o arquivo fica no aparelho, e serve de fonte
-        // para o redimensionamento do modo ao vivo.
-        const foto = await cameraRef.current.takePictureAsync({ quality: 0.85 });
-        if (foto?.uri) {
-          definirFoto(foto.uri);
-          console.log('[JOVI Flow] foto capturada:', foto.uri);
-        }
-
-        // Zera o resultado anterior: cada captura comeca do exemplo e so e
-        // substituida quando a leitura real chegar.
-        definirClassificacao(null);
-        definirTranscricao(null);
-        definirFotoBase64(null);
-
-        // A sequencia da captura continua nao pode ser descartada em silencio:
-        // ela vira parte do que foi salvo, e a tela seguinte mostra isso.
-        const quadros = sequencia.frames;
-        const primeiro = quadros[0];
-        const ultimo = quadros[quadros.length - 1];
-        definirSequencia(
-          quadros.length,
-          primeiro && ultimo ? { inicio: primeiro.hora.slice(0, 5), fim: ultimo.hora.slice(0, 5) } : null
-        );
-
-        if (modoAoVivo && foto?.uri) {
-          const seq = capturaAtual.current + 1;
-          capturaAtual.current = seq;
-          definirAnalisando(true);
-
-          // Duas imagens, dois tamanhos, cada uma dimensionada para a tarefa.
-          // A pequena e o que garante a leitura mesmo com rede ruim.
-          const [pequena, grande] = await Promise.all([
-            prepararImagem(foto.uri, foto.width, foto.height, PX.classificacao),
-            prepararImagem(foto.uri, foto.width, foto.height, PX.transcricao),
-          ]);
-          definirFotoBase64(grande);
-
-          const kb = (b: string | null) => Math.round((b?.length ?? 0) / 1024);
-          console.log(
-            `[JOVI Flow] ao vivo: ${foto.width}x${foto.height} -> classificacao ${kb(pequena)} KB, transcricao ${kb(grande)} KB`
-          );
-
-          // As duas correm em paralelo e sao independentes: se uma falhar, so
-          // aquela parte da tela cai no exemplo.
-          // O sub-modo e a lista de pastas existentes vao no prompt: o primeiro
-          // muda como a imagem e lida, a segunda evita a IA inventar um nome novo
-          // a cada captura para o mesmo assunto.
-          const pClass = classificarCaptura(pequena, modoAtual.id, pastasExistentes()).then((r) => {
-            if (capturaAtual.current !== seq) return;
-            if (r.estado === 'ok') {
-              definirClassificacao(r.dados);
-              definirDestino(r.dados.pasta);
-              console.log(
-                `[JOVI Flow] classificacao em ${r.ms}ms: ${r.dados.topico} -> ${r.dados.pasta.join(' > ')}${r.dados.pastaNova ? ' (pasta nova)' : ''}`
-              );
-            } else {
-              console.log('[JOVI Flow] classificacao indisponivel:', r.estado);
-            }
-          });
-
-          const pTrans = transcreverCaptura(grande, modoAtual.id).then((r) => {
-            if (capturaAtual.current !== seq) return;
-            if (r.estado === 'ok') {
-              definirTranscricao(r.dados);
-              definirTexto(r.dados.textoExtraido);
-              console.log(`[JOVI Flow] transcricao em ${r.ms}ms`);
-            } else {
-              console.log('[JOVI Flow] transcricao indisponivel:', r.estado);
-            }
-          });
-
-          void Promise.all([pClass, pTrans]).then(() => {
-            if (capturaAtual.current === seq) definirAnalisando(false);
-          });
-        }
+        const r = await cameraRef.current.takePictureAsync({ quality: 0.85 });
+        if (r?.uri) foto = { uri: r.uri, width: r.width, height: r.height };
       }
+
+      if (!modoAula) {
+        // Nos outros modos a camera e so camera: tira a foto e mostra na
+        // miniatura. O prototipo nao grava na galeria do aparelho.
+        if (foto) setUltimaFoto(foto.uri);
+        return;
+      }
+
+      // Cada captura comeca do zero: some o resultado da anterior e o exemplo
+      // so e substituido quando a leitura real chegar.
+      limparCaptura();
+      if (foto) definirFoto(foto.uri);
+
+      const quadros = sequencia.frames;
+      const primeiro = quadros[0];
+      const ultimo = quadros[quadros.length - 1];
+      definirSequencia(
+        quadros.length,
+        primeiro && ultimo ? { inicio: primeiro.hora.slice(0, 5), fim: ultimo.hora.slice(0, 5) } : null
+      );
+
+      if (modoAoVivo && foto) {
+        const seq = capturaAtual.current + 1;
+        capturaAtual.current = seq;
+        definirAnalisando(true);
+
+        const [pequena, grande] = await Promise.all([
+          prepararImagem(foto.uri, foto.width, foto.height, PX.classificacao),
+          prepararImagem(foto.uri, foto.width, foto.height, PX.transcricao),
+        ]);
+        definirFotoBase64(grande);
+
+        // Tres chamadas independentes e paralelas. Se uma falhar, so aquela
+        // parte cai no exemplo.
+        const pClass = classificarCaptura(pequena, modoAtual.id, caminhos).then((r) => {
+          if (capturaAtual.current !== seq) return;
+          if (r.estado === 'ok') {
+            definirClassificacao(r.dados);
+            definirDestino(r.dados.pasta);
+            console.log(
+              `[JOVI Flow] classificacao em ${r.ms}ms: ${r.dados.topico} -> ${r.dados.pasta.join(' > ')}${r.dados.pastaNova ? ' (pasta nova)' : ''}`
+            );
+          } else {
+            console.log('[JOVI Flow] classificacao indisponivel:', r.estado);
+          }
+        });
+
+        const pTrans = transcreverCaptura(grande, modoAtual.id).then((r) => {
+          if (capturaAtual.current !== seq) return;
+          if (r.estado === 'ok') {
+            definirTranscricao(r.dados);
+            definirTexto(r.dados.textoExtraido);
+            console.log(`[JOVI Flow] transcricao em ${r.ms}ms`);
+          } else {
+            console.log('[JOVI Flow] transcricao indisponivel:', r.estado);
+          }
+        });
+
+        const pEstudo = gerarEstudo(grande, modoAtual.id).then((r) => {
+          if (capturaAtual.current !== seq) return;
+          if (r.estado === 'ok') {
+            definirEstudo(r.dados);
+            console.log(
+              `[JOVI Flow] material de estudo em ${r.ms}ms: ${r.dados.flashcards.length} cartoes, ${r.dados.questoes.length} questoes`
+            );
+          } else {
+            console.log('[JOVI Flow] material de estudo indisponivel:', r.estado);
+          }
+        });
+
+        void Promise.all([pClass, pTrans, pEstudo]).then(() => {
+          if (capturaAtual.current === seq) definirAnalisando(false);
+        });
+      }
+
+      navigation.navigate('Processing');
     } catch (erro) {
-      // Sem foto a demo continua: as telas seguintes caem no WhiteboardFallback.
+      // Sem foto a demo continua: as telas seguintes caem no exemplo de lousa.
       console.log('[JOVI Flow] captura falhou, seguindo sem foto:', erro);
+      if (modoAula) navigation.navigate('Processing');
     } finally {
       cameraOcupada.current = false;
-      if (montado.current) {
-        setCapturando(false);
-        setEtapa('confirmar');
-      }
+      if (montado.current) setCapturando(false);
     }
   }, [
     capturando,
     mostrarCamera,
+    modoAula,
+    limparCaptura,
     definirFoto,
-    modoAoVivo,
-    definirFotoBase64,
-    definirClassificacao,
-    definirTranscricao,
-    definirAnalisando,
-    definirTexto,
-    definirDestino,
-    modoAtual.id,
-    definirSequencia,
     sequencia.frames,
+    definirSequencia,
+    modoAoVivo,
+    definirAnalisando,
+    definirFotoBase64,
+    modoAtual.id,
+    caminhos,
+    definirClassificacao,
+    definirDestino,
+    definirTranscricao,
+    definirTexto,
+    definirEstudo,
+    navigation,
   ]);
-
-  const alternarFlow = useCallback(() => {
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setEtapa((atual) => (atual === 'inativo' ? 'ativo' : 'inativo'));
-  }, []);
-
-  const flowLigado = etapa !== 'inativo';
 
   return (
     <View style={[styles.tela, { paddingTop: insets.top, paddingBottom: insets.bottom }]}>
-      {/* A camera e a raiz do app: "sair" nao volta, avanca para as demais
-          superficies do Flow, como a galeria numa camera nativa. */}
       <BarraSuperior
         flashLigado={flashLigado}
+        hdr={hdr}
+        fotoAoVivo={fotoAoVivo}
+        modoAula={modoAula}
+        continua={capturaContinua}
         onAlternarFlash={() => setFlashLigado((v) => !v)}
-        onFechar={() => navigation.navigate('Tabs')}
+        onAlternarHdr={() => setHdr((v) => !v)}
+        onAlternarFotoAoVivo={() => setFotoAoVivo((v) => !v)}
+        onAlternarContinua={() => {
+          void Haptics.selectionAsync();
+          setCapturaContinua((v) => !v);
+        }}
+        onAbrirAjustes={() => navigation.navigate('Tabs', { screen: 'Perfil' })}
       />
 
       <View style={styles.areaVisor}>
-        <View
-          style={[
-            styles.visor,
-            { width: dimensoesVisor.largura, height: dimensoesVisor.altura },
-            flowLigado && styles.visorAtivo,
-          ]}
-        >
+        <View style={[styles.visor, { width: dimensoesVisor.largura, height: dimensoesVisor.altura }]}>
           {mostrarCamera ? (
             <CameraView
               ref={cameraRef}
               style={StyleSheet.absoluteFill}
               facing={lente}
+              zoom={zoom}
               flash={(flashLigado ? 'on' : 'off') satisfies FlashMode}
               animateShutter={!continuaAtiva}
               onMountError={() => setErroCamera(true)}
@@ -292,93 +339,44 @@ export function CameraScreen({ navigation }: Props) {
             <WhiteboardFallback style={styles.fallback} />
           )}
 
-          {flowLigado ? <MolduraDeteccao reduzir={reduzir} /> : null}
+          {modoAula ? <MolduraDeteccao reduzir={reduzir} /> : null}
 
-          <View style={styles.badgesVisor}>
-            {flowLigado ? (
-              <>
-                <Badge label="FLOW ATIVO" variant="solid" dot />
-                <Badge label="MODO AULA" variant="soft" style={styles.badgeSegundo} />
-              </>
-            ) : (
-              <Pressable
-                onPress={alternarFlow}
-                accessibilityRole="button"
-                accessibilityLabel="Ativar o Modo Aula"
-                hitSlop={spacing(2)}
-              >
-                <Badge label="FLOW" variant="neutral" />
-              </Pressable>
-            )}
-          </View>
+          {avisoDeteccao ? <AvisoDeteccao reduzir={reduzir} nome={modoAtual.nome} /> : null}
 
-          {/* Uma camada por vez sobre o visor. O cartao de descoberta explica com
-              palavras o que os chips mostram em simbolos: exibir os dois juntos
-              era dizer a mesma coisa duas vezes, em cima da imagem. */}
-          {flowLigado && !jaApresentouModoAula ? (
-            <CartaoDescoberta reduzir={reduzir} onFechar={marcarApresentacaoVista} />
-          ) : flowLigado ? (
-            <View style={styles.blocoDeteccao}>
-              <PilulaDeteccao reduzir={reduzir} />
-              {sequencia.frames.length === 0 ? (
-                <ChipsOtimizacao key={modoAtual.id} chips={modoAtual.chips} reduzir={reduzir} />
-              ) : null}
-            </View>
+          {continuaAtiva ? (
+            <TiraSequencia
+              frames={sequencia.frames}
+              intervalo={sequencia.intervaloSegundos}
+              reduzir={reduzir}
+            />
           ) : null}
 
-          <View style={styles.rodapeVisor}>
-            {flowLigado && mostrarCamera ? (
-              <ToggleCapturaContinua
-                ligado={capturaContinua}
-                onAlternar={setCapturaContinua}
-                intervalo={sequencia.intervaloSegundos}
-              />
-            ) : (
-              <View style={styles.pilulaZoom}>
-                <Text style={styles.textoZoom}>1x</Text>
-              </View>
-            )}
-          </View>
-
-          {continuaAtiva && sequencia.frames.length > 0 ? (
-            <TiraSequencia frames={sequencia.frames} reduzir={reduzir} />
+          {permissao !== null && !permissao.granted ? (
+            <AvisoPermissao onPermitir={() => void pedirPermissao()} />
           ) : null}
 
-          {etapa === 'confirmar' ? <View style={styles.escurecedor} /> : null}
+          <SeletorZoom valor={zoom} onSelecionar={setZoom} />
         </View>
       </View>
 
-      {/* Quando o Flow liga, a propria regua de modos da camera muda: sai a lista
-          generica e entra a escolha do tipo de superficie a capturar. E outro
-          sinal de que a CAMERA entrou em outro modo, e nao so o destino da foto. */}
-      {flowLigado ? (
-        <SeletorSubModo selecionado={modoAtual.id} onSelecionar={definirSubModo} />
-      ) : (
-        <CarrosselModos selecionado={modo} onSelecionar={setModo} />
-      )}
+      {/* Onde o Retrato da JOVI mostra 23 / 35 / 50 mm, o Modo Aula mostra a
+          superficie: lousa, slide e caderno pedem tratamentos opticos opostos. */}
+      <View style={styles.faixaSubModos}>
+        {modoAula ? (
+          <SeletorSubModo selecionado={modoAtual.id} onSelecionar={definirSubModo} />
+        ) : null}
+      </View>
 
-
+      <CarrosselModos selecionado={modo} onSelecionar={setModo} reduzir={reduzir} />
 
       <LinhaObturador
-        modoAula={flowLigado}
+        modo={modo}
         capturando={capturando}
-        reduzir={reduzir}
+        miniatura={miniatura}
         onCapturar={() => void aoTocarObturador()}
         onInverter={() => setLente((v) => (v === 'back' ? 'front' : 'back'))}
-        onAbrirEstudos={() => navigation.navigate('Tabs', { screen: 'Estudos' })}
+        onAbrirGaleria={() => navigation.navigate('Tabs', { screen: 'Estudos' })}
       />
-
-      {permissao !== null && !permissao.granted ? (
-        <AvisoPermissao onPermitir={() => void pedirPermissao()} />
-      ) : null}
-
-      {etapa === 'confirmar' ? (
-        <FolhaConfirmacao
-          reduzir={reduzir}
-          onConfirmar={() => navigation.navigate('Processing')}
-          onCancelar={() => setEtapa('ativo')}
-        />
-      ) : null}
     </View>
   );
 }
@@ -387,24 +385,29 @@ export function CameraScreen({ navigation }: Props) {
 
 function BarraSuperior({
   flashLigado,
+  hdr,
+  fotoAoVivo,
+  modoAula,
+  continua,
   onAlternarFlash,
-  onFechar,
+  onAlternarHdr,
+  onAlternarFotoAoVivo,
+  onAlternarContinua,
+  onAbrirAjustes,
 }: {
   flashLigado: boolean;
+  hdr: boolean;
+  fotoAoVivo: boolean;
+  modoAula: boolean;
+  continua: boolean;
   onAlternarFlash: () => void;
-  onFechar: () => void;
+  onAlternarHdr: () => void;
+  onAlternarFotoAoVivo: () => void;
+  onAlternarContinua: () => void;
+  onAbrirAjustes: () => void;
 }) {
   return (
     <View style={styles.barra}>
-      <Pressable
-        onPress={onFechar}
-        accessibilityRole="button"
-        accessibilityLabel="Fechar a câmera"
-        style={styles.itemBarra}
-      >
-        <Ionicons name="close" size={24} color={colors.text} />
-      </Pressable>
-
       <Pressable
         onPress={onAlternarFlash}
         accessibilityRole="button"
@@ -413,34 +416,74 @@ function BarraSuperior({
         style={styles.itemBarra}
       >
         <Ionicons
-          name={flashLigado ? 'flash' : 'flash-off'}
+          name={flashLigado ? 'flash' : 'flash-off-outline'}
           size={20}
-          color={flashLigado ? colors.warn : colors.text}
+          color={flashLigado ? colors.warn : colors.visor.icone}
         />
       </Pressable>
 
-      <View style={styles.itemBarra}>
-        <Text style={styles.textoBarra}>HDR</Text>
-      </View>
+      <Pressable
+        onPress={onAlternarHdr}
+        accessibilityRole="button"
+        accessibilityLabel={hdr ? 'Desligar o HDR' : 'Ligar o HDR'}
+        accessibilityState={{ selected: hdr }}
+        style={styles.itemBarra}
+      >
+        <Text style={[styles.textoBarra, !hdr && styles.textoBarraApagado]}>HDR</Text>
+      </Pressable>
 
-      <View style={styles.itemBarra}>
-        <Ionicons name="timer-outline" size={20} color={colors.text} />
-      </View>
+      {modoAula ? (
+        // Em AULA o lugar da foto ao vivo vira a captura continua: a camera
+        // fotografa sozinha durante a aula e guarda so o que mudou.
+        <Pressable
+          onPress={onAlternarContinua}
+          accessibilityRole="switch"
+          accessibilityLabel="Captura contínua"
+          accessibilityState={{ checked: continua }}
+          style={styles.itemBarra}
+        >
+          <MaterialCommunityIcons
+            name="camera-burst"
+            size={22}
+            color={continua ? colors.warn : colors.visor.icone}
+          />
+        </Pressable>
+      ) : (
+        <Pressable
+          onPress={onAlternarFotoAoVivo}
+          accessibilityRole="button"
+          accessibilityLabel={fotoAoVivo ? 'Desligar a foto ao vivo' : 'Ligar a foto ao vivo'}
+          accessibilityState={{ selected: fotoAoVivo }}
+          style={styles.itemBarra}
+        >
+          <MaterialCommunityIcons
+            name="circle-double"
+            size={20}
+            color={fotoAoVivo ? colors.warn : colors.visor.icone}
+          />
+        </Pressable>
+      )}
 
       <View style={styles.itemBarra}>
         <Text style={styles.textoBarra}>4:3</Text>
       </View>
 
-      <View style={styles.itemBarra}>
-        <Ionicons name="settings-outline" size={20} color={colors.text} />
-      </View>
+      <Pressable
+        onPress={onAbrirAjustes}
+        accessibilityRole="button"
+        accessibilityLabel="Ajustes da câmera"
+        style={styles.itemBarra}
+      >
+        <Ionicons name="settings-outline" size={20} color={colors.visor.icone} />
+      </Pressable>
     </View>
   );
 }
 
-/* ------------------------------------------------------- moldura de deteccao [D1] */
+/* ---------------------------------------------------------- moldura de deteccao */
 
-/** Retangulo com apenas os 4 cantos desenhados, encaixando na lousa. */
+/** Quatro cantos encaixando na lousa. E o unico sinal visual de que a camera
+ *  entrou em AULA, alem do proprio carrossel. */
 function MolduraDeteccao({ reduzir }: { reduzir: boolean }) {
   const encaixe = useRef(new Animated.Value(reduzir ? 1 : 0)).current;
 
@@ -449,11 +492,7 @@ function MolduraDeteccao({ reduzir }: { reduzir: boolean }) {
       encaixe.setValue(1);
       return;
     }
-    const anim = Animated.timing(encaixe, {
-      toValue: 1,
-      duration: 620,
-      useNativeDriver: true,
-    });
+    const anim = Animated.timing(encaixe, { toValue: 1, duration: 620, useNativeDriver: true });
     anim.start();
     return () => anim.stop();
   }, [reduzir, encaixe]);
@@ -461,7 +500,10 @@ function MolduraDeteccao({ reduzir }: { reduzir: boolean }) {
   const escala = encaixe.interpolate({ inputRange: [0, 1], outputRange: [1.06, 1] });
 
   return (
-    <Animated.View style={[styles.moldura, { opacity: encaixe, transform: [{ scale: escala }] }]}>
+    <Animated.View
+      pointerEvents="none"
+      style={[styles.moldura, { opacity: encaixe, transform: [{ scale: escala }] }]}
+    >
       <View style={[styles.canto, styles.cantoSE]} />
       <View style={[styles.canto, styles.cantoSD]} />
       <View style={[styles.canto, styles.cantoIE]} />
@@ -470,107 +512,51 @@ function MolduraDeteccao({ reduzir }: { reduzir: boolean }) {
   );
 }
 
-/* --------------------------------------------------------- pilula de deteccao */
+/* ------------------------------------------------------------ aviso de deteccao */
 
-function PilulaDeteccao({ reduzir }: { reduzir: boolean }) {
+/** Aparece por dois segundos quando a camera troca para AULA sozinha. Diz o
+ *  que aconteceu e some: a tela nao fica explicando o modo que ja esta escrito
+ *  no carrossel. */
+function AvisoDeteccao({ reduzir, nome }: { reduzir: boolean; nome: string }) {
   const entrada = useRef(new Animated.Value(reduzir ? 1 : 0)).current;
-  const pulso = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     if (reduzir) {
       entrada.setValue(1);
       return;
     }
-    const anim = Animated.timing(entrada, { toValue: 1, duration: 260, useNativeDriver: true });
+    const anim = Animated.timing(entrada, { toValue: 1, duration: 220, useNativeDriver: true });
     anim.start();
     return () => anim.stop();
   }, [reduzir, entrada]);
 
-  useEffect(() => {
-    if (reduzir) return;
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulso, { toValue: 1, duration: 700, useNativeDriver: true }),
-        Animated.timing(pulso, { toValue: 0, duration: 700, useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [reduzir, pulso]);
-
-  const subida = entrada.interpolate({ inputRange: [0, 1], outputRange: [spacing(3), 0] });
-  const escalaPonto = pulso.interpolate({ inputRange: [0, 1], outputRange: [1, 1.7] });
-  const opacidadePonto = pulso.interpolate({ inputRange: [0, 1], outputRange: [1, 0.35] });
+  const subida = entrada.interpolate({ inputRange: [0, 1], outputRange: [spacing(2), 0] });
 
   return (
     <Animated.View
-      style={[styles.pilula, { opacity: entrada, transform: [{ translateY: subida }] }]}
+      pointerEvents="none"
+      style={[styles.avisoDeteccao, { opacity: entrada, transform: [{ translateY: subida }] }]}
       accessible
-      accessibilityLabel="Apontado para lousa. Detectamos conteúdo de aula."
+      accessibilityLiveRegion="polite"
+      accessibilityLabel={`${nome} reconhecida. Modo Aula ligado.`}
     >
-      <View style={styles.areaPonto}>
-        <Animated.View
-          style={[styles.ponto, { opacity: opacidadePonto, transform: [{ scale: escalaPonto }] }]}
-        />
-      </View>
-      <View style={styles.textosPilula}>
-        <Text style={styles.pilulaTitulo}>Apontado para lousa</Text>
-        <Text style={styles.pilulaDetalhe}>Detectamos conteúdo de aula</Text>
-      </View>
+      <MaterialCommunityIcons name="auto-fix" size={14} color={colors.visor.icone} />
+      <Text style={styles.textoAvisoDeteccao}>{nome} reconhecida · Modo Aula</Text>
     </Animated.View>
   );
 }
 
-/* ------------------------------------------------------ chips de otimizacao [D1] */
+/* ------------------------------------------------------------- tira da sequencia */
 
-function ChipsOtimizacao({ chips, reduzir }: { chips: Chip[]; reduzir: boolean }) {
-  const valores = useRef(chips.map(() => new Animated.Value(0))).current;
-
-  useEffect(() => {
-    if (reduzir) {
-      valores.forEach((v) => v.setValue(1));
-      return;
-    }
-    const cascata = Animated.stagger(
-      80,
-      valores.map((v) =>
-        Animated.timing(v, { toValue: 1, duration: 220, useNativeDriver: true })
-      )
-    );
-    cascata.start();
-    return () => cascata.stop();
-  }, [reduzir, valores]);
-
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.listaChips}
-    >
-      {chips.map((chip, indice) => {
-        const valor = valores[indice];
-        if (!valor) return null;
-        const deslocamento = valor.interpolate({
-          inputRange: [0, 1],
-          outputRange: [spacing(4), 0],
-        });
-        return (
-          <Animated.View
-            key={chip.id}
-            style={[styles.chip, { opacity: valor, transform: [{ translateX: deslocamento }] }]}
-          >
-            <MaterialCommunityIcons name={chip.icone} size={13} color={colors.primaryHi} />
-            <Text style={styles.chipTexto}>{chip.label}</Text>
-          </Animated.View>
-        );
-      })}
-    </ScrollView>
-  );
-}
-
-/* --------------------------------------------- tira da sequencia continua [D1] */
-
-function TiraSequencia({ frames, reduzir }: { frames: FrameContinuo[]; reduzir: boolean }) {
+function TiraSequencia({
+  frames,
+  intervalo,
+  reduzir,
+}: {
+  frames: FrameContinuo[];
+  intervalo: number;
+  reduzir: boolean;
+}) {
   const pulso = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -589,67 +575,59 @@ function TiraSequencia({ frames, reduzir }: { frames: FrameContinuo[]; reduzir: 
   const ultimos = frames.slice(-5);
 
   return (
-    <View style={styles.tira}>
+    <View style={styles.tira} pointerEvents="none">
       <View style={styles.cabecalhoTira}>
         <Animated.View style={[styles.pontoGravando, { opacity: opacidade }]} />
         <Text style={styles.textoTira}>
-          {frames.length} {frames.length === 1 ? 'QUADRO GUARDADO' : 'QUADROS GUARDADOS'}
+          {frames.length === 0
+            ? `A cada ${intervalo}s · guarda só o que mudou`
+            : `${frames.length} ${frames.length === 1 ? 'quadro guardado' : 'quadros guardados'}`}
         </Text>
       </View>
-
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.listaTira}>
-        {ultimos.map((f) => (
-          <View key={f.id} style={styles.itemTira}>
-            <Image source={{ uri: f.uri }} style={styles.miniaturaTira} resizeMode="cover" />
-            <Text style={styles.horaTira}>{f.hora.slice(0, 5)}</Text>
-          </View>
-        ))}
-      </ScrollView>
-    </View>
-  );
-}
-
-/* ------------------------------------------------- toggle de captura continua [D1] */
-
-function ToggleCapturaContinua({
-  ligado,
-  onAlternar,
-  intervalo,
-}: {
-  ligado: boolean;
-  onAlternar: (v: boolean) => void;
-  intervalo: number;
-}) {
-  return (
-    <View style={styles.blocoContinua}>
-      <Pressable
-        onPress={() => {
-          void Haptics.selectionAsync();
-          onAlternar(!ligado);
-        }}
-        accessibilityRole="switch"
-        accessibilityLabel="Captura contínua"
-        accessibilityState={{ checked: ligado }}
-        style={styles.linhaContinua}
-      >
-        <View style={[styles.trilho, ligado && styles.trilhoLigado]}>
-          <View style={[styles.botaoTrilho, ligado && styles.botaoTrilhoLigado]} />
+      {ultimos.length > 0 ? (
+        <View style={styles.listaTira}>
+          {ultimos.map((f) => (
+            <View key={f.id} style={styles.itemTira}>
+              <Image source={{ uri: f.uri }} style={styles.miniaturaTira} resizeMode="cover" />
+              <Text style={styles.horaTira}>{f.hora.slice(0, 5)}</Text>
+            </View>
+          ))}
         </View>
-        <Text style={[styles.rotuloContinua, ligado && styles.rotuloContinuaLigado]}>
-          Captura contínua
-        </Text>
-      </Pressable>
-
-      {ligado ? (
-        <Text style={styles.explicacaoContinua}>
-          Fotografando a cada {intervalo}s, em silêncio. Só guarda quando o conteúdo muda.
-        </Text>
       ) : null}
     </View>
   );
 }
 
-/* ------------------------------------------------ seletor de sub-modo [D1] */
+/* ------------------------------------------------------------------- zoom */
+
+function SeletorZoom({ valor, onSelecionar }: { valor: number; onSelecionar: (v: number) => void }) {
+  return (
+    <View style={styles.zoom}>
+      {ZOOMS.map((z) => {
+        const ativo = z.valor === valor;
+        return (
+          <Pressable
+            key={z.rotulo}
+            onPress={() => {
+              void Haptics.selectionAsync();
+              onSelecionar(z.valor);
+            }}
+            accessibilityRole="button"
+            accessibilityLabel={`Zoom ${z.rotulo} vezes`}
+            accessibilityState={{ selected: ativo }}
+            style={[styles.bolinhaZoom, ativo && styles.bolinhaZoomAtiva]}
+          >
+            <Text style={[styles.textoZoom, ativo && styles.textoZoomAtivo]}>
+              {ativo ? `${z.rotulo}×` : z.rotulo}
+            </Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+/* --------------------------------------------------------------- sub-modos */
 
 function SeletorSubModo({
   selecionado,
@@ -659,7 +637,7 @@ function SeletorSubModo({
   onSelecionar: (id: string) => void;
 }) {
   return (
-    <View style={styles.seletor}>
+    <View style={styles.subModos}>
       {subModos.map((m) => {
         const ativo = m.id === selecionado;
         return (
@@ -670,22 +648,16 @@ function SeletorSubModo({
               onSelecionar(m.id);
             }}
             accessibilityRole="button"
-            accessibilityLabel={`Modo ${m.nome}. ${m.problema}`}
+            accessibilityLabel={`${m.nome}. ${m.problema}`}
             accessibilityState={{ selected: ativo }}
-            style={({ pressed }) => [
-              styles.itemSeletor,
-              ativo && styles.itemSeletorAtivo,
-              pressed && styles.itemSeletorPressionado,
-            ]}
+            style={[styles.pilulaSubModo, ativo && styles.pilulaSubModoAtiva]}
           >
             <MaterialCommunityIcons
               name={m.icone}
-              size={16}
-              color={ativo ? colors.primaryHi : colors.textDim}
+              size={14}
+              color={ativo ? colors.visor.fundo : colors.visor.icone}
             />
-            <Text style={[styles.textoSeletor, ativo && styles.textoSeletorAtivo]}>
-              {m.nome}
-            </Text>
+            <Text style={[styles.textoSubModo, ativo && styles.textoSubModoAtivo]}>{m.nome}</Text>
           </Pressable>
         );
       })}
@@ -693,177 +665,154 @@ function SeletorSubModo({
   );
 }
 
-/* ------------------------------------------------- cartao de descoberta [D1] */
+/* --------------------------------------------------------- carrossel de modos */
 
-/** Aparece uma unica vez, no instante em que o Modo Aula liga sozinho. Existe
- *  porque recurso que nao se apresenta e recurso que ninguem usa. */
-/** Aviso de que o Modo Aula ligou sozinho.
- *
- *  O texto so menciona a grade quando existe aula acontecendo de verdade. Antes
- *  ele afirmava "sua agenda confirma que voce esta em aula" a qualquer hora, e
- *  bastava abrir o app numa terca as 13h para a tela mentir. */
-function CartaoDescoberta({
+/** Regua de modos centrada no selecionado, como na camera da JOVI. Mede a
+ *  largura de cada rotulo para deslizar a regua inteira e deixar o modo ativo
+ *  no meio da tela. */
+function CarrosselModos({
+  selecionado,
+  onSelecionar,
   reduzir,
-  onFechar,
 }: {
+  selecionado: Modo;
+  onSelecionar: (m: Modo) => void;
   reduzir: boolean;
-  onFechar: () => void;
 }) {
-  const emAula = useMemo(() => aulaAgora() !== null, []);
-  const entrada = useRef(new Animated.Value(reduzir ? 1 : 0)).current;
+  const { width } = useWindowDimensions();
+  const [larguras, setLarguras] = useState<Record<string, number>>({});
+  const deslocamento = useRef(new Animated.Value(0)).current;
+
+  const ESPACO = spacing(7);
+
+  // Posicao x do centro de cada rotulo dentro da regua.
+  const centros = useMemo(() => {
+    const resultado: Record<string, number> = {};
+    let x = 0;
+    MODOS.forEach((m) => {
+      const l = larguras[m] ?? 0;
+      resultado[m] = x + l / 2;
+      x += l + ESPACO;
+    });
+    return resultado;
+  }, [larguras, ESPACO]);
+
+  const pronto = MODOS.every((m) => larguras[m] !== undefined);
 
   useEffect(() => {
+    if (!pronto) return;
+    const alvo = width / 2 - (centros[selecionado] ?? 0);
     if (reduzir) {
-      entrada.setValue(1);
+      deslocamento.setValue(alvo);
       return;
     }
-    const anim = Animated.timing(entrada, {
-      toValue: 1,
-      duration: 300,
-      delay: 420,
+    const anim = Animated.spring(deslocamento, {
+      toValue: alvo,
+      damping: 18,
+      stiffness: 160,
       useNativeDriver: true,
     });
     anim.start();
     return () => anim.stop();
-  }, [reduzir, entrada]);
+  }, [selecionado, centros, pronto, width, reduzir, deslocamento]);
 
-  const subida = entrada.interpolate({ inputRange: [0, 1], outputRange: [spacing(4), 0] });
+  const medir = (m: Modo) => (e: LayoutChangeEvent) => {
+    const l = e.nativeEvent.layout.width;
+    setLarguras((atual) => (atual[m] === l ? atual : { ...atual, [m]: l }));
+  };
 
   return (
-    <Animated.View
-      style={[styles.descoberta, { opacity: entrada, transform: [{ translateY: subida }] }]}
-    >
-      <View style={styles.topoDescoberta}>
-        <MaterialCommunityIcons name="auto-fix" size={16} color={colors.primaryHi} />
-        <Text style={styles.tituloDescoberta}>O Modo Aula ligou sozinho</Text>
-        <Pressable
-          onPress={onFechar}
-          accessibilityRole="button"
-          accessibilityLabel="Entendi, fechar o aviso"
-          hitSlop={spacing(3)}
-          style={styles.fecharDescoberta}
-        >
-          <Ionicons name="close" size={16} color={colors.textDim} />
-        </Pressable>
-      </View>
-      <Text style={styles.textoDescoberta}>
-        {emAula
-          ? 'A câmera reconheceu uma lousa e sua grade confirma que você está em aula. A captura foi ajustada para texto, não para rosto.'
-          : 'A câmera reconheceu uma lousa. A captura foi ajustada para texto, não para rosto.'}
-      </Text>
-    </Animated.View>
+    <View style={styles.modos}>
+      <Animated.View
+        style={[
+          styles.reguaModos,
+          // Invisivel ate medir os rotulos, para a regua nao pular do canto
+          // esquerdo para o centro no primeiro quadro.
+          { gap: ESPACO, opacity: pronto ? 1 : 0, transform: [{ translateX: deslocamento }] },
+        ]}
+      >
+        {MODOS.map((m) => {
+          const ativo = m === selecionado;
+          return (
+            <Pressable
+              key={m}
+              onLayout={medir(m)}
+              onPress={() => {
+                if (ativo) return;
+                void Haptics.selectionAsync();
+                onSelecionar(m);
+              }}
+              accessibilityRole="button"
+              accessibilityLabel={`Modo ${m}`}
+              accessibilityState={{ selected: ativo }}
+              style={styles.itemModo}
+            >
+              <Text style={[styles.textoModo, ativo && styles.textoModoAtivo]}>{m}</Text>
+            </Pressable>
+          );
+        })}
+      </Animated.View>
+    </View>
   );
 }
 
-/* ---------------------------------------------------------- carrossel de modos */
-
-function CarrosselModos({
-  selecionado,
-  onSelecionar,
-}: {
-  selecionado: string;
-  onSelecionar: (m: string) => void;
-}) {
-  return (
-    <ScrollView
-      horizontal
-      showsHorizontalScrollIndicator={false}
-      contentContainerStyle={styles.carrossel}
-      style={styles.carrosselContainer}
-    >
-      {MODOS.map((m) => {
-        const ativo = m === selecionado;
-        return (
-          <Pressable
-            key={m}
-            onPress={() => {
-              void Haptics.selectionAsync();
-              onSelecionar(m);
-            }}
-            accessibilityRole="button"
-            accessibilityLabel={`Modo ${m}`}
-            accessibilityState={{ selected: ativo }}
-            style={styles.itemModo}
-          >
-            <Text style={[styles.textoModo, ativo && styles.textoModoAtivo]}>{m}</Text>
-          </Pressable>
-        );
-      })}
-    </ScrollView>
-  );
-}
-
-/* --------------------------------------------------------- linha do obturador */
+/* ---------------------------------------------------------- linha do obturador */
 
 function LinhaObturador({
-  modoAula,
+  modo,
   capturando,
-  reduzir,
+  miniatura,
   onCapturar,
   onInverter,
-  onAbrirEstudos,
+  onAbrirGaleria,
 }: {
-  modoAula: boolean;
+  modo: Modo;
   capturando: boolean;
-  reduzir: boolean;
+  miniatura: string | null;
   onCapturar: () => void;
   onInverter: () => void;
-  onAbrirEstudos: () => void;
+  onAbrirGaleria: () => void;
 }) {
-  const pulso = useRef(new Animated.Value(0)).current;
-
-  useEffect(() => {
-    if (!modoAula || reduzir) {
-      pulso.setValue(0);
-      return;
-    }
-    const loop = Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulso, { toValue: 1, duration: 900, useNativeDriver: true }),
-        Animated.timing(pulso, { toValue: 0, duration: 900, useNativeDriver: true }),
-      ])
-    );
-    loop.start();
-    return () => loop.stop();
-  }, [modoAula, reduzir, pulso]);
-
-  const escala = pulso.interpolate({ inputRange: [0, 1], outputRange: [1, 1.06] });
+  const video = modo === 'VÍDEO';
+  const aula = modo === 'AULA';
 
   return (
     <View style={styles.linhaObturador}>
       <Pressable
-        onPress={onAbrirEstudos}
+        onPress={onAbrirGaleria}
         accessibilityRole="button"
-        accessibilityLabel="Abrir Meus Estudos"
-        style={({ pressed }) => [styles.miniatura, pressed && styles.miniaturaPressionada]}
+        accessibilityLabel="Abrir as aulas capturadas"
+        style={({ pressed }) => [styles.miniatura, pressed && styles.pressionado]}
       >
-        <Ionicons name="images-outline" size={18} color={colors.textDim} />
+        {miniatura ? (
+          <Image source={{ uri: miniatura }} style={styles.imagemMiniatura} resizeMode="cover" />
+        ) : (
+          <Ionicons name="images-outline" size={18} color={colors.visor.icone} />
+        )}
       </Pressable>
 
-      <Animated.View style={{ transform: [{ scale: escala }] }}>
-        <Pressable
-          onPress={onCapturar}
-          disabled={capturando}
-          accessibilityRole="button"
-          accessibilityLabel={modoAula ? 'Capturar conteúdo de aula' : 'Tirar foto'}
-          accessibilityState={{ disabled: capturando }}
-          style={({ pressed }) => [
-            styles.obturador,
-            modoAula ? styles.obturadorAula : styles.obturadorNormal,
-            pressed && styles.obturadorPressionado,
-          ]}
-        >
-          {modoAula ? <View style={styles.miolodObturador} /> : null}
-        </Pressable>
-      </Animated.View>
+      <Pressable
+        onPress={onCapturar}
+        disabled={capturando}
+        accessibilityRole="button"
+        accessibilityLabel={aula ? 'Capturar conteúdo de aula' : video ? 'Gravar' : 'Tirar foto'}
+        accessibilityState={{ disabled: capturando }}
+        style={({ pressed }) => [styles.obturador, pressed && styles.obturadorPressionado]}
+      >
+        <View style={[styles.miolodObturador, video && styles.miolodVideo]}>
+          {aula ? (
+            <MaterialCommunityIcons name="school-outline" size={22} color={colors.visor.fundo} />
+          ) : null}
+        </View>
+      </Pressable>
 
       <Pressable
         onPress={onInverter}
         accessibilityRole="button"
         accessibilityLabel="Inverter câmera"
-        style={styles.botaoInverter}
+        style={({ pressed }) => [styles.botaoInverter, pressed && styles.pressionado]}
       >
-        <Ionicons name="camera-reverse-outline" size={26} color={colors.text} />
+        <Ionicons name="camera-reverse-outline" size={22} color={colors.visor.icone} />
       </Pressable>
     </View>
   );
@@ -874,7 +823,6 @@ function LinhaObturador({
 function AvisoPermissao({ onPermitir }: { onPermitir: () => void }) {
   return (
     <View style={styles.aviso}>
-      <Ionicons name="alert-circle-outline" size={18} color={colors.warn} />
       <Text style={styles.avisoTexto} numberOfLines={2}>
         Sem acesso à câmera. Mostrando um exemplo de lousa.
       </Text>
@@ -890,71 +838,23 @@ function AvisoPermissao({ onPermitir }: { onPermitir: () => void }) {
   );
 }
 
-/* ------------------------------------------------------ folha de confirmacao */
-
-function FolhaConfirmacao({
-  reduzir,
-  onConfirmar,
-  onCancelar,
-}: {
-  reduzir: boolean;
-  onConfirmar: () => void;
-  onCancelar: () => void;
-}) {
-  const subida = useRef(new Animated.Value(reduzir ? 1 : 0)).current;
-
-  useEffect(() => {
-    if (reduzir) {
-      subida.setValue(1);
-      return;
-    }
-    const anim = Animated.spring(subida, {
-      toValue: 1,
-      damping: 20,
-      stiffness: 180,
-      useNativeDriver: true,
-    });
-    anim.start();
-    return () => anim.stop();
-  }, [reduzir, subida]);
-
-  const deslocamento = subida.interpolate({ inputRange: [0, 1], outputRange: [spacing(70), 0] });
-
-  return (
-    <View style={styles.camadaFolha}>
-      <Pressable
-        style={styles.scrimFolha}
-        onPress={onCancelar}
-        accessibilityRole="button"
-        accessibilityLabel="Cancelar a captura"
-      />
-      <Animated.View style={[styles.folha, { transform: [{ translateY: deslocamento }] }]}>
-        <View style={styles.alca} />
-        <Text style={styles.folhaTitulo}>Capturar como conteúdo de aula?</Text>
-        <Text style={styles.folhaSubtitulo}>
-          O Flow irá analisar, organizar e salvar para seus estudos.
-        </Text>
-        <PrimaryButton label="Capturar" onPress={onConfirmar} style={styles.folhaBotao} />
-        <GhostButton label="Cancelar" variant="text" onPress={onCancelar} />
-      </Animated.View>
-    </View>
-  );
-}
-
 /* ------------------------------------------------------------------- estilos */
+
+const TAMANHO_CANTO = 28;
+const ESPESSURA_CANTO = 3;
 
 const styles = StyleSheet.create({
   tela: {
     flex: 1,
-    backgroundColor: colors.bg,
+    backgroundColor: colors.visor.fundo,
   },
 
   barra: {
     height: ALTURA_BARRA,
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: spacing(3),
+    justifyContent: 'space-around',
+    paddingHorizontal: spacing(2),
   },
   itemBarra: {
     minWidth: TOQUE_MIN,
@@ -963,157 +863,83 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   textoBarra: {
-    ...fontDado.rotulo,
-    color: colors.text,
+    fontSize: 11,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    color: colors.visor.icone,
+  },
+  textoBarraApagado: {
+    color: colors.visor.iconeFraco,
+    textDecorationLine: 'line-through',
   },
 
   areaVisor: {
-    flex: 1,
     alignItems: 'center',
-    justifyContent: 'center',
+    justifyContent: 'flex-start',
   },
   visor: {
-    borderRadius: radius.lg,
     overflow: 'hidden',
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  visorAtivo: {
-    borderColor: colors.primaryEdge,
   },
   fallback: {
     ...StyleSheet.absoluteFillObject,
     borderRadius: 0,
   },
-  escurecedor: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.scrim,
-  },
-
-  badgesVisor: {
-    position: 'absolute',
-    top: spacing(3),
-    right: spacing(3),
-    alignItems: 'flex-end',
-  },
-  badgeSegundo: {
-    marginTop: spacing(1.5),
-  },
 
   moldura: {
-    ...StyleSheet.absoluteFillObject,
-    margin: spacing(5),
+    position: 'absolute',
+    top: spacing(6),
+    bottom: spacing(14),
+    left: spacing(5),
+    right: spacing(5),
   },
   canto: {
     position: 'absolute',
-    width: spacing(7),
-    height: spacing(7),
-    borderColor: colors.primary,
+    width: TAMANHO_CANTO,
+    height: TAMANHO_CANTO,
+    borderColor: colors.visor.icone,
   },
-  cantoSE: { top: 0, left: 0, borderTopWidth: 3, borderLeftWidth: 3, borderTopLeftRadius: radius.sm },
-  cantoSD: { top: 0, right: 0, borderTopWidth: 3, borderRightWidth: 3, borderTopRightRadius: radius.sm },
-  cantoIE: { bottom: 0, left: 0, borderBottomWidth: 3, borderLeftWidth: 3, borderBottomLeftRadius: radius.sm },
-  cantoID: { bottom: 0, right: 0, borderBottomWidth: 3, borderRightWidth: 3, borderBottomRightRadius: radius.sm },
+  cantoSE: { top: 0, left: 0, borderTopWidth: ESPESSURA_CANTO, borderLeftWidth: ESPESSURA_CANTO, borderTopLeftRadius: 6 },
+  cantoSD: { top: 0, right: 0, borderTopWidth: ESPESSURA_CANTO, borderRightWidth: ESPESSURA_CANTO, borderTopRightRadius: 6 },
+  cantoIE: { bottom: 0, left: 0, borderBottomWidth: ESPESSURA_CANTO, borderLeftWidth: ESPESSURA_CANTO, borderBottomLeftRadius: 6 },
+  cantoID: { bottom: 0, right: 0, borderBottomWidth: ESPESSURA_CANTO, borderRightWidth: ESPESSURA_CANTO, borderBottomRightRadius: 6 },
 
-  blocoDeteccao: {
+  avisoDeteccao: {
     position: 'absolute',
-    left: spacing(3),
-    right: spacing(3),
-    bottom: spacing(16),
-  },
-  pilula: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    maxWidth: '100%',
-    backgroundColor: colors.overlay,
-    borderRadius: radius.pill,
-    paddingVertical: spacing(2),
-    paddingHorizontal: spacing(3),
-    ...shadow.card,
-  },
-  areaPonto: {
-    width: spacing(4),
-    height: spacing(4),
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: spacing(2),
-  },
-  ponto: {
-    width: spacing(2),
-    height: spacing(2),
-    borderRadius: radius.pill,
-    backgroundColor: colors.primaryHi,
-  },
-  textosPilula: {
-    flexShrink: 1,
-  },
-  pilulaTitulo: {
-    ...font.bodyMed,
-    color: colors.text,
-  },
-  pilulaDetalhe: {
-    ...font.small,
-    color: colors.textDim,
-  },
-
-  listaChips: {
-    paddingTop: spacing(2),
-    gap: spacing(2),
-  },
-  chip: {
+    top: spacing(3),
+    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing(1.5),
-    backgroundColor: colors.primarySoft,
+    paddingVertical: spacing(1.5),
+    paddingHorizontal: spacing(3),
+    borderRadius: radius.pill,
+    backgroundColor: colors.visor.pilula,
     borderWidth: 1,
-    borderColor: colors.primaryEdge,
-    borderRadius: radius.pill,
-    paddingVertical: spacing(1.5),
-    paddingHorizontal: spacing(2.5),
+    borderColor: colors.visor.pilulaBorda,
   },
-  chipTexto: {
-    ...font.tiny,
-    color: colors.primaryHi,
-  },
-
-  rodapeVisor: {
-    position: 'absolute',
-    left: spacing(3),
-    right: spacing(3),
-    bottom: spacing(3),
-    alignItems: 'center',
-  },
-  pilulaZoom: {
-    minWidth: spacing(9),
-    paddingVertical: spacing(1.5),
-    paddingHorizontal: spacing(2.5),
-    borderRadius: radius.pill,
-    backgroundColor: colors.overlay,
-    alignItems: 'center',
-  },
-  textoZoom: {
-    ...fontDado.valor,
-    fontSize: 13,
-    color: colors.text,
+  textoAvisoDeteccao: {
+    ...font.small,
+    fontWeight: '600',
+    color: colors.visor.icone,
   },
 
   tira: {
     position: 'absolute',
     left: spacing(3),
     right: spacing(3),
-    bottom: spacing(22),
-    backgroundColor: colors.overlay,
-    borderRadius: radius.md,
-    paddingVertical: spacing(2.5),
-    paddingHorizontal: spacing(3),
+    top: spacing(12),
+    gap: spacing(2),
   },
   cabecalhoTira: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing(2),
-    marginBottom: spacing(2),
+    alignSelf: 'flex-start',
+    paddingVertical: spacing(1),
+    paddingHorizontal: spacing(2.5),
+    borderRadius: radius.pill,
+    backgroundColor: colors.visor.pilula,
   },
   pontoGravando: {
     width: spacing(2),
@@ -1122,10 +948,12 @@ const styles = StyleSheet.create({
     backgroundColor: colors.danger,
   },
   textoTira: {
-    ...fontDado.rotulo,
-    color: colors.text,
+    ...font.small,
+    fontWeight: '600',
+    color: colors.visor.icone,
   },
   listaTira: {
+    flexDirection: 'row',
     gap: spacing(2),
   },
   itemTira: {
@@ -1134,277 +962,191 @@ const styles = StyleSheet.create({
   },
   miniaturaTira: {
     width: spacing(11),
-    height: spacing(14),
+    height: spacing(8),
     borderRadius: radius.sm,
     borderWidth: 1,
-    borderColor: colors.primaryEdge,
-    backgroundColor: colors.surfaceAlt,
+    borderColor: colors.visor.pilulaBorda,
   },
   horaTira: {
-    ...fontDado.valor,
-    fontSize: 10,
-    color: colors.textDim,
+    fontSize: 9,
+    fontWeight: '600',
+    color: colors.visor.icone,
   },
 
-  blocoContinua: {
-    alignSelf: 'stretch',
-    backgroundColor: colors.overlay,
-    borderRadius: radius.md,
-    paddingVertical: spacing(2),
-    paddingHorizontal: spacing(3),
-  },
-  linhaContinua: {
+  zoom: {
+    position: 'absolute',
+    bottom: spacing(3),
+    alignSelf: 'center',
     flexDirection: 'row',
     alignItems: 'center',
-    minHeight: spacing(7),
-  },
-  trilho: {
-    width: spacing(9),
-    height: spacing(5),
-    borderRadius: radius.pill,
-    backgroundColor: colors.surfaceHi,
-    padding: spacing(0.5),
-    justifyContent: 'center',
-    marginRight: spacing(2.5),
-  },
-  trilhoLigado: {
-    backgroundColor: colors.primary,
-  },
-  botaoTrilho: {
-    width: spacing(4),
-    height: spacing(4),
-    borderRadius: radius.pill,
-    backgroundColor: colors.textDim,
-  },
-  botaoTrilhoLigado: {
-    backgroundColor: colors.onPrimary,
-    alignSelf: 'flex-end',
-  },
-  rotuloContinua: {
-    ...font.small,
-    color: colors.textDim,
-    flexShrink: 1,
-  },
-  rotuloContinuaLigado: {
-    color: colors.text,
-  },
-  explicacaoContinua: {
-    ...font.tiny,
-    fontWeight: '400',
-    color: colors.textDim,
-    paddingBottom: spacing(1),
-  },
-
-  seletor: {
-    height: ALTURA_CARROSSEL,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     gap: spacing(2),
-    paddingHorizontal: spacing(4),
+    padding: spacing(1),
+    borderRadius: radius.pill,
+    backgroundColor: colors.visor.pilula,
   },
-  itemSeletor: {
+  bolinhaZoom: {
+    minWidth: spacing(8),
+    height: spacing(8),
+    paddingHorizontal: spacing(2),
+    borderRadius: radius.pill,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bolinhaZoomAtiva: {
+    backgroundColor: colors.visor.icone,
+  },
+  textoZoom: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: colors.visor.icone,
+  },
+  textoZoomAtivo: {
+    color: colors.visor.fundo,
+  },
+
+  faixaSubModos: {
+    height: ALTURA_SUBMODOS,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  subModos: {
+    flexDirection: 'row',
+    gap: spacing(2),
+  },
+  pilulaSubModo: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing(1.5),
-    minHeight: spacing(9),
+    height: spacing(8),
     paddingHorizontal: spacing(3.5),
     borderRadius: radius.pill,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt,
   },
-  itemSeletorAtivo: {
-    borderColor: colors.primaryEdge,
-    backgroundColor: colors.primarySoft,
+  pilulaSubModoAtiva: {
+    backgroundColor: colors.visor.icone,
   },
-  itemSeletorPressionado: {
-    opacity: 0.6,
-  },
-  textoSeletor: {
-    ...font.tiny,
-    color: colors.textDim,
-  },
-  textoSeletorAtivo: {
-    color: colors.primaryHi,
-  },
-  descoberta: {
-    position: 'absolute',
-    left: spacing(3),
-    right: spacing(3),
-    bottom: spacing(16),
-    backgroundColor: colors.overlay,
-    borderWidth: 1,
-    borderColor: colors.primaryEdge,
-    borderRadius: radius.md,
-    padding: spacing(3.5),
-    ...shadow.card,
-  },
-  topoDescoberta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing(2),
-    marginBottom: spacing(2),
-  },
-  tituloDescoberta: {
-    ...font.bodyMed,
-    color: colors.text,
-    flex: 1,
-  },
-  fecharDescoberta: {
-    width: spacing(6),
-    height: spacing(6),
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  textoDescoberta: {
+  textoSubModo: {
     ...font.small,
-    color: colors.textDim,
-    lineHeight: 17,
+    fontWeight: '600',
+    color: colors.visor.icone,
+  },
+  textoSubModoAtivo: {
+    color: colors.visor.fundo,
   },
 
-  carrosselContainer: {
-    maxHeight: ALTURA_CARROSSEL,
+  modos: {
+    height: ALTURA_MODOS,
+    overflow: 'hidden',
+    justifyContent: 'center',
   },
-  carrossel: {
+  reguaModos: {
+    flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: spacing(4),
-    gap: spacing(5),
+    alignSelf: 'flex-start',
   },
   itemModo: {
-    minHeight: TOQUE_MIN,
+    height: ALTURA_MODOS,
     justifyContent: 'center',
   },
   textoModo: {
-    ...font.bodyMed,
-    color: colors.textDim,
+    ...fontModo,
+    color: colors.visor.iconeFraco,
   },
-  // Ambar, e nao verde: o verde do app significa acao e Flow ativo. Ver DESIGN.md.
   textoModoAtivo: {
-    color: colors.warn,
+    color: colors.visor.icone,
+    fontWeight: '700',
   },
 
   linhaObturador: {
-    height: ALTURA_OBTURADOR,
+    flex: 1,
+    minHeight: ALTURA_OBTURADOR,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: spacing(8),
+    paddingHorizontal: spacing(9),
   },
   miniatura: {
-    width: spacing(11),
-    height: spacing(11),
+    width: TAMANHO_MINIATURA,
+    height: TAMANHO_MINIATURA,
     borderRadius: radius.sm,
+    borderWidth: 1.5,
+    borderColor: colors.visor.pilulaBorda,
     backgroundColor: colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: colors.border,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
-  miniaturaPressionada: {
-    borderColor: colors.primaryEdge,
-    backgroundColor: colors.surfaceHi,
+  imagemMiniatura: {
+    width: '100%',
+    height: '100%',
+  },
+  pressionado: {
+    opacity: 0.6,
   },
   obturador: {
     width: TAMANHO_OBTURADOR,
     height: TAMANHO_OBTURADOR,
     borderRadius: radius.pill,
+    borderWidth: 4,
+    borderColor: colors.visor.obturador,
     alignItems: 'center',
     justifyContent: 'center',
-  },
-  obturadorNormal: {
-    backgroundColor: colors.text,
-  },
-  // No Modo Aula o obturador vira anel: sinal de que a camera esta em outro modo.
-  obturadorAula: {
-    backgroundColor: 'transparent',
-    borderWidth: 4,
-    borderColor: colors.primary,
   },
   obturadorPressionado: {
     opacity: 0.7,
   },
   miolodObturador: {
-    width: TAMANHO_OBTURADOR - spacing(6),
-    height: TAMANHO_OBTURADOR - spacing(6),
+    width: TAMANHO_OBTURADOR - 16,
+    height: TAMANHO_OBTURADOR - 16,
     borderRadius: radius.pill,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.visor.obturador,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  miolodVideo: {
+    width: spacing(6),
+    height: spacing(6),
+    borderRadius: radius.pill,
+    backgroundColor: colors.danger,
   },
   botaoInverter: {
-    width: spacing(11),
-    height: spacing(11),
+    width: TAMANHO_MINIATURA,
+    height: TAMANHO_MINIATURA,
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceAlt,
     alignItems: 'center',
     justifyContent: 'center',
   },
 
   aviso: {
     position: 'absolute',
-    left: spacing(4),
-    right: spacing(4),
-    bottom: spacing(30),
+    left: spacing(3),
+    right: spacing(3),
+    top: spacing(3),
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing(2),
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
     paddingVertical: spacing(2),
     paddingHorizontal: spacing(3),
+    borderRadius: radius.md,
+    backgroundColor: colors.visor.pilula,
   },
   avisoTexto: {
     ...font.small,
-    color: colors.textDim,
+    color: colors.visor.icone,
     flex: 1,
   },
   avisoBotao: {
-    minHeight: TOQUE_MIN,
+    minHeight: spacing(8),
+    paddingHorizontal: spacing(3),
+    borderRadius: radius.pill,
+    backgroundColor: colors.visor.icone,
+    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: spacing(1),
   },
   avisoBotaoTexto: {
-    ...font.bodyMed,
-    color: colors.primaryHi,
-  },
-
-  camadaFolha: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'flex-end',
-  },
-  scrimFolha: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.scrim,
-  },
-  folha: {
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    borderTopWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing(5),
-    paddingTop: spacing(3),
-    paddingBottom: spacing(8),
-  },
-  alca: {
-    width: spacing(10),
-    height: spacing(1),
-    borderRadius: radius.pill,
-    backgroundColor: colors.surfaceHi,
-    alignSelf: 'center',
-    marginBottom: spacing(5),
-  },
-  folhaTitulo: {
-    ...font.h3,
-    color: colors.text,
-    textAlign: 'center',
-  },
-  folhaSubtitulo: {
     ...font.small,
-    color: colors.textDim,
-    textAlign: 'center',
-    marginTop: spacing(2),
-    marginBottom: spacing(6),
-  },
-  folhaBotao: {
-    marginBottom: spacing(2),
+    fontWeight: '700',
+    color: colors.visor.fundo,
   },
 });

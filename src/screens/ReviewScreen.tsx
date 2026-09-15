@@ -1,4 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -6,9 +7,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
-import type { NomeIcone } from '../data/mock';
-import { flashcards } from '../data/mock';
+import { ordenarAulas } from '../data/acervo';
+import type { Flashcard, NomeIcone } from '../data/mock';
+import { flashcards as flashcardsExemplo } from '../data/mock';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
+import type { MainTabParamList } from '../navigation/types';
+import { useAcervo } from '../store/AcervoContext';
 import { TOQUE_MIN, colors, font, fontDado, radius, shadow, spacing } from '../theme';
 
 type Avaliacao = 'nao' | 'dificil' | 'facil';
@@ -19,7 +23,22 @@ const BOTOES: { id: Avaliacao; label: string; icone: NomeIcone; cor: string }[] 
   { id: 'facil', label: 'Fácil', icone: 'check', cor: colors.primary },
 ];
 
-export function ReviewScreen() {
+type Props = BottomTabScreenProps<MainTabParamList, 'Revisao'>;
+
+/** Os cartoes sao da aula pedida na rota ou, sem rota, da aula mais recente
+ *  do acervo. O exemplo so entra se nao houver aula nenhuma. */
+export function ReviewScreen({ route }: Props) {
+  const { acervo, aulaPorId } = useAcervo();
+  const pedida = route.params?.aulaId ? aulaPorId(route.params.aulaId) : null;
+  const aula = pedida ?? ordenarAulas(acervo.aulas)[0] ?? null;
+  const flashcards =
+    aula !== null && aula.flashcards.length > 0 ? aula.flashcards : flashcardsExemplo;
+
+  // A chave reinicia a revisao quando a aula muda.
+  return <Revisao key={aula?.id ?? 'exemplo'} flashcards={flashcards} titulo={aula?.titulo ?? null} />;
+}
+
+function Revisao({ flashcards, titulo }: { flashcards: Flashcard[]; titulo: string | null }) {
   const insets = useSafeAreaInsets();
   const reduzir = useReduzirMovimento();
 
@@ -74,6 +93,11 @@ export function ReviewScreen() {
     return (
       <View style={styles.tela}>
         <ScreenHeader title="Revisão" />
+        {titulo ? (
+          <Text style={styles.subtituloAula} numberOfLines={1}>
+            {titulo}
+          </Text>
+        ) : null}
         <View style={styles.conclusao}>
           <MaterialCommunityIcons name="trophy-outline" size={56} color={colors.primary} />
           <Text style={styles.tituloConclusao}>Revisão concluída</Text>
@@ -113,6 +137,11 @@ export function ReviewScreen() {
           </Text>
         }
       />
+      {titulo ? (
+        <Text style={styles.subtituloAula} numberOfLines={1}>
+          {titulo}
+        </Text>
+      ) : null}
 
       <View style={styles.areaCarta}>
         <Pressable
@@ -192,6 +221,12 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: colors.textDim,
   },
+  subtituloAula: {
+    ...font.small,
+    color: colors.textFaint,
+    textAlign: 'center',
+    paddingHorizontal: spacing(5),
+  },
 
   areaCarta: {
     flex: 1,
@@ -205,8 +240,6 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backfaceVisibility: 'hidden',
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radius.lg,
     padding: spacing(6),
     alignItems: 'center',
@@ -214,7 +247,6 @@ const styles = StyleSheet.create({
     ...shadow.card,
   },
   faceVerso: {
-    borderColor: colors.primaryEdge,
     backgroundColor: colors.surfaceAlt,
   },
   rotuloFace: {

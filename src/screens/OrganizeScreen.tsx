@@ -1,62 +1,126 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Animated, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Badge } from '../components/Badge';
 import { GhostButton } from '../components/GhostButton';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
-import { aulaCapturada, biblioteca, conteudoIdentificado } from '../data/mock';
+import { SeletorPasta } from '../components/SeletorPasta';
+import { dataBR, tituloDaCaptura } from '../data/acervo';
+import {
+  conteudoIdentificado,
+  flashcards as flashcardsExemplo,
+  questoes as questoesExemplo,
+  resumoIA,
+} from '../data/mock';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
 import type { RootStackParamList } from '../navigation/types';
+import { useAcervo } from '../store/AcervoContext';
 import { useFlow } from '../store/FlowContext';
-import { TOQUE_MIN, colors, font, fontDado, radius, spacing } from '../theme';
+import { TOQUE_MIN, colors, font, radius, spacing } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Organize'>;
 
 const MS_ENTRE_NIVEIS = 120;
 const RECUO_POR_NIVEL = spacing(6);
 
+/**
+ * Onde a captura vai ser salva. Aqui acontece a sessao pela grade: se ja existe
+ * uma aula desta mesma aula do horario (ou desta mesma pasta, ha pouco), a
+ * foto entra nela como pagina nova, e a tela diz isso antes de salvar.
+ */
 export function OrganizeScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { destino, definirDestino, classificacao } = useFlow();
-  const pastaNova = classificacao?.pastaNova === true;
   const reduzir = useReduzirMovimento();
+  const {
+    destino,
+    definirDestino,
+    classificacao,
+    transcricao,
+    estudo,
+    fotoUri,
+    subModo,
+    textoExtraido,
+  } = useFlow();
+  const { previaSessao, salvarCaptura } = useAcervo();
   const [modalAberto, setModalAberto] = useState(false);
+  const [salvando, setSalvando] = useState(false);
 
-  // Mesmo titulo que a aba Estudos vai mostrar depois: a arvore aqui e a
-  // previa do que vai ser gravado, entao os dois precisam bater.
-  const aula = useMemo(
-    () => aulaCapturada(classificacao?.topico ?? conteudoIdentificado.topico),
-    [classificacao]
-  );
-  // A ultima linha da arvore e o arquivo, e nao uma pasta.
+  const conteudo = classificacao ?? conteudoIdentificado;
+  const pastaNova = classificacao?.pastaNova === true;
+  const previa = useMemo(() => previaSessao(destino), [previaSessao, destino]);
+
+  const tituloNovo = `${tituloDaCaptura(conteudo.topico)} · Aula ${dataBR(new Date()).slice(0, 5)}`;
   const linhas = useMemo(
-    () => [...destino.map((nome) => ({ nome, pasta: true })), { nome: aula.titulo, pasta: false }],
-    [destino, aula.titulo]
+    () => [
+      { nome: destino[0], pasta: true },
+      { nome: destino[1], pasta: true },
+      {
+        nome: previa ? `${previa.aula.titulo} · página ${previa.numeroPagina}` : tituloNovo,
+        pasta: false,
+      },
+    ],
+    [destino, previa, tituloNovo]
   );
+
+  const salvar = async () => {
+    if (salvando) return;
+    setSalvando(true);
+    try {
+      const r = await salvarCaptura({
+        fotoUri,
+        subModo,
+        materia: conteudo.materia,
+        tema: conteudo.tema,
+        topico: conteudo.topico,
+        pasta: destino,
+        textoExtraido,
+        resumo: transcricao !== null && transcricao.resumo.length > 0 ? transcricao.resumo : resumoIA,
+        flashcards:
+          estudo !== null && estudo.flashcards.length > 0 ? estudo.flashcards : flashcardsExemplo,
+        questoes: estudo !== null && estudo.questoes.length > 0 ? estudo.questoes : questoesExemplo,
+        aoVivo: classificacao !== null || transcricao !== null,
+      });
+      navigation.navigate('Actions', {
+        aulaId: r.aula.id,
+        paginaNova: r.paginaNova,
+        numeroPagina: r.numeroPagina,
+      });
+    } finally {
+      setSalvando(false);
+    }
+  };
 
   return (
     <View style={styles.tela}>
-      <ScreenHeader
-        onBack={() => navigation.goBack()}
-        right={<Badge label="FLOW ATIVO" variant="solid" dot />}
-      />
+      <ScreenHeader onBack={() => navigation.goBack()} />
 
       <ScrollView
         contentContainerStyle={[styles.conteudo, { paddingBottom: insets.bottom + spacing(6) }]}
       >
         <Text style={styles.titulo}>Será salvo em:</Text>
 
-        {/* Quando nenhuma pasta existente servia, o Flow abre uma, e diz que
-            abriu, em vez de deixar o estudante descobrir depois. */}
-        {pastaNova ? (
-          <View style={styles.avisoNova}>
-            <MaterialCommunityIcons name="folder-plus-outline" size={16} color={colors.primaryHi} />
-            <Text style={styles.textoAvisoNova}>
-              Assunto novo: nenhuma pasta sua servia, então o Flow criou esta.
+        {previa ? (
+          <View style={styles.avisoSessao}>
+            <MaterialCommunityIcons name="book-open-page-variant-outline" size={18} color={colors.primaryHi} />
+            <View style={styles.textosAviso}>
+              <Text style={styles.tituloAviso}>
+                Entra na aula de hoje como página {previa.numeroPagina}
+              </Text>
+              <Text style={styles.textoAviso}>
+                {previa.sessao.tipo === 'grade'
+                  ? `Sua grade diz que você está em ${previa.sessao.disciplina} agora, e esta aula já tem ${previa.aula.paginas.length} ${previa.aula.paginas.length === 1 ? 'foto' : 'fotos'}. O Flow junta em vez de espalhar.`
+                  : `Mesma pasta, há menos de meia hora. O Flow junta as fotos numa aula só em vez de espalhar.`}
+              </Text>
+            </View>
+          </View>
+        ) : pastaNova ? (
+          <View style={styles.avisoSessao}>
+            <MaterialCommunityIcons name="folder-plus-outline" size={18} color={colors.primaryHi} />
+            <Text style={[styles.textoAviso, styles.textosAviso]}>
+              Assunto novo: nenhuma pasta sua servia, então o Flow vai criar esta.
             </Text>
           </View>
         ) : null}
@@ -68,7 +132,6 @@ export function OrganizeScreen({ navigation }: Props) {
               nome={linha.nome}
               pasta={linha.pasta}
               nivel={indice}
-              ordem={indice}
               reduzir={reduzir}
             />
           ))}
@@ -76,7 +139,11 @@ export function OrganizeScreen({ navigation }: Props) {
       </ScrollView>
 
       <View style={[styles.rodape, { paddingBottom: insets.bottom + spacing(4) }]}>
-        <PrimaryButton label="Salvar aqui" onPress={() => navigation.navigate('Actions')} />
+        <PrimaryButton
+          label={previa ? 'Adicionar à aula' : 'Salvar aqui'}
+          onPress={() => void salvar()}
+          loading={salvando}
+        />
         <GhostButton
           label="Alterar pasta de destino"
           variant="text"
@@ -85,14 +152,12 @@ export function OrganizeScreen({ navigation }: Props) {
         />
       </View>
 
-      <ModalDestino
+      <SeletorPasta
         aberto={modalAberto}
-        destinoAtual={destino}
+        titulo="Escolher pasta de destino"
+        atual={destino}
+        onEscolher={definirDestino}
         onFechar={() => setModalAberto(false)}
-        onEscolher={(novo) => {
-          definirDestino(novo);
-          setModalAberto(false);
-        }}
       />
     </View>
   );
@@ -104,13 +169,11 @@ function LinhaArvore({
   nome,
   pasta,
   nivel,
-  ordem,
   reduzir,
 }: {
   nome: string;
   pasta: boolean;
   nivel: number;
-  ordem: number;
   reduzir: boolean;
 }) {
   const entrada = useRef(new Animated.Value(reduzir ? 1 : 0)).current;
@@ -123,12 +186,12 @@ function LinhaArvore({
     const anim = Animated.timing(entrada, {
       toValue: 1,
       duration: 240,
-      delay: ordem * MS_ENTRE_NIVEIS,
+      delay: nivel * MS_ENTRE_NIVEIS,
       useNativeDriver: true,
     });
     anim.start();
     return () => anim.stop();
-  }, [reduzir, ordem, entrada]);
+  }, [reduzir, nivel, entrada]);
 
   const deslocamento = entrada.interpolate({ inputRange: [0, 1], outputRange: [spacing(3), 0] });
 
@@ -159,87 +222,6 @@ function LinhaArvore({
   );
 }
 
-/* --------------------------------------------------------- modal de destino */
-
-function ModalDestino({
-  aberto,
-  destinoAtual,
-  onFechar,
-  onEscolher,
-}: {
-  aberto: boolean;
-  destinoAtual: string[];
-  onFechar: () => void;
-  onEscolher: (destino: string[]) => void;
-}) {
-  const insets = useSafeAreaInsets();
-
-  return (
-    <Modal visible={aberto} animationType="slide" transparent onRequestClose={onFechar}>
-      <View style={styles.camadaModal}>
-        <Pressable
-          style={styles.scrimModal}
-          onPress={onFechar}
-          accessibilityRole="button"
-          accessibilityLabel="Fechar a escolha de pasta"
-        />
-
-        <View style={[styles.folhaModal, { paddingBottom: insets.bottom + spacing(6) }]}>
-          <View style={styles.alca} />
-          <Text style={styles.tituloModal}>Escolher pasta de destino</Text>
-
-          <ScrollView>
-            {biblioteca.map((pasta) =>
-              pasta.subpastas.map((sub) => {
-                const caminho = [pasta.nome, sub.nome, destinoAtual[2] ?? 'Geral'];
-                const selecionado = destinoAtual[0] === pasta.nome && destinoAtual[1] === sub.nome;
-                return (
-                  <Pressable
-                    key={`${pasta.nome}-${sub.nome}`}
-                    onPress={() => onEscolher([pasta.nome, sub.nome, 'Aulas'])}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Salvar em ${pasta.nome}, ${sub.nome}`}
-                    accessibilityState={{ selected: selecionado }}
-                    style={({ pressed }) => [
-                      styles.opcao,
-                      selecionado && styles.opcaoSelecionada,
-                      pressed && styles.opcaoPressionada,
-                    ]}
-                  >
-                    <MaterialCommunityIcons
-                      name={pasta.icone}
-                      size={20}
-                      color={selecionado ? colors.primaryHi : colors.textDim}
-                    />
-                    <View style={styles.textosOpcao}>
-                      <Text style={styles.opcaoTitulo} numberOfLines={1}>
-                        {pasta.nome}
-                      </Text>
-                      <Text style={styles.opcaoCaminho} numberOfLines={1}>
-                        {caminho[1]}
-                      </Text>
-                    </View>
-                    {selecionado ? (
-                      <MaterialCommunityIcons name="check" size={20} color={colors.primaryHi} />
-                    ) : null}
-                  </Pressable>
-                );
-              })
-            )}
-          </ScrollView>
-
-          <GhostButton
-            label="Cancelar"
-            variant="outline"
-            onPress={onFechar}
-            style={styles.botaoCancelarModal}
-          />
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
 const styles = StyleSheet.create({
   tela: {
     flex: 1,
@@ -252,25 +234,30 @@ const styles = StyleSheet.create({
     ...font.h1,
     color: colors.text,
     marginTop: spacing(2),
-    marginBottom: spacing(7),
-  },
-  avisoNova: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing(2.5),
-    backgroundColor: colors.primarySoft,
-    borderWidth: 1,
-    borderColor: colors.primaryEdge,
-    borderRadius: radius.md,
-    paddingVertical: spacing(3),
-    paddingHorizontal: spacing(3.5),
     marginBottom: spacing(6),
   },
-  textoAvisoNova: {
-    ...font.small,
-    color: colors.text,
+  avisoSessao: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing(3),
+    backgroundColor: colors.primarySoft,
+    borderRadius: radius.md,
+    paddingVertical: spacing(3.5),
+    paddingHorizontal: spacing(4),
+    marginBottom: spacing(6),
+  },
+  textosAviso: {
     flex: 1,
+  },
+  tituloAviso: {
+    ...font.bodyMed,
+    color: colors.text,
+  },
+  textoAviso: {
+    ...font.small,
+    color: colors.textDim,
     lineHeight: 17,
+    marginTop: spacing(1),
   },
   arvore: {
     alignSelf: 'stretch',
@@ -296,8 +283,6 @@ const styles = StyleSheet.create({
   },
   itemDestaque: {
     backgroundColor: colors.primarySoft,
-    borderWidth: 1,
-    borderColor: colors.primaryEdge,
   },
   nomeLinha: {
     ...font.bodyMed,
@@ -316,70 +301,5 @@ const styles = StyleSheet.create({
   },
   botaoAlterar: {
     marginTop: spacing(2),
-  },
-
-  camadaModal: {
-    flex: 1,
-    justifyContent: 'flex-end',
-  },
-  scrimModal: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: colors.scrim,
-  },
-  folhaModal: {
-    maxHeight: '75%',
-    backgroundColor: colors.surface,
-    borderTopLeftRadius: radius.xl,
-    borderTopRightRadius: radius.xl,
-    borderTopWidth: 1,
-    borderColor: colors.border,
-    paddingHorizontal: spacing(5),
-    paddingTop: spacing(3),
-  },
-  alca: {
-    width: spacing(10),
-    height: spacing(1),
-    borderRadius: radius.pill,
-    backgroundColor: colors.surfaceHi,
-    alignSelf: 'center',
-    marginBottom: spacing(5),
-  },
-  tituloModal: {
-    ...font.h3,
-    color: colors.text,
-    marginBottom: spacing(4),
-  },
-  opcao: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing(3),
-    minHeight: spacing(14),
-    paddingHorizontal: spacing(3),
-    borderRadius: radius.md,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    marginBottom: spacing(2),
-  },
-  opcaoSelecionada: {
-    borderColor: colors.primaryEdge,
-    backgroundColor: colors.primarySoft,
-  },
-  opcaoPressionada: {
-    backgroundColor: colors.surfaceAlt,
-  },
-  textosOpcao: {
-    flex: 1,
-  },
-  opcaoTitulo: {
-    ...font.bodyMed,
-    color: colors.text,
-  },
-  opcaoCaminho: {
-    ...fontDado.rotulo,
-    color: colors.textFaint,
-    marginTop: spacing(0.5),
-  },
-  botaoCancelarModal: {
-    marginTop: spacing(3),
   },
 });

@@ -7,8 +7,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
-import { questoes } from '../data/mock';
+import { questoes as questoesExemplo } from '../data/mock';
 import type { RootStackParamList } from '../navigation/types';
+import { useAcervo } from '../store/AcervoContext';
 import { TOQUE_MIN, colors, font, fontDado, radius, spacing } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Questions'>;
@@ -16,8 +17,12 @@ type Props = NativeStackScreenProps<RootStackParamList, 'Questions'>;
 /** Indice escolhido por questao. null = ainda nao respondida. */
 type Respostas = (number | null)[];
 
-export function QuestionsScreen({ navigation }: Props) {
+export function QuestionsScreen({ navigation, route }: Props) {
   const insets = useSafeAreaInsets();
+  const { aulaPorId } = useAcervo();
+  const aula = aulaPorId(route.params.aulaId);
+  // As questoes sao da propria aula. O exemplo so entra se ela nao tiver nenhuma.
+  const questoes = aula !== null && aula.questoes.length > 0 ? aula.questoes : questoesExemplo;
   const [respostas, setRespostas] = useState<Respostas>(() => questoes.map(() => null));
 
   const responder = (indiceQuestao: number, indiceAlternativa: number) => {
