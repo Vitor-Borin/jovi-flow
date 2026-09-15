@@ -1,15 +1,15 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Badge } from '../components/Badge';
-import { Card } from '../components/Card';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
+import { WhiteboardFallback } from '../components/WhiteboardFallback';
 import type { ContextoCaptura } from '../data/mock';
-import { conteudoIdentificado, contextoDaCaptura, ganhosCaptura } from '../data/mock';
+import { conteudoIdentificado, contextoDaCaptura } from '../data/mock';
 import type { RootStackParamList } from '../navigation/types';
 import { useFlow } from '../store/FlowContext';
 import { colors, font, fontDado, fontMono, radius, spacing } from '../theme';
@@ -29,29 +29,14 @@ const DIAS_SEMANA = [
 const ALTURA_TEXTO_EXTRAIDO = 168;
 
 /**
- * A tela chegou a empilhar nove blocos, sendo quatro cards de campo identicos.
- * Reorganizada por agrupamento, e nao por aperto de espacamento:
- *
- *   antes                             agora
- *   titulo                            (foi para o cabecalho)
- *   selo ao vivo                  \
- *   faixa de sequencia             |  uma linha de metadados
- *   card Materia                   |
- *   card Data                     /
- *   card Tema                     \   viraram o cabecalho de conteudo
- *   card Topico                   /
- *   card de contexto                  card de contexto
- *   rotulo + faixa de ganhos          faixa de ganhos com rotulo embutido
- *   rotulo + texto extraido           texto extraido com rotulo embutido
- *   botao                             botao
- *
- * Nove blocos viraram cinco, e nada de informacao foi perdido.
+ * O que a camera e a IA entenderam da foto. A foto aparece no topo porque e a
+ * prova de que o fluxo trabalhou em cima do que o estudante acabou de
+ * fotografar, e nao de um exemplo. Sem numero inventado: a faixa de "ganhos da
+ * captura" saiu porque nao era medicao.
  */
 export function IdentifiedScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  // Vem do contexto, e nao do mock: a tela de Acoes permite editar este texto.
-  const { textoExtraido, classificacao, quadrosSequencia, janelaSequencia } = useFlow();
-  // O conteudo reconhecido de verdade tem precedencia sobre o simulado.
+  const { fotoUri, textoExtraido, classificacao, quadrosSequencia, janelaSequencia } = useFlow();
   const conteudo = classificacao ?? conteudoIdentificado;
 
   // Calculado uma vez: a data exibida nao pode mudar no meio da apresentacao.
@@ -65,21 +50,22 @@ export function IdentifiedScreen({ navigation }: Props) {
 
   return (
     <View style={styles.tela}>
-      <ScreenHeader
-        title="Conteúdo identificado"
-        onBack={() => navigation.goBack()}
-        right={<Badge label="FLOW ATIVO" variant="solid" dot />}
-      />
+      <ScreenHeader title="Conteúdo identificado" onBack={() => navigation.goBack()} />
 
       <ScrollView
         contentContainerStyle={[styles.conteudo, { paddingBottom: insets.bottom + spacing(6) }]}
       >
-        {/* O que foi reconhecido, em vez de quatro caixas com um campo cada. */}
+        <View style={styles.foto}>
+          {fotoUri ? (
+            <Image source={{ uri: fotoUri }} style={styles.imagem} resizeMode="cover" />
+          ) : (
+            <WhiteboardFallback style={styles.imagem} compacto />
+          )}
+        </View>
+
         <Text style={styles.tema}>{conteudo.tema}</Text>
         <Text style={styles.topico}>{conteudo.topico}</Text>
 
-        {/* Metadados numa linha so. O selo de leitura ao vivo entra aqui, em cor
-            de destaque: continua visivel sem ocupar um bloco proprio. */}
         <View style={styles.meta}>
           {classificacao !== null ? (
             <View style={styles.itemMeta}>
@@ -87,11 +73,9 @@ export function IdentifiedScreen({ navigation }: Props) {
               <Text style={styles.metaAoVivo}>LIDO DA SUA FOTO</Text>
             </View>
           ) : null}
-
           <Text style={styles.metaTexto}>{conteudo.materia}</Text>
           <Text style={styles.metaSeparador}>·</Text>
           <Text style={styles.metaTexto}>{dataFormatada}</Text>
-
           {quadrosSequencia > 1 ? (
             <>
               <Text style={styles.metaSeparador}>·</Text>
@@ -103,37 +87,16 @@ export function IdentifiedScreen({ navigation }: Props) {
           ) : null}
         </View>
 
-        {/* [D2] O Flow nao adivinha a materia. Quando a grade confirma, ele diz
-            que confirmou; quando nao confirma, ele diz isso tambem. */}
+        {/* O Flow nao adivinha a materia. Quando a grade confirma, ele diz que
+            confirmou; quando nao confirma, ele diz isso tambem. */}
         <CardContexto contexto={contexto} materia={conteudo.materia} />
 
-        {/* [D1] Leitura tecnica do que a camera ganhou, no estilo de um visor.
-            O rotulo entra na propria faixa, para nao gastar uma linha inteira. */}
-        <View style={styles.faixaGanhos}>
-          <Text style={styles.rotuloFaixa}>GANHOS DA CAPTURA · ESTIMATIVA</Text>
-          <View style={styles.linhaGanhos}>
-            {ganhosCaptura.map((ganho, indice) => (
-              <View key={ganho.label} style={styles.blocoGanho}>
-                {indice > 0 ? <View style={styles.divisorVertical} /> : null}
-                <View style={styles.miolodGanho}>
-                  <Text style={styles.valorGanho} numberOfLines={1} adjustsFontSizeToFit>
-                    {ganho.valor}
-                  </Text>
-                  <Text style={styles.rotuloGanho} numberOfLines={2}>
-                    {ganho.label}
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-        </View>
-
-        <Card style={styles.cardTexto}>
+        <View style={styles.blocoTexto}>
           <Text style={styles.rotuloTexto}>TEXTO EXTRAÍDO</Text>
           <ScrollView style={styles.rolagemTexto} nestedScrollEnabled showsVerticalScrollIndicator>
             <Text style={styles.textoExtraido}>{textoExtraido}</Text>
           </ScrollView>
-        </Card>
+        </View>
 
         <PrimaryButton
           label="Organizar e salvar"
@@ -145,7 +108,7 @@ export function IdentifiedScreen({ navigation }: Props) {
   );
 }
 
-/* ------------------------------------------------- card de contexto [D2] */
+/* ------------------------------------------------------ card de contexto */
 
 function CardContexto({ contexto, materia }: { contexto: ContextoCaptura; materia: string }) {
   if (contexto.tipo === 'assunto-novo') {
@@ -203,10 +166,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing(5),
   },
 
+  foto: {
+    height: spacing(44),
+    borderRadius: radius.lg,
+    overflow: 'hidden',
+    backgroundColor: colors.surface,
+    marginTop: spacing(2),
+  },
+  imagem: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 0,
+  },
+
   tema: {
     ...font.h1,
     color: colors.text,
-    marginTop: spacing(3),
+    marginTop: spacing(5),
   },
   topico: {
     ...font.body,
@@ -220,8 +196,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexWrap: 'wrap',
     gap: spacing(2),
-    marginTop: spacing(4),
-    marginBottom: spacing(6),
+    marginTop: spacing(3),
+    marginBottom: spacing(5),
   },
   itemMeta: {
     flexDirection: 'row',
@@ -243,8 +219,6 @@ const styles = StyleSheet.create({
 
   cardNovo: {
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radius.md,
     padding: spacing(4),
   },
@@ -255,8 +229,6 @@ const styles = StyleSheet.create({
   },
   cardGrade: {
     backgroundColor: colors.primarySoft,
-    borderWidth: 1,
-    borderColor: colors.primaryEdge,
     borderRadius: radius.md,
     padding: spacing(4),
   },
@@ -285,49 +257,11 @@ const styles = StyleSheet.create({
     lineHeight: 17,
   },
 
-  faixaGanhos: {
+  blocoTexto: {
+    marginTop: spacing(6),
+    paddingTop: spacing(4),
     borderTopWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: colors.borderSoft,
-    paddingVertical: spacing(4),
-    marginTop: spacing(7),
-  },
-  rotuloFaixa: {
-    ...fontDado.rotulo,
-    color: colors.textFaint,
-    marginBottom: spacing(3.5),
-  },
-  linhaGanhos: {
-    flexDirection: 'row',
-  },
-  blocoGanho: {
-    flex: 1,
-    flexDirection: 'row',
-  },
-  divisorVertical: {
-    width: 1,
-    backgroundColor: colors.borderSoft,
-    marginRight: spacing(3),
-  },
-  miolodGanho: {
-    flex: 1,
-    alignItems: 'center',
-  },
-  valorGanho: {
-    ...fontDado.valorGrande,
-    fontSize: 22,
-    color: colors.primaryHi,
-  },
-  rotuloGanho: {
-    ...font.small,
-    color: colors.textDim,
-    textAlign: 'center',
-    marginTop: spacing(1.5),
-  },
-
-  cardTexto: {
-    padding: spacing(4),
-    marginTop: spacing(7),
+    borderTopColor: colors.borderSoft,
   },
   rotuloTexto: {
     ...fontDado.rotulo,

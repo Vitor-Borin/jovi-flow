@@ -5,6 +5,8 @@ import { colors, radius, spacing } from '../theme';
 
 type Props = {
   style?: StyleProp<ViewStyle>;
+  /** Versao menor, para caber numa miniatura de foto. */
+  compacto?: boolean;
 };
 
 /**
@@ -18,27 +20,31 @@ type Props = {
  * deteccao, os chips e o cartao de descoberta que ficam por cima dela. Precisa
  * apenas parecer um quadro de aula num relance.
  */
-export function WhiteboardFallback({ style }: Props) {
+export function WhiteboardFallback({ style, compacto = false }: Props) {
   return (
     <View
-      style={[styles.quadro, style]}
+      style={[styles.quadro, compacto && styles.quadroCompacto, style]}
       accessible
       accessibilityLabel="Lousa de aula sobre Flexbox, usada como exemplo quando a câmera não está disponível."
     >
-      <Text style={styles.titulo}>FLEXBOX</Text>
+      <Text style={[styles.titulo, compacto && styles.tituloCompacto]}>FLEXBOX</Text>
       <View style={styles.sublinhado} />
 
       <Text style={styles.codigo}>display: flex</Text>
 
       {/* Container com tres itens, como um professor rascunharia no quadro. */}
-      <View style={styles.demo}>
-        <View style={styles.item} />
-        <View style={styles.item} />
-        <View style={styles.item} />
+      <View style={[styles.demo, compacto && styles.demoCompacta]}>
+        <View style={[styles.item, compacto && styles.itemCompacto]} />
+        <View style={[styles.item, compacto && styles.itemCompacto]} />
+        <View style={[styles.item, compacto && styles.itemCompacto]} />
       </View>
 
-      <Text style={styles.eixo}>justify-content →</Text>
-      <Text style={styles.eixo}>align-items ↓</Text>
+      {compacto ? null : (
+        <>
+          <Text style={styles.eixo}>justify-content →</Text>
+          <Text style={styles.eixo}>align-items ↓</Text>
+        </>
+      )}
     </View>
   );
 }
@@ -54,6 +60,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: spacing(4),
     overflow: 'hidden',
+  },
+  quadroCompacto: {
+    paddingVertical: spacing(4),
+    paddingHorizontal: spacing(5),
+    gap: spacing(2.5),
+  },
+  tituloCompacto: {
+    fontSize: 20,
+  },
+  demoCompacta: {
+    marginTop: 0,
+  },
+  itemCompacto: {
+    height: spacing(6),
   },
   titulo: {
     fontSize: 26,

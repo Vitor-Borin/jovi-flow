@@ -5,31 +5,32 @@ import { useEffect, useRef, useState } from 'react';
 import { Animated, ScrollView, Share, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Card } from '../components/Card';
+import { BotaoOuvir } from '../components/BotaoOuvir';
 import { GhostButton } from '../components/GhostButton';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
-import { conteudoIdentificado, resumoIA } from '../data/mock';
+import { useLeitura } from '../hooks/useLeitura';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
 import type { RootStackParamList } from '../navigation/types';
-import { useFlow } from '../store/FlowContext';
-import { colors, font, fontDado, radius, spacing } from '../theme';
+import { useAcervo } from '../store/AcervoContext';
+import { colors, font, radius, spacing } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Summary'>;
 
 const MS_ENTRE_BULLETS = 150;
 
-export function SummaryScreen({ navigation }: Props) {
+export function SummaryScreen({ navigation, route }: Props) {
+  const { aulaId } = route.params;
   const insets = useSafeAreaInsets();
   const reduzir = useReduzirMovimento();
-  const { salvarResumo, classificacao, transcricao } = useFlow();
-  const conteudo = classificacao ?? conteudoIdentificado;
-  // Se a transcricao real trouxe resumo proprio, ele vence o simulado.
-  const bullets =
-    transcricao !== null && transcricao.resumo.length > 0 ? transcricao.resumo : resumoIA;
+  const { aulaPorId, marcarResumoSalvo } = useAcervo();
+  const { falando, alternar } = useLeitura();
   const [aviso, setAviso] = useState<string | null>(null);
 
-  // Um valor por bullet: a revelacao em cascata simula a geracao sem chamar API.
+  const aula = aulaPorId(aulaId);
+  const bullets = aula?.resumo ?? [];
+
+  // Um valor por bullet: a revelacao em cascata da o ritmo de leitura.
   const valores = useRef(bullets.map(() => new Animated.Value(0))).current;
 
   useEffect(() => {
@@ -51,10 +52,16 @@ export function SummaryScreen({ navigation }: Props) {
     return () => clearTimeout(timer);
   }, [aviso]);
 
+  useEffect(() => {
+    if (aula === null) navigation.goBack();
+  }, [aula, navigation]);
+
+  if (aula === null) return <View style={styles.tela} />;
+
   const compartilhar = async () => {
     try {
       await Share.share({
-        message: `Resumo: ${conteudo.tema}\n\n${bullets.map((b) => `• ${b}`).join('\n\n')}`,
+        message: `Resumo: ${aula.titulo}\n\n${bullets.map((b) => `• ${b}`).join('\n\n')}`,
       });
     } catch {
       // O usuario fechou a folha de compartilhamento.
@@ -62,7 +69,7 @@ export function SummaryScreen({ navigation }: Props) {
   };
 
   const aoSalvar = () => {
-    salvarResumo();
+    marcarResumoSalvo(aulaId);
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     navigation.goBack();
   };
@@ -72,10 +79,19 @@ export function SummaryScreen({ navigation }: Props) {
       <ScreenHeader title="Resumo" onBack={() => navigation.goBack()} />
 
       <ScrollView contentContainerStyle={styles.conteudo}>
-        <Text style={styles.titulo}>Resumo gerado com IA</Text>
-        <Text style={styles.subtitulo}>{conteudo.tema}</Text>
+        <Text style={styles.titulo}>{aula.tema}</Text>
+        <Text style={styles.subtitulo}>{aula.topico}</Text>
 
-        <Card style={styles.cartao}>
+        <View style={styles.linhaOuvir}>
+          <BotaoOuvir
+            falando={falando}
+            onPress={() => alternar(bullets.join('. '))}
+            rotulo="Ouvir o resumo"
+          />
+          {aula.aoVivo ? <Text style={styles.origem}>Lido da sua foto</Text> : null}
+        </View>
+
+        <View style={styles.cartao}>
           {bullets.map((bullet, indice) => {
             const valor = valores[indice];
             if (!valor) return null;
@@ -90,7 +106,7 @@ export function SummaryScreen({ navigation }: Props) {
               </Animated.View>
             );
           })}
-        </Card>
+        </View>
       </ScrollView>
 
       {aviso !== null ? (
@@ -110,7 +126,11 @@ export function SummaryScreen({ navigation }: Props) {
           }}
           style={styles.botaoLado}
         />
-        <PrimaryButton label="Salvar resumo" onPress={aoSalvar} style={styles.botaoLado} />
+        <PrimaryButton
+          label={aula.resumoSalvo ? 'Resumo salvo' : 'Salvar resumo'}
+          onPress={aoSalvar}
+          style={styles.botaoLado}
+        />
       </View>
     </View>
   );
@@ -131,25 +151,38 @@ const styles = StyleSheet.create({
     marginTop: spacing(2),
   },
   subtitulo: {
-    ...fontDado.rotulo,
-    color: colors.primaryHi,
-    marginTop: spacing(2),
-    marginBottom: spacing(6),
+    ...font.body,
+    color: colors.textDim,
+    marginTop: spacing(1.5),
+  },
+  linhaOuvir: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing(3),
+    marginTop: spacing(4),
+  },
+  origem: {
+    ...font.small,
+    color: colors.textFaint,
   },
   cartao: {
-    paddingVertical: spacing(5),
+    marginTop: spacing(5),
+    padding: spacing(4),
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
   },
   linha: {
     flexDirection: 'row',
-    marginBottom: spacing(4),
+    alignItems: 'flex-start',
+    gap: spacing(3),
+    marginBottom: spacing(3.5),
   },
   marcador: {
     width: spacing(1.5),
     height: spacing(1.5),
     borderRadius: radius.pill,
-    backgroundColor: colors.primary,
+    backgroundColor: colors.primaryHi,
     marginTop: spacing(2),
-    marginRight: spacing(3),
   },
   textoBullet: {
     ...font.body,
@@ -157,35 +190,30 @@ const styles = StyleSheet.create({
     lineHeight: 21,
     flex: 1,
   },
-
   aviso: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing(2),
     alignSelf: 'center',
-    backgroundColor: colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.pill,
     paddingVertical: spacing(2),
     paddingHorizontal: spacing(4),
-    marginBottom: spacing(2),
+    borderRadius: radius.pill,
+    backgroundColor: colors.surfaceAlt,
+    marginBottom: spacing(3),
   },
   avisoTexto: {
     ...font.small,
     color: colors.text,
   },
-
   rodape: {
     flexDirection: 'row',
     gap: spacing(3),
     paddingHorizontal: spacing(5),
-    paddingTop: spacing(4),
+    paddingTop: spacing(3),
     borderTopWidth: 1,
     borderTopColor: colors.borderSoft,
   },
   botaoLado: {
     flex: 1,
-    width: undefined,
   },
 });

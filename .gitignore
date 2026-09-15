@@ -43,8 +43,9 @@ yarn-error.*
 /ios
 /android
 
-# notas de trabalho e referencias que nao fazem parte da entrega
-CLAUDE.md
+# notas de trabalho e referencias que nao fazem parte da entrega.
+# CLAUDE.md NAO entra aqui: ele e a folha de instrucoes do projeto e precisa
+# viajar junto com o repositorio.
 AGENTS.md
 JOVI_FLOW_BUILD.md
 Image.jpg

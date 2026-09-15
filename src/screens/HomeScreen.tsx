@@ -9,23 +9,22 @@ import { Badge } from '../components/Badge';
 import { Card } from '../components/Card';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
-import { biblioteca, economiaFormatada, flashcards, proximaAula } from '../data/mock';
+import type { Acervo } from '../data/acervo';
+import { contarMaterias, iconeDaMateria, ordenarAulas } from '../data/acervo';
+import { economiaFormatada, proximaAula } from '../data/mock';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
 import type { RootStackParamList } from '../navigation/types';
+import { useAcervo } from '../store/AcervoContext';
 import { colors, font, fontDado, radius, shadow, spacing } from '../theme';
 
-/** Conta o acervo de verdade. Antes estes tres numeros eram fixos no codigo e
- *  nao batiam com a aba Estudos: a tela dizia 12 aulas e 4 materias onde existiam
- *  5 e 3. Numero que a interface apresenta como contagem tem de ser contagem. */
-function contarAcervo() {
-  const aulas = biblioteca.reduce(
-    (total, pasta) => total + pasta.subpastas.reduce((s, sub) => s + sub.aulas.length, 0),
-    0
-  );
+/** Conta o acervo de verdade. Numero que a interface apresenta como contagem
+ *  tem de ser contagem, e agora o acervo inclui o que foi capturado. */
+function contarAcervo(acervo: Acervo) {
+  const flashcards = acervo.aulas.reduce((t, a) => t + a.flashcards.length, 0);
   return [
-    { valor: String(aulas), label: 'Aulas capturadas' },
-    { valor: String(biblioteca.length), label: 'Matérias' },
-    { valor: String(flashcards.length), label: 'Flashcards' },
+    { valor: String(acervo.aulas.length), label: 'Aulas capturadas' },
+    { valor: String(contarMaterias(acervo)), label: 'Matérias' },
+    { valor: String(flashcards), label: 'Flashcards' },
   ];
 }
 
@@ -40,7 +39,8 @@ export function HomeScreen() {
   const insets = useSafeAreaInsets();
   const reduzir = useReduzirMovimento();
   const eco = economiaFormatada();
-  const estatisticas = useMemo(contarAcervo, []);
+  const { acervo } = useAcervo();
+  const estatisticas = useMemo(() => contarAcervo(acervo), [acervo]);
 
   const { slot, aoVivo, ola } = useMemo(() => {
     const agora = new Date();
@@ -52,14 +52,10 @@ export function HomeScreen() {
 
   const recentes = useMemo(
     () =>
-      biblioteca
-        .flatMap((pasta) =>
-          pasta.subpastas.flatMap((sub) =>
-            sub.aulas.map((aula) => ({ ...aula, materia: pasta.nome, icone: pasta.icone }))
-          )
-        )
-        .slice(0, 3),
-    []
+      ordenarAulas(acervo.aulas)
+        .slice(0, 4)
+        .map((aula) => ({ ...aula, icone: iconeDaMateria(aula.pasta[0]) })),
+    [acervo.aulas]
   );
 
   return (
@@ -102,7 +98,7 @@ export function HomeScreen() {
 
         {/* Acao principal do app: precisa dominar a tela. */}
         <PrimaryButton
-          label="Abrir Modo Aula"
+          label="Abrir a câmera"
           icon="camera"
           onPress={() => navigation.navigate('Camera')}
           style={styles.botaoPrincipal}
@@ -120,7 +116,7 @@ export function HomeScreen() {
           {recentes.map((aula) => (
             <Card
               key={aula.id}
-              onPress={() => navigation.navigate('Tabs', { screen: 'Estudos' })}
+              onPress={() => navigation.navigate('Aula', { aulaId: aula.id })}
               accessibilityLabel={`Abrir ${aula.titulo}`}
               style={styles.cardRecente}
             >
@@ -210,7 +206,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing(5),
   },
   cardAulaAoVivo: {
-    borderColor: colors.primaryEdge,
     backgroundColor: colors.primarySoft,
   },
   linhaTopoAula: {
@@ -268,6 +263,7 @@ const styles = StyleSheet.create({
   cardRecente: {
     width: spacing(38),
     gap: spacing(2),
+    borderWidth: 0,
   },
   tituloRecente: {
     ...font.bodyMed,
@@ -283,8 +279,6 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing(3),
     backgroundColor: colors.primarySoft,
-    borderWidth: 1,
-    borderColor: colors.primaryEdge,
     borderRadius: radius.md,
     padding: spacing(4),
     marginTop: spacing(9),

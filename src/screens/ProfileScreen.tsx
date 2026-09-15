@@ -3,7 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GhostButton } from '../components/GhostButton';
@@ -11,6 +11,7 @@ import { ScreenHeader } from '../components/ScreenHeader';
 import type { NomeIcone } from '../data/mock';
 import type { RootStackParamList } from '../navigation/types';
 import { definirChaveManual, temChaveConfigurada } from '../services/analiseAoVivo';
+import { useAcervo } from '../store/AcervoContext';
 import { useFlow } from '../store/FlowContext';
 import { TOQUE_MIN, colors, font, fontDado, fontMono, radius, spacing } from '../theme';
 
@@ -33,6 +34,7 @@ export function ProfileScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<NativeStackNavigationProp<RootStackParamList>>();
   const { reiniciar, modoAoVivo, alternarModoAoVivo } = useFlow();
+  const { restaurarExemplos, acervo } = useAcervo();
   const [chaveDigitada, setChaveDigitada] = useState('');
   // Recalculado a cada tecla: assim o interruptor destrava assim que a chave
   // colada fica valida, sem precisar sair da tela e voltar.
@@ -48,6 +50,26 @@ export function ProfileScreen() {
     reiniciar();
     void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
     setReiniciado(true);
+  };
+
+  const capturadas = acervo.aulas.filter((a) => a.aoVivo || a.sessao !== null).length;
+  const aoRestaurar = () => {
+    Alert.alert(
+      'Apagar as capturas?',
+      `${capturadas} ${capturadas === 1 ? 'aula capturada vai' : 'aulas capturadas vão'} ser apagada${capturadas === 1 ? '' : 's'}. As cinco aulas de exemplo voltam.`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Apagar',
+          style: 'destructive',
+          onPress: () => {
+            restaurarExemplos();
+            reiniciar();
+            void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -171,9 +193,13 @@ export function ProfileScreen() {
             onPress={aoReiniciar}
           />
           <Text style={styles.explicacaoDemo}>
-            Limpa a foto capturada, o destino escolhido e o resumo salvo, deixando o app pronto
-            para outra apresentação.
+            Limpa a captura em andamento e as plataformas, sem mexer nas aulas salvas.
           </Text>
+          <GhostButton
+            label="Apagar capturas e voltar aos exemplos"
+            variant="text"
+            onPress={aoRestaurar}
+          />
         </View>
 
         <Text style={styles.versao}>JOVI Flow · protótipo</Text>

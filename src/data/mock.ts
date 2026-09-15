@@ -1,7 +1,10 @@
 /**
- * Camada de dados simulada do JOVI Flow.
- * Nada aqui chama rede: o prototipo roda 100% offline por decisao de projeto,
- * para que a demonstracao na banca nao dependa do Wi-Fi do campus.
+ * Dados fixos do JOVI Flow: a grade horaria, os sub-modos da camera, as etapas
+ * do processamento, o conteudo de exemplo (usado quando o modo ao vivo esta
+ * desligado ou a rede falha) e as plataformas de envio.
+ *
+ * O acervo de pastas e aulas NAO mora aqui: ele e estado do app, em
+ * data/acervo.ts e store/AcervoContext.tsx.
  */
 
 // Import de tipo apenas: nao gera require em tempo de execucao, o que mantem esta
@@ -149,6 +152,44 @@ export const etapasCamera: Etapa[] = [
   { id: 'texto', label: 'Realçando traço de caneta', detalhe: 'Contraste otimizado' },
 ];
 
+/**
+ * Os modos que a camera do JOVI V50 tem de verdade, na traducao oficial em
+ * portugues da ficha tecnica da JOVI Brasil (camera principal traseira).
+ *
+ * Isto nao e enfeite: a lista existe para a folha "Mais" mostrar a camera real
+ * do aparelho, e para a banca ver que "Documento em Ultra HD" ja e um modo da
+ * JOVI. O Modo Aula nao inventa capacidade nova, ele especializa essa.
+ */
+export type ModoJovi = {
+  nome: string;
+  icone: NomeIcone;
+  /** true quando o modo existe neste prototipo. */
+  noPrototipo?: boolean;
+  /** Texto curto abaixo do nome, quando ha algo a dizer. */
+  nota?: string;
+};
+
+export const modosJovi: ModoJovi[] = [
+  { nome: 'Aula', icone: 'school-outline', noPrototipo: true, nota: 'O Flow' },
+  { nome: 'Foto', icone: 'camera-outline', noPrototipo: true },
+  { nome: 'Retrato', icone: 'account-outline', noPrototipo: true },
+  { nome: 'Noite', icone: 'weather-night', noPrototipo: true },
+  { nome: 'Vídeo', icone: 'video-outline', noPrototipo: true },
+  { nome: 'Documento em Ultra HD', icone: 'file-document-outline', nota: 'Base do Aula' },
+  { nome: 'Microfilme', icone: 'movie-open-outline' },
+  { nome: 'Alta Resolução', icone: 'image-size-select-actual' },
+  { nome: 'Panorâmica', icone: 'panorama-horizontal-outline' },
+  { nome: 'Câmera Lenta', icone: 'motion-play-outline' },
+  { nome: 'Intervalo', icone: 'timelapse' },
+  { nome: 'Superlua', icone: 'moon-waning-crescent' },
+  { nome: 'Astro', icone: 'star-outline' },
+  { nome: 'Profissional', icone: 'tune-variant' },
+  { nome: 'Instantâneo', icone: 'flash-outline' },
+  { nome: 'Comida', icone: 'silverware-fork-knife' },
+  { nome: 'Visualização Dupla', icone: 'square-outline' },
+  { nome: 'Foto em Movimento', icone: 'circle-double' },
+];
+
 export type Chip = { id: string; icone: NomeIcone; label: string };
 
 export type SubModo = {
@@ -246,7 +287,8 @@ export const conteudoIdentificado = {
   ].join('\n'),
 };
 
-export const caminhoSalvar = ['Design', 'Front-End Design', 'Layout'];
+/** Pasta de destino do exemplo. Dois niveis: materia e subpasta. */
+export const caminhoSalvar: [string, string] = ['Design', 'Front-End Design'];
 
 export const resumoIA = [
   'Flexbox é um modelo de layout de uma dimensão: você organiza os itens em linha ou em coluna, nunca nas duas ao mesmo tempo.',
@@ -291,84 +333,6 @@ export const questoes: Questao[] = [
     certa: 2,
   },
 ];
-
-export type Aula = { id: string; titulo: string; data: string; hora: string; novo?: boolean };
-
-/** Encurta o topico para caber num titulo de aula. "Flexbox: eixos, alinhamento
- *  e distribuicao" vira "Flexbox". */
-export function tituloDaCaptura(topico: string): string {
-  const corte = topico.split(/[:.]/)[0] ?? topico;
-  const limpo = corte.trim();
-  return limpo.length > 32 ? `${limpo.slice(0, 32).trimEnd()}...` : limpo;
-}
-
-/** A aula que o usuario acabou de capturar, com a data e a hora reais do momento.
- *  Usada na arvore de destino e no topo de Meus Estudos, com o selo de nova.
- *  O titulo vem da leitura da IA quando o modo ao vivo esta ligado, para a aba
- *  Estudos mostrar o que foi capturado de verdade, e nao um assunto fixo. */
-export function aulaCapturada(topico = conteudoIdentificado.topico, agora = new Date()): Aula {
-  const dois = (n: number) => String(n).padStart(2, '0');
-  const dia = dois(agora.getDate());
-  const mes = dois(agora.getMonth() + 1);
-  return {
-    id: 'nova',
-    titulo: `${tituloDaCaptura(topico)} · Aula ${dia}/${mes}`,
-    data: `${dia}/${mes}/${agora.getFullYear()}`,
-    hora: `${dois(agora.getHours())}:${dois(agora.getMinutes())}`,
-    novo: true,
-  };
-}
-export type Subpasta = { nome: string; aulas: Aula[] };
-export type Pasta = { nome: string; icone: NomeIcone; subpastas: Subpasta[] };
-
-export const biblioteca: Pasta[] = [
-  {
-    nome: 'Design',
-    icone: 'palette-outline',
-    subpastas: [
-      {
-        nome: 'Front-End Design',
-        aulas: [
-          { id: 'a1', titulo: 'Grid e Bento Layout · Aula 14/08', data: '14/08/2026', hora: '19:38' },
-          { id: 'a2', titulo: 'Tipografia e escala · Aula 07/08', data: '07/08/2026', hora: '19:26' },
-        ],
-      },
-    ],
-  },
-  {
-    nome: 'Programação',
-    icone: 'language-python',
-    subpastas: [
-      {
-        nome: 'Computational Thinking with Python',
-        aulas: [
-          { id: 'b1', titulo: 'Listas e repetição · Aula 20/08', data: '20/08/2026', hora: '21:32' },
-          { id: 'b2', titulo: 'Estruturas de decisão · Aula 19/08', data: '19/08/2026', hora: '21:28' },
-        ],
-      },
-    ],
-  },
-  {
-    nome: 'Matemática',
-    icone: 'function-variant',
-    subpastas: [
-      {
-        nome: 'Differentiated Problem Solving',
-        aulas: [
-          { id: 'c1', titulo: 'Modelagem de problemas · Aula 19/08', data: '19/08/2026', hora: '19:41' },
-        ],
-      },
-    ],
-  },
-];
-
-/** Caminhos de pasta que ja existem. Vao no prompt de classificacao para a IA
- *  reaproveitar um em vez de inventar um nome novo a cada captura. Sem isso,
- *  cinco fotos do mesmo assunto viram cinco pastas diferentes, que e exatamente
- *  a bagunca que o app existe para resolver. */
-export function pastasExistentes(): string[] {
-  return biblioteca.flatMap((p) => p.subpastas.map((sub) => `${p.nome} › ${sub.nome}`));
-}
 
 /* ------------------------------------------------------------ integracoes */
 

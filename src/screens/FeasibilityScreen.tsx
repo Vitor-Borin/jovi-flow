@@ -32,6 +32,10 @@ type Grupo = {
  * Google. Serve tambem para responder a pergunta mais provavel da banca: se o
  * Flow depende de tecnologia que ainda nao existe. Nao depende.
  */
+/** Fecha a tela com o argumento que a banca provavelmente vai querer ouvir. */
+const NOTA_FINAL =
+  'A câmera do JOVI V50 já traz "Documento em Ultra HD" entre os modos. O Modo Aula não inventa uma capacidade nova: ele especializa uma que a JOVI já vende, separando lousa, slide e caderno, que têm problemas ópticos opostos, e ligando a captura ao horário do estudante.';
+
 const GRUPOS: Grupo[] = [
   {
     id: 'camera',
@@ -54,6 +58,12 @@ const GRUPOS: Grupo[] = [
         id: 'cena',
         o_que: 'Reconhecer que o alvo é uma lousa, e não uma paisagem',
         api: 'ML Kit Image Labeling',
+        onde: 'aparelho',
+      },
+      {
+        id: 'documento',
+        o_que: 'A base já existe: o JOVI V50 tem "Documento em Ultra HD"',
+        api: 'Modo nativo da câmera JOVI · o Aula é a especialização dele',
         onde: 'aparelho',
       },
     ],
@@ -181,6 +191,11 @@ export function FeasibilityScreen({ navigation }: Props) {
             ))}
           </View>
         ))}
+
+        <View style={styles.nota}>
+          <MaterialCommunityIcons name="camera-document" size={16} color={colors.primaryHi} />
+          <Text style={styles.textoNota}>{NOTA_FINAL}</Text>
+        </View>
 
         <View style={styles.nota}>
           <MaterialCommunityIcons name="airplane" size={16} color={colors.textDim} />
