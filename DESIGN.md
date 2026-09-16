@@ -149,6 +149,21 @@ Hoje o sub-modo escolhido entra no prompt das duas chamadas, descrevendo o
 problema óptico daquela superfície. Vale para qualquer controle novo: se ele
 existe na tela, ele faz alguma coisa.
 
+**Antes e depois é imagem de verdade.**
+
+Até a Sprint 4, a tela de processamento entortava a foto de propósito (girava 4°
+e inclinava 3°), punha um reflexo falso por cima e animava tudo voltando. O
+"depois" era a própria foto original, e a lista de etapas dizia "Combinando 4
+frames" e "Suprimindo reflexo" sem nada disso acontecer.
+
+Hoje o antes é a foto como a câmera tirou, e o depois é a lousa que o tratamento
+devolveu. O contorno fica onde os cantos foram achados, o tempo é medido no
+aparelho, e a lista mostra só as etapas aplicadas naquela foto. Quando não acha a
+lousa, a tela diz isso e segue com a original.
+
+A tela promete luz por igual e traço forte, nunca "remove reflexo": reflexo
+estourado não se recupera com uma foto só, porque ali não sobrou traço.
+
 ## Proibido
 
 | Proibido | Motivo | No lugar disso |

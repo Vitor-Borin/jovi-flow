@@ -11,7 +11,7 @@ import { WhiteboardFallback } from '../components/WhiteboardFallback';
 import type { ContextoCaptura } from '../data/mock';
 import { conteudoIdentificado, contextoDaCaptura } from '../data/mock';
 import type { RootStackParamList } from '../navigation/types';
-import { useFlow } from '../store/FlowContext';
+import { lousaDoTratamento, useFlow } from '../store/FlowContext';
 import { colors, font, fontDado, fontMono, radius, spacing } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Identified'>;
@@ -28,16 +28,25 @@ const DIAS_SEMANA = [
 
 const ALTURA_TEXTO_EXTRAIDO = 168;
 
+/** Faixa de proporcao da lousa tratada no topo. Fora dela a imagem cabe inteira
+ *  no quadro, sem corte: lousa muito comprida nao vira uma tira fina, e pagina
+ *  de caderno em pe nao empurra o conteudo para fora da tela. */
+const PROPORCAO_MIN = 1;
+const PROPORCAO_MAX = 2.4;
+
 /**
  * O que a camera e a IA entenderam da foto. A foto aparece no topo porque e a
  * prova de que o fluxo trabalhou em cima do que o estudante acabou de
- * fotografar, e nao de um exemplo. Sem numero inventado: a faixa de "ganhos da
- * captura" saiu porque nao era medicao.
+ * fotografar, e nao de um exemplo. Quando o tratamento deu certo, o topo mostra
+ * a lousa tratada, que e a mesma imagem que a IA leu e que vai para a aula. Sem
+ * numero inventado: a faixa de "ganhos da captura" saiu porque nao era medicao.
  */
 export function IdentifiedScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
-  const { fotoUri, textoExtraido, classificacao, quadrosSequencia, janelaSequencia } = useFlow();
+  const { fotoUri, tratamento, textoExtraido, classificacao, quadrosSequencia, janelaSequencia } =
+    useFlow();
   const conteudo = classificacao ?? conteudoIdentificado;
+  const lousa = lousaDoTratamento(tratamento);
 
   // Calculado uma vez: a data exibida nao pode mudar no meio da apresentacao.
   const dataFormatada = useMemo(() => {
@@ -55,13 +64,34 @@ export function IdentifiedScreen({ navigation }: Props) {
       <ScrollView
         contentContainerStyle={[styles.conteudo, { paddingBottom: insets.bottom + spacing(6) }]}
       >
-        <View style={styles.foto}>
-          {fotoUri ? (
-            <Image source={{ uri: fotoUri }} style={styles.imagem} resizeMode="cover" />
-          ) : (
-            <WhiteboardFallback style={styles.imagem} compacto />
-          )}
-        </View>
+        {lousa ? (
+          <View
+            style={[
+              styles.foto,
+              {
+                aspectRatio: Math.min(
+                  PROPORCAO_MAX,
+                  Math.max(PROPORCAO_MIN, lousa.largura / lousa.altura)
+                ),
+              },
+            ]}
+          >
+            <Image
+              source={{ uri: lousa.uri }}
+              style={styles.imagem}
+              resizeMode="contain"
+              accessibilityLabel="Lousa tratada: reta e com a luz por igual"
+            />
+          </View>
+        ) : (
+          <View style={[styles.foto, styles.fotoOriginal]}>
+            {fotoUri ? (
+              <Image source={{ uri: fotoUri }} style={styles.imagem} resizeMode="cover" />
+            ) : (
+              <WhiteboardFallback style={styles.imagem} compacto />
+            )}
+          </View>
+        )}
 
         <Text style={styles.tema}>{conteudo.tema}</Text>
         <Text style={styles.topico}>{conteudo.topico}</Text>
@@ -167,11 +197,13 @@ const styles = StyleSheet.create({
   },
 
   foto: {
-    height: spacing(44),
     borderRadius: radius.lg,
     overflow: 'hidden',
     backgroundColor: colors.surface,
     marginTop: spacing(2),
+  },
+  fotoOriginal: {
+    height: spacing(44),
   },
   imagem: {
     width: '100%',

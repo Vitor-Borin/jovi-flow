@@ -18,7 +18,7 @@ import {
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
 import type { RootStackParamList } from '../navigation/types';
 import { useAcervo } from '../store/AcervoContext';
-import { useFlow } from '../store/FlowContext';
+import { lousaDoTratamento, useFlow } from '../store/FlowContext';
 import { TOQUE_MIN, colors, font, radius, spacing } from '../theme';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'Organize'>;
@@ -41,6 +41,7 @@ export function OrganizeScreen({ navigation }: Props) {
     transcricao,
     estudo,
     fotoUri,
+    tratamento,
     subModo,
     textoExtraido,
   } = useFlow();
@@ -69,8 +70,11 @@ export function OrganizeScreen({ navigation }: Props) {
     if (salvando) return;
     setSalvando(true);
     try {
+      const lousa = lousaDoTratamento(tratamento);
       const r = await salvarCaptura({
-        fotoUri,
+        // A aula guarda a lousa tratada; a original vai para a aba Fotos.
+        fotoUri: lousa?.uri ?? fotoUri,
+        fotoOriginalUri: lousa ? fotoUri : null,
         subModo,
         materia: conteudo.materia,
         tema: conteudo.tema,

@@ -56,10 +56,16 @@ src/data/acervo.ts             tipos do acervo, funções puras, sessão pela
 src/store/AcervoContext.tsx    pastas e aulas, gravadas no aparelho
 src/store/FlowContext.tsx      a captura em andamento
 src/services/analiseAoVivo.ts  as 3 chamadas à IA (único ponto de rede)
+src/services/quadro.ts         cantos da lousa, homografia e proporção real;
+                               matemática pura, testável no computador
+src/services/tratamentoLousa.ts
+                               shaders do Skia: endireitar, luz por igual, traço
+src/services/tratarLousa.ts    lê, trata e grava a foto no aparelho [D1]; a
+                               versão .web.ts não trata nada
 src/hooks/                     captura contínua, leitura em voz alta, reduzir
                                movimento
 src/navigation/                RootStack e GaleriaTabs (Fotos e Aulas)
-src/components/                12 componentes
+src/components/                13 componentes
 src/screens/                   14 telas
 ```
 
@@ -78,6 +84,16 @@ comporta igual ao aparelho).
   obturador vazado de 68 pt com anel amarelo. `Aula` é um modo do carrossel;
   `Mais` abre a folha com os modos reais do V50. A detecção da lousa desliza o
   carrossel sozinho depois de 2 s.
+- **Lousa tratada no aparelho [D1].** Em Aula, a foto passa pelo Skia antes da
+  IA: acha os quatro cantos, endireita a perspectiva com a proporção real do
+  quadro, deixa a luz por igual e realça o traço (caneta escura em quadro claro,
+  giz em quadro escuro). A tela de processamento mostra o antes e o depois de
+  verdade, com o contorno de onde a lousa foi achada e o tempo medido no
+  aparelho. A transcrição e o estudo leem a lousa tratada; a aula guarda a
+  tratada e a aba Fotos, a original. Sem lousa na foto, a tela diz isso e segue
+  com a original. Validado com cenas 3D sintéticas no computador (cantos com
+  erro abaixo de 0,3%, proporção dentro de 1%, nenhum falso positivo) e a cena
+  conferida no build web com esses resultados. Falta a câmera real.
 - **Galeria em vez de app com abas.** A miniatura abre a galeria: em Aula, na
   aba Aulas (pastas, recentes e o cartão da próxima aula pela grade); nos outros
   modos, na aba Fotos, com tudo o que a câmera tirou. A engrenagem abre Ajustes.
@@ -99,14 +115,9 @@ comporta igual ao aparelho).
 
 ## Para fazer hoje, 16/09, nesta ordem
 
-1. [ ] **Decidir o destaque do pitch.** Proposta na mesa, ainda sem resposta do
-       Vitor: fazer o [D1] de verdade. A foto torta e com sombra vira uma lousa
-       reta e limpa na frente da banca, e é essa versão que a IA lê. Precisa de
-       `@shopify/react-native-skia` (vem no Expo Go). A IA acha os 4 cantos e o
-       usuário corrige arrastando. A tela promete "luz por igual e traço forte",
-       e não "remove reflexo": reflexo estourado não se recupera com uma foto
-       só. Ideias de app de estudo (resumo, flashcard, chat, "não entendi",
-       correção de exercício) já foram recusadas: todo grupo tem.
+1. [x] **Destaque do pitch: o [D1] de verdade.** Feito (ver "Estado atual"). A
+       foto torta e com sombra vira lousa reta e limpa na frente da banca, e é
+       essa versão que a IA lê. Falta testar com a câmera real (item 4).
 2. [ ] **Chave nova da API.** Revogar a antiga no console da Anthropic, criar
        outra com limite de gasto baixo, colar em Ajustes → Análise por IA →
        Guardar a chave, e conferir a mensagem "A Anthropic aceitou a chave".
@@ -116,12 +127,13 @@ comporta igual ao aparelho).
        Até lá, aulas e chave guardadas pelo iPhone ficam presas ao PC que rodou
        o servidor.
 4. [ ] **Testar no iPhone 17** a lista "No celular" abaixo. O que mudou desde o
-       último teste: Ouvir com o silencioso ligado, a galeria (Fotos e Aulas),
-       os Ajustes pela engrenagem e a análise ligando sozinha ao reabrir.
-5. [ ] **Resolver o que é encenado** (seção "Encenado" abaixo): ou vira verdade
-       junto com o destaque, ou a tela para de afirmar.
-6. [ ] **Fechar o roteiro**: o trecho de 0:50 a 2:05 do README depende do
-       destaque.
+       último teste: a lousa tratada e o antes e depois, Ouvir com o silencioso
+       ligado, a galeria (Fotos e Aulas), os Ajustes pela engrenagem e a
+       análise ligando sozinha ao reabrir.
+5. [ ] **Resolver o que é encenado** (seção "Encenado" abaixo). O antes e depois
+       virou verdade; falta o aviso "Lousa reconhecida".
+6. [ ] **Fechar o roteiro**: o trecho de 0:50 a 2:05 do README agora é o antes e
+       depois. Ensaiar com uma lousa de verdade.
 
 ## O que falta
 
@@ -129,8 +141,19 @@ Nada disso dá para fechar sem um aparelho ou sem um navegador com sessão real.
 
 ### No celular
 
-- [ ] Câmera real em Aula: foto → processamento → a sua foto no topo de
-      "Conteúdo identificado".
+- [ ] Câmera real em Aula: foto → processamento → a sua lousa, tratada, no
+      topo de "Conteúdo identificado".
+- [ ] **Lousa tratada.** Fotografar uma lousa de lado e com sombra. Em "Tratando
+      a foto", as etapas; no antes e depois, o contorno azul em cima da lousa e
+      ela saindo reta e limpa. No terminal do Expo aparece
+      `[JOVI Flow] lousa tratada em ...ms` com o tamanho e o tipo de quadro.
+      Repetir com lousa verde, caderno, slide projetado e uma foto sem lousa (a
+      tela diz "Lousa não encontrada" e segue com a original).
+- [ ] O tempo do antes e depois ("NO APARELHO"). Passando de uns 2 s, baixar
+      `LADO_ENTRADA` em `tratarLousa.ts` ou `LADO_SAIDA` em
+      `tratamentoLousa.ts`.
+- [ ] Salvar e abrir a aula: a página é a lousa tratada; em Galeria → Fotos
+      aparece a foto original.
 - [ ] Modo ao vivo com chave: matéria, tema, tópico, transcrição, resumo,
       flashcards e questões vindos da foto.
 - [ ] Ouvir **com o iPhone no silencioso**: a sessão de áudio agora é de
@@ -160,20 +183,20 @@ Ficou de fora, por decisão e não por esquecimento:
 
 ### Destaque do pitch
 
-- [ ] Em aberto. O brief da JOVI pede "a próxima geração da experiência de
-      câmera", e não um app de estudo: ideia de resumo, flashcard ou chat não
-      diferencia, porque todo grupo tem. O roteiro de 4 minutos reserva o
-      trecho de 0:50 a 2:05 para esse destaque.
+- [x] O [D1] de verdade. O brief da JOVI pede "a próxima geração da experiência
+      de câmera", e não um app de estudo: ideia de resumo, flashcard, chat, "não
+      entendi" ou correção de exercício não diferencia, porque todo grupo tem. A
+      tela promete "luz por igual e traço forte", e não "remove reflexo":
+      reflexo estourado não se recupera com uma foto só.
+- [ ] Possível próximo passo: ajustar os cantos arrastando, para quando a
+      detecção errar ou a lousa não couber inteira na foto.
 
 ### Encenado, e a banca pode perceber
 
-A regra "a tela nunca afirma o que o app não sabe" ainda não vale nestes dois
-pontos, que sustentam o diferencial [D1]:
+A regra "a tela nunca afirma o que o app não sabe" ainda não vale neste ponto:
 
-- [ ] **Antes e depois da tela de processamento.** A foto nunca é tratada: a
-      tela entorta a foto de propósito (gira 4° e inclina 3°), põe um reflexo
-      falso por cima e anima tudo voltando. O "depois" é a foto original, mesmo
-      que ela esteja torta de verdade.
+- [x] ~~Antes e depois da tela de processamento.~~ Virou verdade: ver "Lousa
+      tratada no aparelho" em "Estado atual".
 - [ ] **"Lousa reconhecida".** Depois de 2,5 s em Foto o carrossel vai para
       Aula e o aviso afirma que reconheceu a lousa, com qualquer coisa na frente
       da câmera.

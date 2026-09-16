@@ -143,13 +143,20 @@ export function contextoDaCaptura(
 
 export type Etapa = { id: string; label: string; detalhe: string };
 
-/** Etapas de otimizacao da CAMERA (antes da IA).
- *  E o que amarra o projeto ao brief da JOVI: o Modo Aula muda como a camera captura. */
+/**
+ * Etapas do tratamento da foto pela CAMERA, antes da IA [D1]. Sao as etapas de
+ * services/tratamentoLousa.ts, na mesma ordem, e e o que amarra o projeto ao
+ * brief da JOVI: o Modo Aula muda o que a camera faz com a foto.
+ *
+ * A tela de processamento mostra so as que foram aplicadas naquela foto, e o
+ * detalhe da primeira diz o que o tratamento achou. Ate a Sprint 4 esta lista
+ * dizia "Combinando 4 frames" e "Suprimindo reflexo", e nada disso acontecia.
+ */
 export const etapasCamera: Etapa[] = [
-  { id: 'frames', label: 'Combinando 4 frames', detalhe: 'Reduz ruído e tremida' },
-  { id: 'reflexo', label: 'Suprimindo reflexo', detalhe: 'Remove brilho do quadro' },
-  { id: 'deskew', label: 'Corrigindo perspectiva', detalhe: 'Deixa a lousa reta' },
-  { id: 'texto', label: 'Realçando traço de caneta', detalhe: 'Contraste otimizado' },
+  { id: 'lousa', label: 'Procurando a lousa na foto', detalhe: 'Os quatro cantos do quadro' },
+  { id: 'perspectiva', label: 'Endireitando a perspectiva', detalhe: 'A foto de lado fica de frente' },
+  { id: 'luz', label: 'Deixando a luz por igual', detalhe: 'Sombra e degradê somem' },
+  { id: 'traco', label: 'Realçando o traço', detalhe: 'Traço forte sobre fundo limpo' },
 ];
 
 /**

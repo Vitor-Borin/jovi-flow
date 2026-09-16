@@ -24,7 +24,11 @@ Com a análise por IA ligada, a IA lê a foto que você acabou de tirar e devolv
 
 **O Modo Aula muda o comportamento da câmera, e não apenas a pasta onde a foto cai.**
 
-Quando reconhece uma superfície de estudo, a captura passa a combinar vários frames, suprimir reflexo, corrigir perspectiva e realçar o traço. Ele separa três superfícies que têm problemas ópticos opostos entre si:
+Em Aula, a câmera trata a foto antes de a IA ler: acha os quatro cantos do quadro, endireita a perspectiva com a proporção real da lousa, deixa a luz por igual e realça o traço. Tudo no aparelho e sem internet, com shader próprio sobre `@shopify/react-native-skia`. A tela de processamento mostra o antes e o depois de verdade, com o contorno de onde a lousa foi achada e o tempo que o aparelho levou. A IA lê a versão tratada, a aula guarda a tratada, e a foto original continua na aba Fotos da galeria.
+
+O tratamento se ajusta sozinho ao quadro claro (caneta escura sobre branco) e ao escuro (giz sobre verde ou preto). O que ele não promete: reflexo estourado não se recupera com uma foto só, porque ali não sobrou traço. Sombra e degradê somem; o reflexo forte continua lá.
+
+O Modo Aula também separa três superfícies que têm problemas ópticos opostos entre si, e diz à IA qual delas está na foto:
 
 | Modo | O problema que resolve |
 |---|---|
@@ -125,7 +129,7 @@ A classificação usa imagem pequena de propósito. Medido, ela acerta igual com
 
 Sem chave, sem internet, resposta lenta ou JSON inválido: aquela parte cai no conteúdo de exemplo e o fluxo continua normalmente. As três chamadas são independentes, então uma falhar não derruba as outras. Existe uma repetição automática em falha de rede, e teto de tempo em cada chamada.
 
-Como a análise roda em paralelo com a animação de processamento, que dura uns 6,4s, ligar o modo ao vivo não acrescenta espera perceptível.
+Como a análise roda em paralelo com o tratamento da foto e a animação de processamento, que duram uns 8 s juntos, ligar o modo ao vivo não acrescenta espera perceptível.
 
 ## Decisões de projeto
 
@@ -153,6 +157,8 @@ O Flow não depende de tecnologia que ainda não existe. A tela Ajustes → Viab
 | Cruzar com a grade | Google Calendar API | nuvem |
 | Enviar para a turma | Google Classroom e Drive API | nuvem |
 
+A primeira linha já roda de verdade no protótipo: o recorte, a perspectiva e o realce são feitos com Skia no próprio aparelho, sem internet.
+
 O protótipo usa a API da Anthropic no modo ao vivo para demonstrar o conceito ponta a ponta. Numa JOVI de verdade esse papel seria do Gemini Nano rodando no próprio aparelho.
 
 ## Stack
@@ -164,7 +170,7 @@ O protótipo usa a API da Anthropic no modo ao vivo para demonstrar o conceito p
 | React | 19.2 |
 | TypeScript | 6.0, modo estrito |
 
-Navegação com React Navigation, usando stack nativo e abas. Gráficos com `react-native-svg`, câmera com `expo-camera`, redimensionamento de imagem com `expo-image-manipulator`, ícones do `@expo/vector-icons`.
+Navegação com React Navigation, usando stack nativo e abas. Gráficos com `react-native-svg`, câmera com `expo-camera`, tratamento da lousa com `@shopify/react-native-skia`, redimensionamento de imagem com `expo-image-manipulator`, ícones do `@expo/vector-icons`.
 
 ## Estrutura
 
@@ -177,9 +183,9 @@ src/
 ├── data/acervo.ts            tipos do acervo, funções puras, sessão pela grade, exemplos iniciais
 ├── store/AcervoContext.tsx   pastas e aulas, gravadas no aparelho
 ├── store/FlowContext.tsx     a captura em andamento
-├── services/                 análise ao vivo, o único ponto que toca a rede
+├── services/                 análise ao vivo (o único ponto que toca a rede) e o tratamento da lousa
 ├── hooks/                    captura contínua, leitura em voz alta, reduzir movimento
-├── components/               12 componentes reutilizáveis
+├── components/               13 componentes reutilizáveis
 ├── navigation/               RootStack, GaleriaTabs e os tipos de rota
 └── screens/                  14 telas
 ```
@@ -224,7 +230,7 @@ Sobre acessibilidade: área tocável de no mínimo 44×44 pt, `accessibilityRole
 
 1. **0:00** Abre no visor. Aponta para a lousa e o carrossel desliza para Aula.
 2. **0:15** Foto. A IA lê de verdade: matéria, tópico e a pasta, confirmada pela grade.
-3. **0:50** Destaque do pitch, ainda em definição.
+3. **0:50** O antes e o depois. A foto tirada de lado e com sombra vira lousa reta e limpa, com o contorno de onde a câmera achou o quadro e o tempo medido no aparelho, sem internet: é a câmera trabalhando antes da IA. Em "Conteúdo identificado", a IA leu a versão tratada.
 4. **2:05** Miniatura → galeria. Em Fotos, a foto é só mais uma; em Aulas, já está na matéria certa. Ouvir por 10 segundos.
 5. **2:50** `Mais` no visor: o "Documento em Ultra HD" já existe no V50, e o Flow especializa o que a JOVI já vende.
 6. **3:10** Folga para a IA demorar ou para a pergunta da banca.

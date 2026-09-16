@@ -33,6 +33,8 @@ import {
   prepararImagem,
   transcreverCaptura,
 } from '../services/analiseAoVivo';
+import type { ResultadoLousa } from '../services/tratarLousa';
+import { tratarLousa } from '../services/tratarLousa';
 import { useAcervo } from '../store/AcervoContext';
 import { useFlow } from '../store/FlowContext';
 import { TOQUE_MIN, colors, font, fontModo, radius, spacing } from '../theme';
@@ -83,6 +85,13 @@ const FOLGA_PILULA = (TOQUE_MIN - ALTURA_PILULA) / 2;
 const MS_ATE_DETECTAR = 2500;
 const MS_AVISO_DETECCAO = 2200;
 
+/** Quanto a transcricao espera pela lousa tratada antes de ler a original. */
+const MS_ESPERA_TRATAMENTO = 2500;
+
+function esperar(ms: number): Promise<null> {
+  return new Promise((resolver) => setTimeout(() => resolver(null), ms));
+}
+
 /** Niveis de zoom oferecidos. O valor vai direto para a camera (0 a 1). */
 const ZOOMS: { rotulo: string; valor: number }[] = [
   { rotulo: '1', valor: 0 },
@@ -112,6 +121,7 @@ export function CameraScreen({ navigation }: Props) {
     definirSequencia,
     limparCaptura,
     registrarFotoSolta,
+    definirTratamento,
   } = useFlow();
   const { acervo, caminhos } = useAcervo();
 
@@ -191,7 +201,7 @@ export function CameraScreen({ navigation }: Props) {
   const miniaturaAcervo = useMemo(() => {
     for (const aula of ordenarAulas(acervo.aulas)) {
       const pagina = [...aula.paginas].reverse().find((p) => p.fotoUri !== null);
-      if (pagina?.fotoUri) return pagina.fotoUri;
+      if (pagina?.fotoUri) return pagina.fotoOriginalUri ?? pagina.fotoUri;
     }
     return null;
   }, [acervo.aulas]);
@@ -231,6 +241,8 @@ export function CameraScreen({ navigation }: Props) {
       // Cada captura comeca do zero: some o resultado da anterior e o exemplo
       // so e substituido quando a leitura real chegar.
       limparCaptura();
+      const seq = capturaAtual.current + 1;
+      capturaAtual.current = seq;
       if (foto) definirFoto(foto.uri);
 
       const quadros = sequencia.frames;
@@ -241,58 +253,90 @@ export function CameraScreen({ navigation }: Props) {
         primeiro && ultimo ? { inicio: primeiro.hora.slice(0, 5), fim: ultimo.hora.slice(0, 5) } : null
       );
 
+      // [D1] O tratamento da foto comeca ja, em paralelo com a leitura da IA. A
+      // tela de processamento mostra o antes e o depois de verdade.
+      const tratamento: Promise<ResultadoLousa> | null = foto
+        ? tratarLousa(foto.uri, foto.width, foto.height)
+        : null;
+      if (tratamento) {
+        definirTratamento({ estado: 'tratando' });
+        void tratamento.then((resultado) => {
+          if (capturaAtual.current === seq) definirTratamento(resultado);
+        });
+      }
+
       if (modoAoVivo && foto) {
-        const seq = capturaAtual.current + 1;
-        capturaAtual.current = seq;
         definirAnalisando(true);
-
-        const [pequena, grande] = await Promise.all([
-          prepararImagem(foto.uri, foto.width, foto.height, PX.classificacao),
-          prepararImagem(foto.uri, foto.width, foto.height, PX.transcricao),
-        ]);
-        definirFotoBase64(grande);
-
-        // Tres chamadas independentes e paralelas. Se uma falhar, so aquela
-        // parte cai no exemplo.
-        const pClass = classificarCaptura(pequena, modoAtual.id, caminhos).then((r) => {
-          if (capturaAtual.current !== seq) return;
-          if (r.estado === 'ok') {
-            definirClassificacao(r.dados);
-            definirDestino(r.dados.pasta);
-            console.log(
-              `[JOVI Flow] classificacao em ${r.ms}ms: ${r.dados.topico} -> ${r.dados.pasta.join(' > ')}${r.dados.pastaNova ? ' (pasta nova)' : ''}`
+        const original = foto;
+        // Nada aqui segura a camera: a tela de processamento abre na hora.
+        void (async () => {
+          try {
+            // A classificacao le a foto original pequena, que fica pronta logo:
+            // ela preenche o topo da tela e nao pode esperar o tratamento.
+            const pequena = await prepararImagem(
+              original.uri,
+              original.width,
+              original.height,
+              PX.classificacao
             );
-          } else {
-            console.log('[JOVI Flow] classificacao indisponivel:', r.estado);
-          }
-        });
+            const pClass = classificarCaptura(pequena, modoAtual.id, caminhos).then((r) => {
+              if (capturaAtual.current !== seq) return;
+              if (r.estado === 'ok') {
+                definirClassificacao(r.dados);
+                definirDestino(r.dados.pasta);
+                console.log(
+                  `[JOVI Flow] classificacao em ${r.ms}ms: ${r.dados.topico} -> ${r.dados.pasta.join(' > ')}${r.dados.pastaNova ? ' (pasta nova)' : ''}`
+                );
+              } else {
+                console.log('[JOVI Flow] classificacao indisponivel:', r.estado);
+              }
+            });
 
-        const pTrans = transcreverCaptura(grande, modoAtual.id).then((r) => {
-          if (capturaAtual.current !== seq) return;
-          if (r.estado === 'ok') {
-            definirTranscricao(r.dados);
-            definirTexto(r.dados.textoExtraido);
-            console.log(`[JOVI Flow] transcricao em ${r.ms}ms`);
-          } else {
-            console.log('[JOVI Flow] transcricao indisponivel:', r.estado);
-          }
-        });
+            // Transcricao e estudo leem a lousa tratada, se ela ficar pronta a
+            // tempo: reta e com a luz por igual, a leitura melhora. Se demorar
+            // ou falhar, leem a foto original.
+            const resultado = tratamento
+              ? await Promise.race([tratamento, esperar(MS_ESPERA_TRATAMENTO)])
+              : null;
+            const lousa = resultado?.estado === 'tratada' ? resultado.lousa : null;
+            const grande = lousa
+              ? await prepararImagem(lousa.uri, lousa.largura, lousa.altura, PX.transcricao)
+              : await prepararImagem(original.uri, original.width, original.height, PX.transcricao);
+            if (capturaAtual.current !== seq) return;
+            definirFotoBase64(grande);
 
-        const pEstudo = gerarEstudo(grande, modoAtual.id).then((r) => {
-          if (capturaAtual.current !== seq) return;
-          if (r.estado === 'ok') {
-            definirEstudo(r.dados);
-            console.log(
-              `[JOVI Flow] material de estudo em ${r.ms}ms: ${r.dados.flashcards.length} cartoes, ${r.dados.questoes.length} questoes`
-            );
-          } else {
-            console.log('[JOVI Flow] material de estudo indisponivel:', r.estado);
-          }
-        });
+            const pTrans = transcreverCaptura(grande, modoAtual.id).then((r) => {
+              if (capturaAtual.current !== seq) return;
+              if (r.estado === 'ok') {
+                definirTranscricao(r.dados);
+                definirTexto(r.dados.textoExtraido);
+                console.log(
+                  `[JOVI Flow] transcricao em ${r.ms}ms, lendo a foto ${lousa ? 'tratada' : 'original'}`
+                );
+              } else {
+                console.log('[JOVI Flow] transcricao indisponivel:', r.estado);
+              }
+            });
 
-        void Promise.all([pClass, pTrans, pEstudo]).then(() => {
-          if (capturaAtual.current === seq) definirAnalisando(false);
-        });
+            const pEstudo = gerarEstudo(grande, modoAtual.id).then((r) => {
+              if (capturaAtual.current !== seq) return;
+              if (r.estado === 'ok') {
+                definirEstudo(r.dados);
+                console.log(
+                  `[JOVI Flow] material de estudo em ${r.ms}ms: ${r.dados.flashcards.length} cartoes, ${r.dados.questoes.length} questoes`
+                );
+              } else {
+                console.log('[JOVI Flow] material de estudo indisponivel:', r.estado);
+              }
+            });
+
+            await Promise.all([pClass, pTrans, pEstudo]);
+          } catch (erro) {
+            console.log('[JOVI Flow] leitura ao vivo falhou, seguindo com o exemplo:', erro);
+          } finally {
+            if (capturaAtual.current === seq) definirAnalisando(false);
+          }
+        })();
       }
 
       navigation.navigate('Processing');
@@ -311,6 +355,7 @@ export function CameraScreen({ navigation }: Props) {
     limparCaptura,
     registrarFotoSolta,
     definirFoto,
+    definirTratamento,
     sequencia.frames,
     definirSequencia,
     modoAoVivo,

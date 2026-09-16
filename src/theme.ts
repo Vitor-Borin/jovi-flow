@@ -38,6 +38,9 @@ export const colors = {
 
   overlay: 'rgba(0,0,0,0.84)',
   scrim: 'rgba(0,0,0,0.58)',
+  // Halo do contorno da lousa achada, desenhado sobre a foto no antes e depois.
+  // O azul some sobre lousa verde; o halo claro por baixo segura a leitura.
+  haloContorno: 'rgba(255,255,255,0.85)',
 
   // Visor da camera. A camera da JOVI e preta de ponta a ponta, com icone
   // branco e controle translucido por cima da imagem.

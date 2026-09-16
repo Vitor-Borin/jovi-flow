@@ -49,6 +49,12 @@ const GRUPOS: Grupo[] = [
         onde: 'aparelho',
       },
       {
+        id: 'tratamento-prototipo',
+        o_que: 'No protótipo, cantos, perspectiva, luz e traço já são tratados de verdade',
+        api: 'Skia com shader próprio, sem internet',
+        onde: 'aparelho',
+      },
+      {
         id: 'frames',
         o_que: 'Combinação de múltiplos frames e supressão de reflexo',
         api: 'CameraX / Camera2 + fotografia computacional',
@@ -207,10 +213,10 @@ export function FeasibilityScreen({ navigation }: Props) {
         </View>
 
         <Text style={styles.rodape}>
-          Por padrão o protótipo simula todas as etapas localmente, para que a demonstração não
-          dependa da rede. O modo de análise ao vivo, no Perfil, liga a leitura real da foto por um
-          modelo multimodal, e volta sozinho para o conteúdo de exemplo se a rede falhar. Numa
-          JOVI de verdade, esse papel seria do Gemini Nano, rodando no próprio aparelho.
+          No protótipo, o tratamento da foto roda de verdade no aparelho, sem internet. A leitura
+          do conteúdo usa um modelo multimodal quando a Análise por IA está ligada em Ajustes, e
+          volta sozinha para o conteúdo de exemplo se a rede falhar. Numa JOVI de verdade, esse
+          papel seria do Gemini Nano, rodando no próprio aparelho.
         </Text>
       </ScrollView>
     </View>

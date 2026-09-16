@@ -35,7 +35,10 @@ const PASTA_FOTOS = 'aulas/';
 type Persistido = { versao: 1; acervo: Acervo };
 
 export type NovaCaptura = {
+  /** A lousa tratada, ou a foto original quando nao houve tratamento. */
   fotoUri: string | null;
+  /** A foto como a camera tirou, quando fotoUri e a versao tratada. */
+  fotoOriginalUri: string | null;
   subModo: string;
   materia: string;
   tema: string;
@@ -183,7 +186,10 @@ export function AcervoProvider({ children }: { children: ReactNode }) {
 
   const salvarCaptura = useCallback(
     async (entrada: NovaCaptura): Promise<ResultadoSalvar> => {
-      const fotoUri = await copiarFoto(entrada.fotoUri);
+      const [fotoUri, fotoOriginalUri] = await Promise.all([
+        copiarFoto(entrada.fotoUri),
+        copiarFoto(entrada.fotoOriginalUri),
+      ]);
       const agora = new Date();
       const sessao = sessaoDeAgora(entrada.pasta, agora);
       const existente = aulaDaSessao(acervoRef.current, sessao, entrada.pasta, agora);
@@ -191,6 +197,7 @@ export function AcervoProvider({ children }: { children: ReactNode }) {
       const pagina: Pagina = {
         id: idNovo('pag'),
         fotoUri,
+        fotoOriginalUri,
         hora: horaBR(agora),
         subModo: entrada.subModo,
         textoExtraido: entrada.textoExtraido,

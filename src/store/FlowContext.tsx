@@ -9,6 +9,7 @@ import type {
   TranscricaoAoVivo,
 } from '../services/analiseAoVivo';
 import { carregarChaveGuardada, esquecerChave, guardarChave } from '../services/analiseAoVivo';
+import type { LousaTratada, ResultadoLousa } from '../services/tratarLousa';
 
 /** Guarda so a escolha de desligar a analise. Sem nada gravado, a analise liga
  *  sozinha quando existe chave: e o que o apresentador espera ao abrir o app. */
@@ -22,13 +23,26 @@ const CHAVE_PREFERENCIA_AO_VIVO = 'jovi-flow.ao-vivo.v1';
 
 export type FotoSolta = { uri: string; tiradaEm: number };
 
+/** Onde esta o tratamento da foto da captura atual [D1]. */
+export type EstadoTratamento = { estado: 'sem-foto' } | { estado: 'tratando' } | ResultadoLousa;
+
+const SEM_FOTO: EstadoTratamento = { estado: 'sem-foto' };
+
+/** A lousa tratada, quando o tratamento terminou e deu certo. */
+export function lousaDoTratamento(tratamento: EstadoTratamento): LousaTratada | null {
+  return tratamento.estado === 'tratada' ? tratamento.lousa : null;
+}
+
 const CONECTADAS_PADRAO = plataformas.filter((p) => p.conectadaPorPadrao).map((p) => p.id);
 const AUTOMATICAS_PADRAO = plataformas.filter((p) => p.automaticaPorPadrao).map((p) => p.id);
 const SUBMODO_PADRAO = subModos[0]?.id ?? 'lousa';
 
 export type FlowState = {
-  /** Foto REAL capturada pelo usuario. */
+  /** Foto REAL capturada pelo usuario, como a camera entregou. */
   fotoUri: string | null;
+  /** O tratamento do Modo Aula sobre essa foto. Quando da certo, a lousa reta e
+   *  com a luz por igual e o que vai para a aula; a original fica em Fotos. */
+  tratamento: EstadoTratamento;
   /** Pasta onde a captura vai ser salva: [materia, subpasta]. */
   destino: [string, string];
   /** Texto reconhecido. Fica no estado porque a tela de Acoes permite edita-lo. */
@@ -66,6 +80,7 @@ export type FlowState = {
   quadrosSequencia: number;
   janelaSequencia: { inicio: string; fim: string } | null;
   definirFoto: (uri: string | null) => void;
+  definirTratamento: (t: EstadoTratamento) => void;
   definirDestino: (d: [string, string]) => void;
   definirTexto: (t: string) => void;
   definirSubModo: (id: string) => void;
@@ -93,6 +108,7 @@ const FlowContext = createContext<FlowState | null>(null);
 
 export function FlowProvider({ children }: { children: ReactNode }) {
   const [fotoUri, setFotoUri] = useState<string | null>(null);
+  const [tratamento, setTratamento] = useState<EstadoTratamento>(SEM_FOTO);
   const [destino, setDestino] = useState<[string, string]>(caminhoSalvar);
   const [textoExtraido, setTextoExtraido] = useState(conteudoIdentificado.textoExtraido);
   const [subModo, setSubModo] = useState(SUBMODO_PADRAO);
@@ -111,6 +127,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   const [janelaSequencia, setJanela] = useState<{ inicio: string; fim: string } | null>(null);
 
   const definirFoto = useCallback((uri: string | null) => setFotoUri(uri), []);
+  const definirTratamento = useCallback((t: EstadoTratamento) => setTratamento(t), []);
   const definirDestino = useCallback((d: [string, string]) => setDestino(d), []);
   const definirTexto = useCallback((t: string) => setTextoExtraido(t), []);
   const definirSubModo = useCallback((id: string) => setSubModo(id), []);
@@ -194,6 +211,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
 
   const limparCaptura = useCallback(() => {
     setFotoUri(null);
+    setTratamento(SEM_FOTO);
     setDestino(caminhoSalvar);
     setTextoExtraido(conteudoIdentificado.textoExtraido);
     setEnviadasManualmente([]);
@@ -218,6 +236,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
   const valor = useMemo<FlowState>(
     () => ({
       fotoUri,
+      tratamento,
       destino,
       textoExtraido,
       subModo,
@@ -236,6 +255,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       quadrosSequencia,
       janelaSequencia,
       definirFoto,
+      definirTratamento,
       definirDestino,
       definirTexto,
       definirSubModo,
@@ -256,6 +276,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
     }),
     [
       fotoUri,
+      tratamento,
       destino,
       textoExtraido,
       subModo,
@@ -274,6 +295,7 @@ export function FlowProvider({ children }: { children: ReactNode }) {
       quadrosSequencia,
       janelaSequencia,
       definirFoto,
+      definirTratamento,
       definirDestino,
       definirTexto,
       definirSubModo,
