@@ -1,5 +1,5 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
-import type { BottomTabScreenProps } from '@react-navigation/bottom-tabs';
+import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
@@ -11,7 +11,7 @@ import { ordenarAulas } from '../data/acervo';
 import type { Flashcard, NomeIcone } from '../data/mock';
 import { flashcards as flashcardsExemplo } from '../data/mock';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
-import type { MainTabParamList } from '../navigation/types';
+import type { RootStackParamList } from '../navigation/types';
 import { useAcervo } from '../store/AcervoContext';
 import { TOQUE_MIN, colors, font, fontDado, radius, shadow, spacing } from '../theme';
 
@@ -23,11 +23,11 @@ const BOTOES: { id: Avaliacao; label: string; icone: NomeIcone; cor: string }[] 
   { id: 'facil', label: 'Fácil', icone: 'check', cor: colors.primary },
 ];
 
-type Props = BottomTabScreenProps<MainTabParamList, 'Revisao'>;
+type Props = NativeStackScreenProps<RootStackParamList, 'Revisao'>;
 
 /** Os cartoes sao da aula pedida na rota ou, sem rota, da aula mais recente
  *  do acervo. O exemplo so entra se nao houver aula nenhuma. */
-export function ReviewScreen({ route }: Props) {
+export function ReviewScreen({ route, navigation }: Props) {
   const { acervo, aulaPorId } = useAcervo();
   const pedida = route.params?.aulaId ? aulaPorId(route.params.aulaId) : null;
   const aula = pedida ?? ordenarAulas(acervo.aulas)[0] ?? null;
@@ -35,10 +35,25 @@ export function ReviewScreen({ route }: Props) {
     aula !== null && aula.flashcards.length > 0 ? aula.flashcards : flashcardsExemplo;
 
   // A chave reinicia a revisao quando a aula muda.
-  return <Revisao key={aula?.id ?? 'exemplo'} flashcards={flashcards} titulo={aula?.titulo ?? null} />;
+  return (
+    <Revisao
+      key={aula?.id ?? 'exemplo'}
+      flashcards={flashcards}
+      titulo={aula?.titulo ?? null}
+      onVoltar={() => navigation.goBack()}
+    />
+  );
 }
 
-function Revisao({ flashcards, titulo }: { flashcards: Flashcard[]; titulo: string | null }) {
+function Revisao({
+  flashcards,
+  titulo,
+  onVoltar,
+}: {
+  flashcards: Flashcard[];
+  titulo: string | null;
+  onVoltar: () => void;
+}) {
   const insets = useSafeAreaInsets();
   const reduzir = useReduzirMovimento();
 
@@ -92,7 +107,7 @@ function Revisao({ flashcards, titulo }: { flashcards: Flashcard[]; titulo: stri
   if (terminou) {
     return (
       <View style={styles.tela}>
-        <ScreenHeader title="Revisão" />
+        <ScreenHeader title="Revisão" onBack={onVoltar} />
         {titulo ? (
           <Text style={styles.subtituloAula} numberOfLines={1}>
             {titulo}
@@ -131,6 +146,7 @@ function Revisao({ flashcards, titulo }: { flashcards: Flashcard[]; titulo: stri
     <View style={styles.tela}>
       <ScreenHeader
         title="Revisão"
+        onBack={onVoltar}
         right={
           <Text style={styles.contador}>
             {indice + 1}/{flashcards.length}

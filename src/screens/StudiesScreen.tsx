@@ -16,17 +16,18 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Badge } from '../components/Badge';
+import { CartaoAgora } from '../components/CartaoAgora';
 import { ModalTexto } from '../components/ModalTexto';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { SeletorPasta } from '../components/SeletorPasta';
 import type { Aula } from '../data/acervo';
 import { arvore, ordenarAulas } from '../data/acervo';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
-import type { MainTabParamList, RootStackParamList } from '../navigation/types';
+import type { GaleriaTabParamList, RootStackParamList } from '../navigation/types';
 import { useAcervo } from '../store/AcervoContext';
 import { TOQUE_MIN, colors, font, fontDado, radius, spacing } from '../theme';
 
-type Props = BottomTabScreenProps<MainTabParamList, 'Estudos'>;
+type Props = BottomTabScreenProps<GaleriaTabParamList, 'Aulas'>;
 type AbaAtiva = 'pastas' | 'recentes';
 type AulaComCaminho = Aula & { caminho: string };
 
@@ -151,7 +152,8 @@ export function StudiesScreen({ route }: Props) {
   return (
     <View style={styles.tela}>
       <ScreenHeader
-        title="Meus Estudos"
+        title="Aulas"
+        onBack={() => navigation.navigate('Camera')}
         right={
           <View style={styles.acoesCabecalho}>
             <Pressable
@@ -202,6 +204,8 @@ export function StudiesScreen({ route }: Props) {
       <ScrollView
         contentContainerStyle={[styles.conteudo, { paddingBottom: insets.bottom + spacing(6) }]}
       >
+        {termo === '' ? <CartaoAgora /> : null}
+
         {aba === 'pastas'
           ? pastas.map((pasta) => {
               const aberta = termo !== '' || expandidas.includes(pasta.nome);

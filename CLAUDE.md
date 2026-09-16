@@ -14,8 +14,9 @@ npm install
 npx expo start          # ler o QR com o Expo Go; celular e PC na mesma rede
 ```
 
-Modo ao vivo (opcional): `cp .env.example .env`, colar uma chave da Anthropic,
-ou colar direto no app em Perfil → Análise ao vivo.
+Análise por IA: na câmera, engrenagem → Análise por IA → colar a chave da
+Anthropic e Guardar. Uma vez só: fica no cofre do aparelho e a análise liga
+sozinha ao abrir o app. Nada de `.env`.
 
 Antes de commitar:
 
@@ -37,6 +38,8 @@ Cada uma destas já custou caro para descobrir.
 | Emoji nunca como ícone | Depende da fonte do sistema e não aceita token de cor. Use `Ionicons` ou `MaterialCommunityIcons`. |
 | Todo texto visível em **português do Brasil** | |
 | Rede só em `src/services/analiseAoVivo.ts` | Nenhum outro arquivo faz chamada externa. |
+| Chave da API só no cofre do aparelho | Nunca em `.env` nem no Git: variável `EXPO_PUBLIC_*` entra no pacote que o PC serve pela rede, e qualquer um no mesmo Wi-Fi lê a chave. |
+| Nenhuma barra de abas de aplicativo | O Flow mora na câmera, na galeria (Fotos e Aulas) e nos ajustes da câmera. Tela inicial ou aba Perfil dizem "app para baixar", o contrário da tese. |
 | O acervo só muda pelas ações do `AcervoContext` | Nenhuma tela guarda cópia própria de pasta ou aula. |
 | A tela nunca afirma o que o app não sabe | Ver `DESIGN.md` → "Honestidade da interface". |
 | Controle que não muda nada não existe | Ou o controle age, ou sai da tela. |
@@ -55,7 +58,8 @@ src/store/FlowContext.tsx      a captura em andamento
 src/services/analiseAoVivo.ts  as 3 chamadas à IA (único ponto de rede)
 src/hooks/                     captura contínua, leitura em voz alta, reduzir
                                movimento
-src/components/                11 componentes
+src/navigation/                RootStack e GaleriaTabs (Fotos e Aulas)
+src/components/                12 componentes
 src/screens/                   14 telas
 ```
 
@@ -74,6 +78,13 @@ comporta igual ao aparelho).
   obturador vazado de 68 pt com anel amarelo. `Aula` é um modo do carrossel;
   `Mais` abre a folha com os modos reais do V50. A detecção da lousa desliza o
   carrossel sozinho depois de 2 s.
+- **Galeria em vez de app com abas.** A miniatura abre a galeria: em Aula, na
+  aba Aulas (pastas, recentes e o cartão da próxima aula pela grade); nos outros
+  modos, na aba Fotos, com tudo o que a câmera tirou. A engrenagem abre Ajustes.
+  A tela Início e as abas Revisão e Perfil saíram; a revisão abre pela aula.
+- **Análise por IA sempre pronta.** Chave colada uma vez em Ajustes, guardada no
+  cofre do aparelho (`expo-secure-store`) e conferida com a Anthropic na hora. A
+  análise liga sozinha ao abrir o app, a menos que o usuário tenha desligado.
 - **Acervo real.** Pastas e aulas gravadas com AsyncStorage; a foto é copiada
   para o diretório de documentos. Criar, renomear, mover e excluir funcionam.
 - **Tela Aula.** Páginas, resumo, texto, flashcards, questões, ouvir, menu.
@@ -81,7 +92,8 @@ comporta igual ao aparelho).
   material de estudo (flashcards e questões).
 - **Sessão de aula pela grade.** Fotos da mesma aula do horário viram páginas da
   mesma aula. Fora do horário vale a sessão livre: mesma pasta, meia hora.
-- **Ouvir a aula.** `expo-speech`, offline.
+- **Ouvir a aula.** `expo-speech`, offline, com a sessão de áudio de reprodução
+  (`expo-audio`) para funcionar com o iPhone no silencioso.
 - **Viabilidade técnica.** Inclui o achado de que o JOVI V50 já tem
   "Documento em Ultra HD".
 
@@ -99,7 +111,10 @@ Nada disso dá para fechar sem um aparelho ou sem um navegador com sessão real.
       reprodução. A voz escolhida é a melhor pt-BR instalada (premium >
       aprimorada > compacta); a compacta soa robótica, e dá para baixar a
       aprimorada em Ajustes → Acessibilidade → Conteúdo Falado → Vozes.
-- [ ] Fechar e reabrir o app: as aulas capturadas continuam lá, com foto.
+- [ ] Fechar e reabrir o app: as aulas capturadas continuam lá, com foto, e a
+      Análise por IA abre ligada, sem colar a chave de novo.
+- [ ] Galeria: foto em Aula aparece em Fotos (com o selo de aula) e em Aulas;
+      foto em Foto aparece só em Fotos.
 - [ ] Captura contínua (ícone na barra de cima, só em Aula).
 - [ ] Háptico e a rolagem do carrossel de modos.
 
@@ -117,13 +132,38 @@ Ficou de fora, por decisão e não por esquecimento:
 - [ ] Conferir no aparelho, se alguém tiver um V50 à mão, se a régua de modos e
       o obturador continuam com as mesmas medidas depois do OriginOS 6.
 
+### Destaque do pitch
+
+- [ ] Em aberto. O brief da JOVI pede "a próxima geração da experiência de
+      câmera", e não um app de estudo: ideia de resumo, flashcard ou chat não
+      diferencia, porque todo grupo tem. O roteiro de 4 minutos reserva o
+      trecho de 0:50 a 2:05 para esse destaque.
+
+### Encenado, e a banca pode perceber
+
+A regra "a tela nunca afirma o que o app não sabe" ainda não vale nestes dois
+pontos, que sustentam o diferencial [D1]:
+
+- [ ] **Antes e depois da tela de processamento.** A foto nunca é tratada: a
+      tela entorta a foto de propósito (gira 4° e inclina 3°), põe um reflexo
+      falso por cima e anima tudo voltando. O "depois" é a foto original, mesmo
+      que ela esteja torta de verdade.
+- [ ] **"Lousa reconhecida".** Depois de 2,5 s em Foto o carrossel vai para
+      Aula e o aviso afirma que reconheceu a lousa, com qualquer coisa na frente
+      da câmera.
+
 ### Antes de apresentar
 
-- [ ] **Revogar a chave da API** que foi exposta numa conversa, e gerar outra
-      com limite de gasto baixo.
+- [ ] **Vincular o projeto à conta Expo**, uma vez e já logado:
+      `npx eas-cli@latest init`. Sem isso o Expo Go separa os dados do iPhone
+      pelo computador que roda o servidor: aulas e chave guardadas usando um PC
+      não aparecem usando outro.
+- [ ] **Revogar a chave da API** que foi exposta numa conversa, e guardar uma
+      nova, com limite de gasto baixo, em Ajustes → Análise por IA. Apagar o
+      `.env` antigo do computador: o código não lê mais esse arquivo.
 - [ ] Desligar a atualização automática de apps no aparelho, senão o Expo Go
       atualiza e o app não abre.
-- [ ] Decidir se as capturas de teste ficam ou se usa Perfil → "Apagar capturas
+- [ ] Decidir se as capturas de teste ficam ou se usa Ajustes → "Apagar capturas
       e voltar aos exemplos".
 
 ## Fora do escopo

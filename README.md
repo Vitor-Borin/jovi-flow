@@ -12,13 +12,13 @@ O JOVI Flow pega essa foto e faz o resto do caminho:
 
 `Capturar → Entender → Organizar → Estudar`
 
-O Flow é uma funcionalidade da câmera do aparelho, do mesmo jeito que a galeria é. Por isso o protótipo abre direto no visor em vez de abrir num menu, e o visor copia a câmera do JOVI V50 (a JOVI é a marca da vivo no Brasil), medida em capturas reais do aparelho: preto de ponta a ponta, ícones brancos soltos em cima, zoom em texto sobre a imagem, modos com capitalização normal e o selecionado em amarelo, obturador vazado com anel amarelo. **Aula é um modo do carrossel**, entre Foto e Vídeo, igual a Retrato ou Noite. As outras telas são o que o Flow produziu, e você chega nelas a partir da câmera, pela miniatura da galeria.
+O Flow é uma funcionalidade da câmera do aparelho, do mesmo jeito que a galeria é. Por isso o protótipo abre direto no visor em vez de abrir num menu, e o visor copia a câmera do JOVI V50 (a JOVI é a marca da vivo no Brasil), medida em capturas reais do aparelho: preto de ponta a ponta, ícones brancos soltos em cima, zoom em texto sobre a imagem, modos com capitalização normal e o selecionado em amarelo, obturador vazado com anel amarelo. **Aula é um modo do carrossel**, entre Foto e Vídeo, igual a Retrato ou Noite. O Flow não tem tela inicial nem barra de abas de aplicativo: a miniatura da câmera abre a **galeria** do aparelho, onde as aulas organizadas ficam numa aba ao lado das fotos, e a engrenagem abre os **ajustes** do Modo Aula.
 
 ### O que o protótipo faz de verdade
 
 Tudo o que aparece na tela funciona. Pastas e aulas são estado real, gravado no aparelho, e sobrevivem a fechar o app. Criar pasta, renomear, mover e excluir funcionam. Tocar numa aula abre a aula, com as fotos, o resumo, os flashcards e as questões dela.
 
-Com o modo ao vivo ligado, a IA lê a foto que você acabou de tirar e devolve matéria, tema, tópico, pasta, transcrição, resumo, flashcards e questões. Nada de Flexbox se a lousa era de Cálculo.
+Com a análise por IA ligada, a IA lê a foto que você acabou de tirar e devolve matéria, tema, tópico, pasta, transcrição, resumo, flashcards e questões. Nada de Flexbox se a lousa era de Cálculo.
 
 ### Os quatro diferenciais
 
@@ -34,7 +34,7 @@ Quando reconhece uma superfície de estudo, a captura passa a combinar vários f
 
 Um "modo documento" genérico trata os três do mesmo jeito e erra nos três.
 
-E isso não é hipótese: a câmera do JOVI V50 **já tem** "Documento em Ultra HD" na lista de modos. O carrossel da câmera do protótipo mostra isso: em **Mais**, a folha traz os modos reais do aparelho, com "Documento em Ultra HD" ao lado do "Aula". O Modo Aula não inventa capacidade nova — ele especializa uma que a JOVI já vende, e liga a captura ao horário do estudante. A tela Perfil → Viabilidade técnica diz isso com todas as letras.
+E isso não é hipótese: a câmera do JOVI V50 **já tem** "Documento em Ultra HD" na lista de modos. O carrossel da câmera do protótipo mostra isso: em **Mais**, a folha traz os modos reais do aparelho, com "Documento em Ultra HD" ao lado do "Aula". O Modo Aula não inventa capacidade nova — ele especializa uma que a JOVI já vende, e liga a captura ao horário do estudante. A tela Ajustes → Viabilidade técnica diz isso com todas as letras.
 
 **A grade horária do estudante entra como contexto.**
 
@@ -78,27 +78,27 @@ Desde o SDK 57, o Expo Go do iOS exige **login na mesma conta Expo nos dois lado
 
 O projeto e o Expo Go do celular precisam estar no mesmo SDK. Foi o que aconteceu em 15/09/2026: o Expo Go atualizou sozinho do 54 para o 57, o app parou de abrir com *"Project is incompatible with this version of Expo Go"*, e o projeto teve de subir junto, porque no iOS não existe como instalar um Expo Go antigo. Antes de apresentar, desligue a atualização automática de apps no aparelho.
 
-## Modo de análise ao vivo
+## Análise por IA
 
-Por padrão o app roda inteiramente offline, com conteúdo de exemplo. O modo ao vivo é opcional e faz a IA ler de verdade a foto que você acabou de tirar, seja qual for o assunto no quadro.
+Sem chave, o app roda inteiramente offline, com conteúdo de exemplo. Com chave, a IA lê de verdade a foto que você acabou de tirar, seja qual for o assunto no quadro.
 
 ### Como ligar
 
-```bash
-cp .env.example .env
-```
+Na câmera, toque na engrenagem → **Análise por IA**, cole uma chave da API da Anthropic e toque em **Guardar a chave**. É uma vez só: a chave fica no cofre do aparelho (o Keychain, no iPhone), a análise liga sozinha toda vez que o app abre, e o app confere na hora se a Anthropic aceitou a chave. Dá para conferir de novo em **Testar a chave**.
 
-Cole uma chave da API da Anthropic na última linha do `.env` e reinicie:
-
-```bash
-npx expo start --clear
-```
-
-Depois, dentro do app: Perfil → Análise ao vivo. Sem chave configurada o interruptor aparece desabilitado, e o app segue funcionando offline.
-
-> **Sobre a chave.** Variáveis `EXPO_PUBLIC_*` são embutidas no pacote do aplicativo, então qualquer pessoa com acesso ao bundle consegue lê-las. Use uma chave descartável, com limite de gasto configurado no Console, e revogue depois da apresentação. O `.env` está no `.gitignore` e não deve ser commitado.
+> **Sobre a chave.** Ela não vai em `.env` nem no Git. Variável `EXPO_PUBLIC_*` é embutida no pacote que o computador serve pela rede, e qualquer um no mesmo Wi-Fi conseguiria ler. Mesmo no cofre, use uma chave com limite de gasto baixo no Console e revogue depois da apresentação.
 >
-> Num produto real a credencial ficaria no backend da JOVI e o aparelho nunca a veria. Aqui ela está no app porque isto é protótipo.
+> Num produto real a credencial ficaria no backend da JOVI e o aparelho nunca a veria. Aqui ela está no aparelho porque isto é protótipo.
+
+### Os dados do iPhone valem em qualquer computador?
+
+Só com o projeto vinculado a uma conta Expo. Sem vínculo, o Expo Go separa os dados pelo computador que roda o servidor: aulas capturadas e a chave guardada usando o PC de casa não aparecem quando o app roda pelo PC da faculdade. Para vincular, uma vez, já logado com `npx expo login`:
+
+```bash
+npx eas-cli@latest init
+```
+
+Isso grava o `projectId` no `app.json`, e ele vai no commit.
 
 ### Por que são três chamadas em vez de uma
 
@@ -133,7 +133,7 @@ O app funciona offline por padrão. Toda a rede está em `src/services/analiseAo
 
 O acervo (pastas e aulas) fica gravado no aparelho com AsyncStorage, e a foto de cada captura é copiada do cache da câmera para o diretório de documentos, para não sumir. Não há banco nem backend: um React Context com persistência dá conta do escopo do protótipo. A captura em andamento (a foto que ainda não foi salva) fica só em memória.
 
-Na primeira abertura o acervo nasce com cinco aulas de exemplo, cada uma com resumo, flashcards e questões, para as pastas não estarem vazias. Perfil → "Apagar capturas e voltar aos exemplos" volta a esse estado.
+Na primeira abertura o acervo nasce com cinco aulas de exemplo, cada uma com resumo, flashcards e questões, para as pastas não estarem vazias. Ajustes → "Apagar capturas e voltar aos exemplos" volta a esse estado.
 
 Login, cadastro, onboarding e configurações ficaram fora do escopo.
 
@@ -141,7 +141,7 @@ As regras do projeto para quem for mexer no código estão em [`CLAUDE.md`](CLAU
 
 ## Viabilidade técnica
 
-O Flow não depende de tecnologia que ainda não existe. A tela Perfil → Viabilidade técnica lista, dentro do próprio app, qual API aberta sustenta cada peça:
+O Flow não depende de tecnologia que ainda não existe. A tela Ajustes → Viabilidade técnica lista, dentro do próprio app, qual API aberta sustenta cada peça:
 
 | Capacidade | API | Onde roda |
 |---|---|---|
@@ -170,7 +170,6 @@ Navegação com React Navigation, usando stack nativo e abas. Gráficos com `rea
 
 ```
 App.tsx                       providers e navegação raiz
-.env.example                  modelo de configuração do modo ao vivo
 docs/superpowers/specs/       decisões de cada sprint
 src/
 ├── theme.ts                  fonte única de cor, espaço e tipografia
@@ -180,8 +179,8 @@ src/
 ├── store/FlowContext.tsx     a captura em andamento
 ├── services/                 análise ao vivo, o único ponto que toca a rede
 ├── hooks/                    captura contínua, leitura em voz alta, reduzir movimento
-├── components/               11 componentes reutilizáveis
-├── navigation/               RootStack, MainTabs e os tipos de rota
+├── components/               12 componentes reutilizáveis
+├── navigation/               RootStack, GaleriaTabs e os tipos de rota
 └── screens/                  14 telas
 ```
 
@@ -223,22 +222,22 @@ Sobre acessibilidade: área tocável de no mínimo 44×44 pt, `accessibilityRole
 
 ## Roteiro dos 4 minutos
 
-1. Abre no visor. Em dois segundos o carrossel desliza sozinho para Aula.
-2. Foto. Processamento: primeiro a câmera trabalha, depois a IA.
-3. "Confirmado pela sua grade". Salvar, criando pasta na hora se precisar.
-4. Resumo. Play: o celular lê.
-5. Questões da própria lousa.
-6. Segunda foto. "Entra na aula de hoje como página 2".
-7. Estudos: abre a pasta, abre a aula, renomeia.
+1. **0:00** Abre no visor. Aponta para a lousa e o carrossel desliza para Aula.
+2. **0:15** Foto. A IA lê de verdade: matéria, tópico e a pasta, confirmada pela grade.
+3. **0:50** Destaque do pitch, ainda em definição.
+4. **2:05** Miniatura → galeria. Em Fotos, a foto é só mais uma; em Aulas, já está na matéria certa. Ouvir por 10 segundos.
+5. **2:50** `Mais` no visor: o "Documento em Ultra HD" já existe no V50, e o Flow especializa o que a JOVI já vende.
+6. **3:10** Folga para a IA demorar ou para a pergunta da banca.
 
 ## Antes de apresentar
 
 - [ ] Desligar atualização automática de apps no iPhone, senão o Expo Go atualiza e o app não abre
-- [ ] Perfil → colar a chave e ligar a análise ao vivo, com a rede do local
+- [ ] Vincular o projeto à conta Expo (`npx eas-cli@latest init`), para as aulas e a chave valerem em qualquer computador
+- [ ] Ajustes → Análise por IA: guardar a chave nova e tocar em Testar a chave, com a rede do local
 - [ ] Tirar uma foto de teste e conferir que matéria e tema vêm da foto
 - [ ] Decidir se as capturas de teste ficam ou se "Apagar capturas e voltar aos exemplos" antes de subir
 - [ ] Desligar o Wi-Fi e ficar só no 5G, porque o iOS prefere Wi-Fi mesmo quando ele está congestionado
-- [ ] Rodar o fluxo completo algumas vezes seguidas, usando Perfil → Reiniciar demonstração entre as voltas
+- [ ] Rodar o fluxo completo algumas vezes seguidas, usando Ajustes → Reiniciar demonstração entre as voltas
 - [ ] Abrir o app no celular antes de subir ao palco, para o bundle já estar em memória
 - [ ] Gravar um vídeo de tela do fluxo funcionando, como plano B
 - [ ] Depois da apresentação, revogar a chave da API

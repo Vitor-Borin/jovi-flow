@@ -9,9 +9,11 @@ import { OrganizeScreen } from '../screens/OrganizeScreen';
 import { PlatformsScreen } from '../screens/PlatformsScreen';
 import { ProcessingScreen } from '../screens/ProcessingScreen';
 import { QuestionsScreen } from '../screens/QuestionsScreen';
+import { ReviewScreen } from '../screens/ReviewScreen';
+import { SettingsScreen } from '../screens/SettingsScreen';
 import { SummaryScreen } from '../screens/SummaryScreen';
 import { colors } from '../theme';
-import { MainTabs } from './MainTabs';
+import { GaleriaTabs } from './GaleriaTabs';
 import type { RootStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -36,7 +38,24 @@ export function RootStack() {
         options={{ animation: 'fade', gestureEnabled: false }}
       />
 
-      <Stack.Screen name="Tabs" component={MainTabs} options={{ animation: 'slide_from_right' }} />
+      {/* A galeria sobe de baixo, como a galeria que a camera nativa abre pela
+          miniatura. Os ajustes entram pela lateral, como qualquer tela de
+          ajustes do sistema. */}
+      <Stack.Screen
+        name="Galeria"
+        component={GaleriaTabs}
+        options={{ animation: 'slide_from_bottom' }}
+      />
+      <Stack.Screen
+        name="Ajustes"
+        component={SettingsScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
+      <Stack.Screen
+        name="Revisao"
+        component={ReviewScreen}
+        options={{ animation: 'slide_from_right' }}
+      />
       <Stack.Screen
         name="Processing"
         component={ProcessingScreen}

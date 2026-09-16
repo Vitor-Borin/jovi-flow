@@ -111,6 +111,7 @@ export function CameraScreen({ navigation }: Props) {
     definirDestino,
     definirSequencia,
     limparCaptura,
+    registrarFotoSolta,
   } = useFlow();
   const { acervo, caminhos } = useAcervo();
 
@@ -218,9 +219,12 @@ export function CameraScreen({ navigation }: Props) {
       }
 
       if (!modoAula) {
-        // Nos outros modos a camera e so camera: tira a foto e mostra na
-        // miniatura. O prototipo nao grava na galeria do aparelho.
-        if (foto) setUltimaFoto(foto.uri);
+        // Nos outros modos a camera e so camera: tira a foto, mostra na
+        // miniatura e poe na aba Fotos da galeria. Nao vira aula e nao e gravada.
+        if (foto) {
+          setUltimaFoto(foto.uri);
+          registrarFotoSolta(foto.uri);
+        }
         return;
       }
 
@@ -305,6 +309,7 @@ export function CameraScreen({ navigation }: Props) {
     mostrarCamera,
     modoAula,
     limparCaptura,
+    registrarFotoSolta,
     definirFoto,
     sequencia.frames,
     definirSequencia,
@@ -332,7 +337,7 @@ export function CameraScreen({ navigation }: Props) {
           void Haptics.selectionAsync();
           setCapturaContinua((v) => !v);
         }}
-        onAbrirAjustes={() => navigation.navigate('Tabs', { screen: 'Perfil' })}
+        onAbrirAjustes={() => navigation.navigate('Ajustes')}
       />
 
       <View style={styles.areaVisor}>
@@ -401,7 +406,11 @@ export function CameraScreen({ navigation }: Props) {
         miniatura={miniatura}
         onCapturar={() => void aoTocarObturador()}
         onInverter={() => setLente((v) => (v === 'back' ? 'front' : 'back'))}
-        onAbrirGaleria={() => navigation.navigate('Tabs', { screen: 'Estudos' })}
+        // Em Aula a galeria ja abre nas aulas; nos outros modos, nas fotos,
+        // como a galeria que qualquer camera abre pela miniatura.
+        onAbrirGaleria={() =>
+          navigation.navigate('Galeria', { screen: modoAula ? 'Aulas' : 'Fotos' })
+        }
       />
     </View>
   );
@@ -789,7 +798,7 @@ function LinhaObturador({
       <Pressable
         onPress={onAbrirGaleria}
         accessibilityRole="button"
-        accessibilityLabel="Abrir as aulas capturadas"
+        accessibilityLabel="Abrir a galeria"
         style={({ pressed }) => [styles.toqueCanto, pressed && styles.pressionado]}
       >
         <View style={styles.miniatura}>

@@ -164,7 +164,7 @@ export function LessonScreen({ navigation, route }: Props) {
         <View style={styles.acoes}>
           <BotaoOuvir falando={falando} onPress={() => alternar(aula.resumo.join('. '))} />
           <Pressable
-            onPress={() => navigation.navigate('Tabs', { screen: 'Revisao', params: { aulaId } })}
+            onPress={() => navigation.navigate('Revisao', { aulaId })}
             accessibilityRole="button"
             accessibilityLabel={`Revisar com ${aula.flashcards.length} flashcards`}
             style={({ pressed }) => [styles.pilulaAcao, pressed && styles.pressionado]}

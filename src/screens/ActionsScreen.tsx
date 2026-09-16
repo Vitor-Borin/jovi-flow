@@ -51,7 +51,7 @@ export function ActionsScreen({ navigation, route }: Props) {
   // A aula pode ter sido excluida por outra tela. Sem ela, esta tela nao tem
   // o que mostrar.
   useEffect(() => {
-    if (aula === null) navigation.navigate('Tabs', { screen: 'Estudos' });
+    if (aula === null) navigation.navigate('Galeria', { screen: 'Aulas' });
   }, [aula, navigation]);
 
   if (aula === null) return <View style={styles.tela} />;
@@ -111,7 +111,7 @@ export function ActionsScreen({ navigation, route }: Props) {
       titulo: 'Flashcards',
       descricao: `${aula.flashcards.length} cartões`,
       icone: 'cards-outline',
-      onPress: () => navigation.navigate('Tabs', { screen: 'Revisao', params: { aulaId } }),
+      onPress: () => navigation.navigate('Revisao', { aulaId }),
     },
     {
       id: 'editar',

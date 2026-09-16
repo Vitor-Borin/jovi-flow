@@ -18,8 +18,8 @@ npx expo start
 O trabalho vai direto na `main`, que é a branch padrão. Ler o QR com a câmera
 do iPhone ou pelo Expo Go no Android. Celular e computador na mesma rede.
 
-Para o modo ao vivo: `cp .env.example .env` e colar uma chave da Anthropic, ou
-colar direto no app em Perfil → Análise ao vivo.
+Para a análise por IA: na câmera, engrenagem → Análise por IA → colar a chave e
+Guardar. Fica no cofre do aparelho; nada de `.env`.
 
 > **Antes de qualquer coisa:** a chave usada no desenvolvimento foi exposta numa
 > conversa. Revogue no console da Anthropic e gere outra, com limite de gasto
@@ -63,7 +63,7 @@ A objeção natural — "então por que não usar o modo documento?" — já tin
 resposta no `DESIGN.md`: um modo documento genérico trata os três do mesmo jeito
 e erra nos três.
 
-Isso entrou em dois lugares do app: na tela Perfil → Viabilidade técnica, como
+Isso entrou em dois lugares do app: na tela Ajustes → Viabilidade técnica, como
 item e nota de fecho, e na folha do `Mais`, onde "Documento em Ultra HD" aparece
 ao lado do "Aula".
 
@@ -147,13 +147,5 @@ igual ao aparelho. Dá para dirigir por Playwright e tirar capturas de cada pass
 
 ## Roteiro dos 4 minutos
 
-1. Abre no visor. Em dois segundos o carrossel desliza sozinho para Aula.
-2. Foto. Processamento: primeiro a câmera trabalha, depois a IA.
-3. "Confirmado pela sua grade". Salvar, criando pasta na hora se precisar.
-4. Resumo. Play: o celular lê.
-5. Questões da própria lousa.
-6. Segunda foto. "Entra na aula de hoje como página 2".
-7. Estudos: abre a pasta, abre a aula, renomeia.
-
-Se sobrar tempo, ou se a banca perguntar de viabilidade: `Mais` no visor mostra
-os modos reais da JOVI, com o "Documento em Ultra HD" ao lado do "Aula".
+Mora no `README.md`, em "Roteiro dos 4 minutos", para não haver duas versões. O
+trecho do destaque do pitch ainda está em aberto; ver `CLAUDE.md`.

@@ -8,11 +8,16 @@
 import type { NavigatorScreenParams } from '@react-navigation/native';
 
 export type RootStackParamList = {
-  /** Aceita parametro para permitir pular direto para uma aba especifica. */
-  Tabs: NavigatorScreenParams<MainTabParamList> | undefined;
   /** Rota inicial. O JOVI Flow vive dentro da camera do aparelho, entao o
    *  aplicativo abre no visor, e nao numa tela de menu. */
   Camera: undefined;
+  /** A galeria do aparelho, aberta pela miniatura da camera. As aulas do Flow
+   *  moram nela, ao lado das fotos: o Flow nao e um aplicativo separado. */
+  Galeria: NavigatorScreenParams<GaleriaTabParamList> | undefined;
+  /** Ajustes da camera, abertos pela engrenagem do visor. */
+  Ajustes: undefined;
+  /** Sem aulaId revisa a aula mais recente. */
+  Revisao: { aulaId?: string } | undefined;
   /** Viabilidade tecnica: quais APIs abertas do Google sustentam cada
    *  diferencial. E um dos entregaveis pedidos no brief da JOVI. */
   Feasibility: undefined;
@@ -29,15 +34,12 @@ export type RootStackParamList = {
   Aula: { aulaId: string };
 };
 
-export type MainTabParamList = {
-  Inicio: undefined;
-  /** `abrir` deixa a pasta pedida ja expandida ao chegar. */
-  Estudos: { abrir?: [string, string] } | undefined;
-  /** Aba fantasma: nao renderiza tela, so hospeda o botao central de captura. */
-  Capturar: undefined;
-  /** Sem aulaId revisa a aula mais recente. */
-  Revisao: { aulaId?: string } | undefined;
-  Perfil: undefined;
+export type GaleriaTabParamList = {
+  /** Todas as fotos tiradas, na ordem em que foram tiradas. */
+  Fotos: undefined;
+  /** As aulas organizadas pelo Flow. `abrir` deixa a pasta pedida ja
+   *  expandida ao chegar. */
+  Aulas: { abrir?: [string, string] } | undefined;
 };
 
 // Torna useNavigation() tipado em todo o app, sem precisar anotar caso a caso.

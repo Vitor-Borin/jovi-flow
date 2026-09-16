@@ -37,6 +37,7 @@
  */
 
 import { SaveFormat, manipulateAsync } from 'expo-image-manipulator';
+import * as SecureStore from 'expo-secure-store';
 
 import type { Flashcard, Questao } from '../data/mock';
 
@@ -149,27 +150,95 @@ const PROMPT_ESTUDO = [
 type BlocoTexto = { type: string; text?: string };
 type RespostaApi = { content?: BlocoTexto[] };
 
-/** Chave colada dentro do app, pelo Perfil. Vive so em memoria: nao vai para
- *  disco, e some quando o app fecha. */
-let chaveManual: string | null = null;
+/**
+ * A chave mora no cofre do aparelho (Keychain no iPhone), colada uma vez em
+ * Ajustes. Ela nao vem mais do .env: variavel EXPO_PUBLIC entra no pacote que
+ * o computador serve pela rede, e qualquer um no mesmo Wi-Fi conseguiria ler.
+ * Assim a chave tambem nao depende de qual computador roda o servidor.
+ */
+const CHAVE_NO_COFRE = 'jovi-flow.chave-anthropic';
 
-/** Guarda a chave digitada no Perfil. Existe porque a apresentacao pode
- *  acontecer numa maquina que nao tem o .env do projeto, e nesse caso editar
- *  arquivo e reiniciar o Metro no meio do pitch nao e opcao. */
-export function definirChaveManual(valor: string): void {
-  const limpa = valor.trim();
-  chaveManual = limpa.length > 0 ? limpa : null;
+let chaveGuardada: string | null = null;
+
+async function cofreDisponivel(): Promise<boolean> {
+  try {
+    return await SecureStore.isAvailableAsync();
+  } catch {
+    return false;
+  }
 }
 
-/** A chave colada no app vence a do .env, para dar como corrigir na hora. */
+/** Le a chave do cofre para a memoria. Chamado uma vez, na abertura do app. */
+export async function carregarChaveGuardada(): Promise<boolean> {
+  try {
+    if (await cofreDisponivel()) {
+      const valor = await SecureStore.getItemAsync(CHAVE_NO_COFRE);
+      chaveGuardada = valor !== null && valor.trim().length > 0 ? valor.trim() : null;
+    }
+  } catch (erro) {
+    console.log('[JOVI Flow] nao deu para ler a chave do cofre:', erro);
+  }
+  return chaveGuardada !== null;
+}
+
+/** Guarda a chave. Devolve se ela ficou no cofre ou so na memoria: sem cofre
+ *  (no navegador, por exemplo) ela vale ate o app fechar. */
+export async function guardarChave(valor: string): Promise<'cofre' | 'memoria'> {
+  chaveGuardada = valor.trim();
+  try {
+    if (await cofreDisponivel()) {
+      await SecureStore.setItemAsync(CHAVE_NO_COFRE, chaveGuardada);
+      return 'cofre';
+    }
+  } catch (erro) {
+    console.log('[JOVI Flow] nao deu para gravar a chave no cofre:', erro);
+  }
+  return 'memoria';
+}
+
+export async function esquecerChave(): Promise<void> {
+  chaveGuardada = null;
+  try {
+    if (await cofreDisponivel()) await SecureStore.deleteItemAsync(CHAVE_NO_COFRE);
+  } catch (erro) {
+    console.log('[JOVI Flow] nao deu para apagar a chave do cofre:', erro);
+  }
+}
+
 function chaveAtual(): string | null {
-  if (chaveManual !== null) return chaveManual;
-  const doAmbiente = process.env.EXPO_PUBLIC_ANTHROPIC_API_KEY;
-  return typeof doAmbiente === 'string' && doAmbiente.length > 0 ? doAmbiente : null;
+  return chaveGuardada;
 }
 
 export function temChaveConfigurada(): boolean {
   return chaveAtual() !== null;
+}
+
+export type Verificacao = 'valida' | 'recusada' | 'indisponivel' | 'sem-chave';
+
+/**
+ * Confere a chave com a Anthropic sem gastar nada: listar modelos nao consome
+ * token. Serve para descobrir antes da apresentacao, e nao no palco, que a
+ * chave foi revogada ou digitada errada.
+ */
+export async function verificarChave(): Promise<Verificacao> {
+  const chave = chaveAtual();
+  if (chave === null) return 'sem-chave';
+
+  const controlador = new AbortController();
+  const relogio = setTimeout(() => controlador.abort(), 8000);
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/models?limit=1', {
+      method: 'GET',
+      signal: controlador.signal,
+      headers: { 'x-api-key': chave, 'anthropic-version': VERSAO_API },
+    });
+    if (r.ok) return 'valida';
+    return r.status === 401 || r.status === 403 ? 'recusada' : 'indisponivel';
+  } catch {
+    return 'indisponivel';
+  } finally {
+    clearTimeout(relogio);
+  }
 }
 
 /**

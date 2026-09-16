@@ -40,6 +40,19 @@ câmera, do mesmo jeito que chega na galeria de dentro de qualquer câmera nativ
 Regra prática: nenhuma tela pode sugerir que isto é um aplicativo separado, que o
 estudante precisaria baixar.
 
+Por isso o Flow mora em três lugares que o aparelho já tem, e em nenhum outro:
+
+| Lugar | O que tem | Como se chega |
+|---|---|---|
+| Câmera | A captura, no modo Aula | O app abre nela |
+| Galeria | Fotos, com tudo o que a câmera tirou, e Aulas, com as pastas, as aulas e o cartão da próxima aula pela grade | A miniatura da câmera. Em Aula abre em Aulas; nos outros modos, em Fotos |
+| Ajustes da câmera | Grade, análise por IA, plataformas e viabilidade técnica | A engrenagem do visor |
+
+Até a Sprint 4 a miniatura abria um aplicativo de cinco abas, com tela Início,
+Revisão e Perfil. Era exatamente a cara de "app para baixar". A revisão agora
+abre de dentro da aula, e Fotos ao lado de Aulas deixa o contraste do pitch a um
+toque: a mesma foto que em Fotos é só mais uma, em Aulas já está na matéria certa.
+
 ## O visor é a câmera da JOVI
 
 A JOVI é a marca da vivo no Brasil. O V50 saiu de fábrica com Funtouch OS 15 e
@@ -114,8 +127,8 @@ etiqueta "estimativa". Saíram na Sprint 4: numa interface onde o resto é leitu
 real de IA e acervo real, um número inventado seria o único ponto sem resposta
 se alguém perguntasse como foi obtido.
 
-Vale para contagem também. A tela Início conta o acervo de verdade, incluindo o
-que foi capturado.
+Vale para contagem também. Toda contagem de aulas e pastas vem do acervo de
+verdade, incluindo o que foi capturado.
 
 **Botão que existe funciona.**
 
@@ -151,6 +164,8 @@ existe na tela, ele faz alguma coisa.
 | Controle que não muda nada | Ver "Honestidade da interface" | Ou o controle age, ou sai da tela |
 | Badge de estado por cima do visor | O modo já está no carrossel. Repetir é ruído sobre a imagem | O carrossel e, em Aula, os cantos da moldura |
 | Borda em card | Pesa a tela e afasta do modo escuro do sistema | Superfície cinza sobre fundo preto |
+| Tela inicial, dashboard ou aba Perfil | Cara de aplicativo para baixar, o contrário da tese | Câmera, galeria (Fotos e Aulas) e ajustes da câmera |
+| Seta de "toque aqui" em item que não abre nada | É controle decorativo com outra roupa | Item informativo, sem seta |
 
 ## Obrigatório
 
@@ -190,6 +205,6 @@ visivelmente mais lento.
 existente, a tela de organização avisa. Organizar sozinho é o valor do produto,
 mas organizar em silêncio faz o usuário perder o controle do próprio acervo.
 
-**O que a tela de organização mostra é onde a aula vai parar.** A aba Estudos usa
+**O que a tela de organização mostra é onde a aula vai parar.** A aba Aulas usa
 o mesmo destino e o mesmo título. Se as duas divergirem, o app está mentindo
 sobre onde guardou a captura.
