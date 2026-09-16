@@ -224,7 +224,11 @@ npx tsc --noEmit
 npx expo-doctor
 ```
 
-Os dois passam sem erro: o `expo-doctor` fecha 21 de 21. O código não usa `any` nem `@ts-ignore`, e nenhuma cor é escrita fora de `src/theme.ts`.
+```bash
+npm run testar:lousa
+```
+
+Os três passam sem erro: o `expo-doctor` fecha 21 de 21, e o teste da lousa confere 8 de 8 cenas. Esse teste monta cenas 3D sintéticas (lousa branca e verde vistas de lado, caderno, lousa vazia, janela, porta) e roda sobre elas o mesmo código do app, com o Skia do CanvasKit: confere o erro dos cantos, a proporção da lousa endireitada e se a procura só afirma lousa onde há lousa escrita. As imagens de antes e depois ficam em `scripts/saida-lousa/`. Ele não substitui a câmera real: foto de verdade tem ruído, reflexo e lousa suja. O código não usa `any` nem `@ts-ignore`, e nenhuma cor é escrita fora de `src/theme.ts`.
 
 Sobre acessibilidade: área tocável de no mínimo 44×44 pt, `accessibilityRole` e `accessibilityLabel` em todo elemento acionável, estado nunca comunicado só por cor, e animação reduzida quando o sistema pede menos movimento.
 

@@ -23,6 +23,7 @@ Antes de commitar:
 ```bash
 npx tsc --noEmit        # passa
 npx expo-doctor         # 21/21 (SDK 57)
+npm run testar:lousa    # 8 de 8, sempre que mexer em quadro.ts ou tratamentoLousa.ts
 ```
 
 ## Regras que não se quebram
@@ -62,6 +63,7 @@ src/services/tratamentoLousa.ts
                                shaders do Skia: endireitar, luz por igual, traço
 src/services/tratarLousa.ts    lê, trata e grava a foto no aparelho [D1]; a
                                versão .web.ts não trata nada
+scripts/testar-lousa.js        cenas 3D sintéticas contra o mesmo código do app
 src/hooks/                     captura contínua, procura da lousa, leitura em
                                voz alta, reduzir movimento
 src/navigation/                RootStack e GaleriaTabs (Fotos e Aulas)
@@ -95,9 +97,10 @@ comporta igual ao aparelho).
   verdade, com o contorno de onde a lousa foi achada e o tempo medido no
   aparelho. A transcrição e o estudo leem a lousa tratada; a aula guarda a
   tratada e a aba Fotos, a original. Sem lousa na foto, a tela diz isso e segue
-  com a original. Validado com cenas 3D sintéticas no computador (cantos com
-  erro abaixo de 0,3%, proporção dentro de 1%, nenhum falso positivo) e a cena
-  conferida no build web com esses resultados. Falta a câmera real.
+  com a original. Validado com cenas 3D sintéticas no computador
+  (`npm run testar:lousa`: cantos com erro abaixo de 0,3%, proporção dentro de
+  1%, nenhum falso positivo) e a cena conferida no build web com esses
+  resultados. Falta a câmera real.
 - **Galeria em vez de app com abas.** A miniatura abre a galeria: em Aula, na
   aba Aulas (pastas, recentes e o cartão da próxima aula pela grade); nos outros
   modos, na aba Fotos, com tudo o que a câmera tirou. A engrenagem abre Ajustes.

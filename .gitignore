@@ -48,5 +48,7 @@ yarn-error.*
 # viajar junto com o repositorio.
 AGENTS.md
 JOVI_FLOW_BUILD.md
+# imagens de antes e depois geradas por npm run testar:lousa
+scripts/saida-lousa/
 Image.jpg
 .claude/
