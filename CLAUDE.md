@@ -21,7 +21,7 @@ Antes de commitar:
 
 ```bash
 npx tsc --noEmit        # passa
-npx expo-doctor         # 18/18
+npx expo-doctor         # 21/21 (SDK 57)
 ```
 
 ## Regras que não se quebram
@@ -95,7 +95,10 @@ Nada disso dá para fechar sem um aparelho ou sem um navegador com sessão real.
       "Conteúdo identificado".
 - [ ] Modo ao vivo com chave: matéria, tema, tópico, transcrição, resumo,
       flashcards e questões vindos da foto.
-- [ ] Ouvir: a voz em pt-BR depende do que está instalado no aparelho.
+- [ ] Ouvir **com o iPhone no silencioso**: a sessão de áudio agora é de
+      reprodução. A voz escolhida é a melhor pt-BR instalada (premium >
+      aprimorada > compacta); a compacta soa robótica, e dá para baixar a
+      aprimorada em Ajustes → Acessibilidade → Conteúdo Falado → Vozes.
 - [ ] Fechar e reabrir o app: as aulas capturadas continuam lá, com foto.
 - [ ] Captura contínua (ícone na barra de cima, só em Aula).
 - [ ] Háptico e a rolagem do carrossel de modos.

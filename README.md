@@ -217,7 +217,7 @@ npx tsc --noEmit
 npx expo-doctor
 ```
 
-Os dois passam sem erro: o `expo-doctor` fecha 18 de 18. O código não usa `any` nem `@ts-ignore`, e nenhuma cor é escrita fora de `src/theme.ts`.
+Os dois passam sem erro: o `expo-doctor` fecha 21 de 21. O código não usa `any` nem `@ts-ignore`, e nenhuma cor é escrita fora de `src/theme.ts`.
 
 Sobre acessibilidade: área tocável de no mínimo 44×44 pt, `accessibilityRole` e `accessibilityLabel` em todo elemento acionável, estado nunca comunicado só por cor, e animação reduzida quando o sistema pede menos movimento.
 
