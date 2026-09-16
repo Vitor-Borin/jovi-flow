@@ -97,6 +97,32 @@ comporta igual ao aparelho).
 - **Viabilidade técnica.** Inclui o achado de que o JOVI V50 já tem
   "Documento em Ultra HD".
 
+## Para fazer hoje, 16/09, nesta ordem
+
+1. [ ] **Decidir o destaque do pitch.** Proposta na mesa, ainda sem resposta do
+       Vitor: fazer o [D1] de verdade. A foto torta e com sombra vira uma lousa
+       reta e limpa na frente da banca, e é essa versão que a IA lê. Precisa de
+       `@shopify/react-native-skia` (vem no Expo Go). A IA acha os 4 cantos e o
+       usuário corrige arrastando. A tela promete "luz por igual e traço forte",
+       e não "remove reflexo": reflexo estourado não se recupera com uma foto
+       só. Ideias de app de estudo (resumo, flashcard, chat, "não entendi",
+       correção de exercício) já foram recusadas: todo grupo tem.
+2. [ ] **Chave nova da API.** Revogar a antiga no console da Anthropic, criar
+       outra com limite de gasto baixo, colar em Ajustes → Análise por IA →
+       Guardar a chave, e conferir a mensagem "A Anthropic aceitou a chave".
+       Apagar o `.env` do PC: o código não lê mais esse arquivo.
+3. [ ] **Vincular o projeto à conta Expo**: `npx expo login` e depois
+       `npx eas-cli@latest init`, e commitar o `app.json` com o `projectId`.
+       Até lá, aulas e chave guardadas pelo iPhone ficam presas ao PC que rodou
+       o servidor.
+4. [ ] **Testar no iPhone 17** a lista "No celular" abaixo. O que mudou desde o
+       último teste: Ouvir com o silencioso ligado, a galeria (Fotos e Aulas),
+       os Ajustes pela engrenagem e a análise ligando sozinha ao reabrir.
+5. [ ] **Resolver o que é encenado** (seção "Encenado" abaixo): ou vira verdade
+       junto com o destaque, ou a tela para de afirmar.
+6. [ ] **Fechar o roteiro**: o trecho de 0:50 a 2:05 do README depende do
+       destaque.
+
 ## O que falta
 
 Nada disso dá para fechar sem um aparelho ou sem um navegador com sessão real.

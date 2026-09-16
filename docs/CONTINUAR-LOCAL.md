@@ -25,6 +25,21 @@ Guardar. Fica no cofre do aparelho; nada de `.env`.
 > conversa. Revogue no console da Anthropic e gere outra, com limite de gasto
 > baixo.
 
+## Trabalhar pelo celular
+
+Duas formas. Use uma de cada vez, porque as duas mexem na mesma pasta.
+
+- **Remote Control da própria conversa** (a melhor): no app do Claude no PC,
+  ligue o Remote Control da conversa. O celular continua a mesma conversa, e o
+  que for feito lá aparece no PC.
+- **Cópia da conversa pelo terminal**: dentro da pasta do projeto, rode
+  `claude --resume <id> --fork-session --remote-control jovi`. É outra
+  conversa: o que for feito nela não aparece na original. O id aparece na lista
+  que `claude --resume` abre.
+
+Nos dois casos o Claude roda no PC. PC em suspensão ou app fechado derruba o
+acesso: deixe o PC na tomada, com a suspensão desligada.
+
 ## A pesquisa sobre a câmera da JOVI
 
 A JOVI é a marca da vivo no Brasil. O V50 saiu de fábrica com Funtouch OS 15,
