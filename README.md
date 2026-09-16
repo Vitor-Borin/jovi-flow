@@ -24,6 +24,8 @@ Com a análise por IA ligada, a IA lê a foto que você acabou de tirar e devolv
 
 **O Modo Aula muda o comportamento da câmera, e não apenas a pasta onde a foto cai.**
 
+Em Foto, a câmera procura a lousa sozinha: tira uma foto pequena em silêncio a cada segundo e, quando acha um quadro inteiro com escrita dentro, desliza o carrossel para Aula. Lousa vazia, porta e tela apagada não trocam o modo.
+
 Em Aula, a câmera trata a foto antes de a IA ler: acha os quatro cantos do quadro, endireita a perspectiva com a proporção real da lousa, deixa a luz por igual e realça o traço. Tudo no aparelho e sem internet, com shader próprio sobre `@shopify/react-native-skia`. A tela de processamento mostra o antes e o depois de verdade, com o contorno de onde a lousa foi achada e o tempo que o aparelho levou. A IA lê a versão tratada, a aula guarda a tratada, e a foto original continua na aba Fotos da galeria.
 
 O tratamento se ajusta sozinho ao quadro claro (caneta escura sobre branco) e ao escuro (giz sobre verde ou preto). O que ele não promete: reflexo estourado não se recupera com uma foto só, porque ali não sobrou traço. Sombra e degradê somem; o reflexo forte continua lá.
@@ -228,7 +230,7 @@ Sobre acessibilidade: área tocável de no mínimo 44×44 pt, `accessibilityRole
 
 ## Roteiro dos 4 minutos
 
-1. **0:00** Abre no visor. Aponta para a lousa e o carrossel desliza para Aula.
+1. **0:00** Abre no visor, em Foto. Aponta para a lousa inteira e o carrossel desliza sozinho para Aula, porque a câmera achou a lousa escrita. Se não achar, toque em Aula.
 2. **0:15** Foto. A IA lê de verdade: matéria, tópico e a pasta, confirmada pela grade.
 3. **0:50** O antes e o depois. A foto tirada de lado e com sombra vira lousa reta e limpa, com o contorno de onde a câmera achou o quadro e o tempo medido no aparelho, sem internet: é a câmera trabalhando antes da IA. Em "Conteúdo identificado", a IA leu a versão tratada.
 4. **2:05** Miniatura → galeria. Em Fotos, a foto é só mais uma; em Aulas, já está na matéria certa. Ouvir por 10 segundos.
@@ -241,6 +243,7 @@ Sobre acessibilidade: área tocável de no mínimo 44×44 pt, `accessibilityRole
 - [ ] Vincular o projeto à conta Expo (`npx eas-cli@latest init`), para as aulas e a chave valerem em qualquer computador
 - [ ] Ajustes → Análise por IA: guardar a chave nova e tocar em Testar a chave, com a rede do local
 - [ ] Tirar uma foto de teste e conferir que matéria e tema vêm da foto
+- [ ] Ensaiar com a lousa do local: a troca sozinha para Aula e o antes e depois
 - [ ] Decidir se as capturas de teste ficam ou se "Apagar capturas e voltar aos exemplos" antes de subir
 - [ ] Desligar o Wi-Fi e ficar só no 5G, porque o iOS prefere Wi-Fi mesmo quando ele está congestionado
 - [ ] Rodar o fluxo completo algumas vezes seguidas, usando Ajustes → Reiniciar demonstração entre as voltas

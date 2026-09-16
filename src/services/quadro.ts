@@ -16,6 +16,10 @@
  * limiares sao testados, e vence o que isola o quadrilatero mais bem preenchido.
  * Parede, janela e mesa tambem sao regioes grandes, mas nao preenchem um
  * quadrilatero, ou encostam nas bordas da foto: sao descartadas por isso.
+ *
+ * Achar o quadro nao basta para dizer que e lousa: porta, tela apagada e janela
+ * tambem sao retangulos. Por isso a deteccao mede quanto traco ha no miolo do
+ * quadro, e o visor so afirma "Lousa reconhecida" com escrita dentro.
  */
 
 export type Ponto = { x: number; y: number };
@@ -34,6 +38,8 @@ export type Deteccao = {
   preenchimento: number;
   /** Fracao da foto ocupada pelo quadrilatero. */
   area: number;
+  /** Fracao do miolo do quadro que e traco, de 0 a 1. Ver `temEscrita`. */
+  detalhe: number;
 };
 
 /** Coeficientes que levam o quadrado unitario (u, v) ao quadrilatero:
@@ -69,6 +75,20 @@ const AREA_SOBRA = 0.2;
 /** Distancia focal da camera principal do celular (26 mm equivalentes), como
  *  fracao da diagonal da foto. Serve quando os cantos nao dizem a propria. */
 const FOCAL_PADRAO = 0.6;
+/** A medida de traco ignora esta fracao da borda do quadro, para a moldura e o
+ *  contorno contra a parede nao contarem como escrita. */
+const RECUO_DETALHE = 0.2;
+/** Diferenca de luz para os vizinhos da direita e de baixo, somada, a partir da
+ *  qual o pixel conta como traco (0 a 510). */
+const LIMIAR_TRACO = 20;
+/**
+ * Traco minimo no miolo para o quadro contar como lousa escrita. Medido numa
+ * imagem de 200 px, o tamanho da procura pelo visor: lousa branca ou verde
+ * escrita deu de 15 a 17%, caderno 50%, lousa vazia 0% e janela com caixilho
+ * 0,2%. Janela com arvore ou predio ocupando o vidro ainda passa: e o limite
+ * conhecido.
+ */
+const DETALHE_MINIMO = 0.015;
 
 function histograma(lum: Uint8Array): number[] {
   const hist = new Array<number>(256).fill(0);
@@ -367,6 +387,8 @@ export function detectarQuadro(
 
   if (melhor === null) return null;
 
+  const detalhe = detalheDoMiolo(lum, largura, altura, melhor.cantos);
+
   // Normaliza e abre uma folga para fora a partir do centro.
   const cx = melhor.cantos.reduce((s, q) => s + q.x, 0) / 4;
   const cy = melhor.cantos.reduce((s, q) => s + q.y, 0) / 4;
@@ -376,7 +398,67 @@ export function detectarQuadro(
     y: limitar((cy + (q.y - cy) * (1 + FOLGA)) / (altura - 1)),
   })) as Quadrilatero;
 
-  return { cantos, claro: melhor.claro, preenchimento: melhor.preenchimento, area: melhor.area };
+  return {
+    cantos,
+    claro: melhor.claro,
+    preenchimento: melhor.preenchimento,
+    area: melhor.area,
+    detalhe,
+  };
+}
+
+/**
+ * Quanto do miolo do quadro e traco: pixel com diferenca de luz forte para o
+ * vizinho. Separa quadro escrito de retangulo liso, como parede, porta, tela
+ * apagada ou lousa vazia. Sombra e degrade mudam a luz devagar e nao contam.
+ */
+function detalheDoMiolo(
+  lum: Uint8Array,
+  largura: number,
+  altura: number,
+  cantos: Quadrilatero
+): number {
+  const cx = cantos.reduce((s, q) => s + q.x, 0) / 4;
+  const cy = cantos.reduce((s, q) => s + q.y, 0) / 4;
+  const [a, b, c, d] = cantos.map((q) => ({
+    x: cx + (q.x - cx) * (1 - RECUO_DETALHE),
+    y: cy + (q.y - cy) * (1 - RECUO_DETALHE),
+  })) as Quadrilatero;
+  const sinal = lado(a, b, c) >= 0 ? 1 : -1;
+  const minX = Math.max(0, Math.floor(Math.min(a.x, b.x, c.x, d.x)));
+  const maxX = Math.min(largura - 2, Math.ceil(Math.max(a.x, b.x, c.x, d.x)));
+  const minY = Math.max(0, Math.floor(Math.min(a.y, b.y, c.y, d.y)));
+  const maxY = Math.min(altura - 2, Math.ceil(Math.max(a.y, b.y, c.y, d.y)));
+
+  let dentro = 0;
+  let traco = 0;
+  const p = { x: 0, y: 0 };
+  for (let y = minY; y <= maxY; y += 1) {
+    for (let x = minX; x <= maxX; x += 1) {
+      p.x = x;
+      p.y = y;
+      if (
+        sinal * lado(a, b, p) < 0 ||
+        sinal * lado(b, c, p) < 0 ||
+        sinal * lado(c, d, p) < 0 ||
+        sinal * lado(d, a, p) < 0
+      ) {
+        continue;
+      }
+      dentro += 1;
+      const i = y * largura + x;
+      const v = lum[i] ?? 0;
+      const direita = Math.abs((lum[i + 1] ?? 0) - v);
+      const abaixo = Math.abs((lum[i + largura] ?? 0) - v);
+      if (direita + abaixo >= LIMIAR_TRACO) traco += 1;
+    }
+  }
+  return dentro > 0 ? traco / dentro : 0;
+}
+
+/** O quadro achado tem escrita. So com isso o visor afirma que achou uma lousa. */
+export function temEscrita(deteccao: Deteccao): boolean {
+  return deteccao.detalhe >= DETALHE_MINIMO;
 }
 
 /** Homografia do quadrado unitario para o quadrilatero (Heckbert, 1989). */

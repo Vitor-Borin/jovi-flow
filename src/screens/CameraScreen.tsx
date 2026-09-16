@@ -1,4 +1,5 @@
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useIsFocused } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import type { CameraType, FlashMode } from 'expo-camera';
@@ -24,6 +25,7 @@ import type { SubModo } from '../data/mock';
 import { subModos } from '../data/mock';
 import type { FrameContinuo } from '../hooks/useCapturaContinua';
 import { useCapturaContinua } from '../hooks/useCapturaContinua';
+import { useProcuraLousa } from '../hooks/useProcuraLousa';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
 import type { RootStackParamList } from '../navigation/types';
 import {
@@ -81,15 +83,27 @@ const ALTURA_PILULA = 32;
 /** Completa a pilula ate a area tocavel minima sem aumentar o desenho. */
 const FOLGA_PILULA = (TOQUE_MIN - ALTURA_PILULA) / 2;
 
-/** Tempo ate a camera "reconhecer" a lousa e deslizar sozinha para Aula. */
-const MS_ATE_DETECTAR = 2500;
 const MS_AVISO_DETECCAO = 2200;
 
 /** Quanto a transcricao espera pela lousa tratada antes de ler a original. */
 const MS_ESPERA_TRATAMENTO = 2500;
 
+/** Quanto o obturador espera a camera sair da procura da lousa ou da captura
+ *  continua. Uma foto pequena leva menos de um segundo. */
+const MS_ESPERA_CAMERA = 2500;
+
 function esperar(ms: number): Promise<null> {
   return new Promise((resolver) => setTimeout(() => resolver(null), ms));
+}
+
+/** Espera a trava da camera soltar. Falso se ela nao soltar a tempo. */
+async function esperarCameraLivre(ocupada: { current: boolean }): Promise<boolean> {
+  const inicio = Date.now();
+  while (ocupada.current) {
+    if (Date.now() - inicio > MS_ESPERA_CAMERA) return false;
+    await esperar(40);
+  }
+  return true;
 }
 
 /** Niveis de zoom oferecidos. O valor vai direto para a camera (0 a 1). */
@@ -134,6 +148,7 @@ export function CameraScreen({ navigation }: Props) {
   const [capturaContinua, setCapturaContinua] = useState(false);
   const [erroCamera, setErroCamera] = useState(false);
   const [capturando, setCapturando] = useState(false);
+  const [lousaReconhecida, setLousaReconhecida] = useState(false);
   const [avisoDeteccao, setAvisoDeteccao] = useState(false);
   const [ultimaFoto, setUltimaFoto] = useState<string | null>(null);
   const [modosAbertos, setModosAbertos] = useState(false);
@@ -142,9 +157,9 @@ export function CameraScreen({ navigation }: Props) {
   const cameraRef = useRef<CameraView>(null);
   const montado = useRef(true);
   const jaPediuPermissao = useRef(false);
-  const jaDetectou = useRef(false);
   const capturaAtual = useRef(0);
   const cameraOcupada = useRef(false);
+  const obturadorOcupado = useRef(false);
 
   const modoAula = modo === 'Aula';
 
@@ -176,19 +191,32 @@ export function CameraScreen({ navigation }: Props) {
     ocupada: cameraOcupada,
   });
 
-  // A deteccao da lousa: uma vez por abertura da camera, quando ela esta em
-  // Foto. O carrossel desliza para Aula sozinho e um aviso curto diz por que.
-  useEffect(() => {
-    if (modo !== 'Foto' || jaDetectou.current) return;
-    const timer = setTimeout(() => {
-      if (!montado.current) return;
-      jaDetectou.current = true;
-      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-      setModo('Aula');
-      setAvisoDeteccao(true);
-    }, MS_ATE_DETECTAR);
-    return () => clearTimeout(timer);
-  }, [modo, setModo]);
+  // A procura da lousa: em Foto, com a lente traseira, sem flash, com a camera
+  // na frente e fora de uma captura do estudante. Achou lousa escrita de
+  // verdade, o carrossel desliza para Aula e um aviso curto diz por que. Uma vez
+  // por abertura da camera.
+  const focada = useIsFocused();
+  const procurandoLousa =
+    modo === 'Foto' &&
+    mostrarCamera &&
+    focada &&
+    lente === 'back' &&
+    !flashLigado &&
+    !capturando &&
+    !lousaReconhecida;
+  const aoAcharLousa = useCallback(() => {
+    if (!montado.current) return;
+    setLousaReconhecida(true);
+    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setModo('Aula');
+    setAvisoDeteccao(true);
+  }, [setModo]);
+  useProcuraLousa({
+    ativo: procurandoLousa,
+    cameraRef,
+    ocupada: cameraOcupada,
+    aoAchar: aoAcharLousa,
+  });
 
   useEffect(() => {
     if (!avisoDeteccao) return;
@@ -216,10 +244,19 @@ export function CameraScreen({ navigation }: Props) {
   }, [width, height, insets.top, insets.bottom]);
 
   const aoTocarObturador = useCallback(async () => {
-    if (capturando || cameraOcupada.current) return;
+    if (obturadorOcupado.current) return;
+    obturadorOcupado.current = true;
     setCapturando(true);
-    cameraOcupada.current = true;
     void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+    // A procura da lousa e a captura continua usam a mesma camera: o toque
+    // espera ela soltar, em vez de ser ignorado.
+    if (!(await esperarCameraLivre(cameraOcupada))) {
+      obturadorOcupado.current = false;
+      if (montado.current) setCapturando(false);
+      return;
+    }
+    cameraOcupada.current = true;
 
     try {
       let foto: { uri: string; width: number; height: number } | null = null;
@@ -346,10 +383,10 @@ export function CameraScreen({ navigation }: Props) {
       if (modoAula) navigation.navigate('Processing');
     } finally {
       cameraOcupada.current = false;
+      obturadorOcupado.current = false;
       if (montado.current) setCapturando(false);
     }
   }, [
-    capturando,
     mostrarCamera,
     modoAula,
     limparCaptura,
@@ -394,7 +431,7 @@ export function CameraScreen({ navigation }: Props) {
               facing={lente}
               zoom={zoom}
               flash={(flashLigado ? 'on' : 'off') satisfies FlashMode}
-              animateShutter={!continuaAtiva}
+              animateShutter={!continuaAtiva && !procurandoLousa}
               onMountError={() => setErroCamera(true)}
             />
           ) : (
@@ -403,7 +440,7 @@ export function CameraScreen({ navigation }: Props) {
 
           {modoAula ? <MolduraDeteccao reduzir={reduzir} /> : null}
 
-          {avisoDeteccao ? <AvisoDeteccao reduzir={reduzir} nome={modoAtual.nome} /> : null}
+          {avisoDeteccao ? <AvisoDeteccao reduzir={reduzir} texto={modoAtual.reconhecido} /> : null}
 
           {continuaAtiva ? (
             <TiraSequencia
@@ -561,10 +598,10 @@ function MolduraDeteccao({ reduzir }: { reduzir: boolean }) {
 
 /* ------------------------------------------------------------ aviso de deteccao */
 
-/** Aparece por dois segundos quando a camera troca para Aula sozinha. Diz o
- *  que aconteceu e some: a tela nao fica explicando o modo que ja esta escrito
- *  no carrossel. */
-function AvisoDeteccao({ reduzir, nome }: { reduzir: boolean; nome: string }) {
+/** Aparece por dois segundos quando a procura acha a lousa e a camera troca
+ *  para Aula sozinha. Diz o que aconteceu e some: a tela nao fica explicando o
+ *  modo que ja esta escrito no carrossel. */
+function AvisoDeteccao({ reduzir, texto }: { reduzir: boolean; texto: string }) {
   const entrada = useRef(new Animated.Value(reduzir ? 1 : 0)).current;
 
   useEffect(() => {
@@ -585,10 +622,10 @@ function AvisoDeteccao({ reduzir, nome }: { reduzir: boolean; nome: string }) {
       style={[styles.avisoDeteccao, { opacity: entrada, transform: [{ translateY: subida }] }]}
       accessible
       accessibilityLiveRegion="polite"
-      accessibilityLabel={`${nome} reconhecida. Modo Aula ligado.`}
+      accessibilityLabel={`${texto}. Modo Aula ligado.`}
     >
       <MaterialCommunityIcons name="auto-fix" size={14} color={colors.visor.icone} />
-      <Text style={styles.textoAvisoDeteccao}>{nome} reconhecida · Modo Aula</Text>
+      <Text style={styles.textoAvisoDeteccao}>{texto} · Modo Aula</Text>
     </Animated.View>
   );
 }

@@ -62,8 +62,8 @@ src/services/tratamentoLousa.ts
                                shaders do Skia: endireitar, luz por igual, traço
 src/services/tratarLousa.ts    lê, trata e grava a foto no aparelho [D1]; a
                                versão .web.ts não trata nada
-src/hooks/                     captura contínua, leitura em voz alta, reduzir
-                               movimento
+src/hooks/                     captura contínua, procura da lousa, leitura em
+                               voz alta, reduzir movimento
 src/navigation/                RootStack e GaleriaTabs (Fotos e Aulas)
 src/components/                13 componentes
 src/screens/                   14 telas
@@ -82,8 +82,12 @@ comporta igual ao aparelho).
   a ponta, visor 4:3 sem borda, barra de cima só com atalho que age, zoom 1x/2
   em texto, modos com capitalização normal e o selecionado em amarelo,
   obturador vazado de 68 pt com anel amarelo. `Aula` é um modo do carrossel;
-  `Mais` abre a folha com os modos reais do V50. A detecção da lousa desliza o
-  carrossel sozinho depois de 2 s.
+  `Mais` abre a folha com os modos reais do V50.
+- **A câmera acha a lousa sozinha.** Em Foto, ela tira uma foto pequena em
+  silêncio a cada segundo e procura um quadro inteiro com escrita dentro. Duas
+  procuras seguidas achando, o carrossel desliza para Aula com o aviso "Lousa
+  reconhecida". Lousa vazia, porta, parede e tela apagada não trocam o modo.
+  Para durante a captura, com flash, na lente frontal e com outra tela por cima.
 - **Lousa tratada no aparelho [D1].** Em Aula, a foto passa pelo Skia antes da
   IA: acha os quatro cantos, endireita a perspectiva com a proporção real do
   quadro, deixa a luz por igual e realça o traço (caneta escura em quadro claro,
@@ -130,8 +134,8 @@ comporta igual ao aparelho).
        último teste: a lousa tratada e o antes e depois, Ouvir com o silencioso
        ligado, a galeria (Fotos e Aulas), os Ajustes pela engrenagem e a
        análise ligando sozinha ao reabrir.
-5. [ ] **Resolver o que é encenado** (seção "Encenado" abaixo). O antes e depois
-       virou verdade; falta o aviso "Lousa reconhecida".
+5. [x] **Resolver o que é encenado.** O antes e depois e o "Lousa reconhecida"
+       viraram verdade. Sobrou um ponto menor, na seção "Encenado" abaixo.
 6. [ ] **Fechar o roteiro**: o trecho de 0:50 a 2:05 do README agora é o antes e
        depois. Ensaiar com uma lousa de verdade.
 
@@ -154,6 +158,15 @@ Nada disso dá para fechar sem um aparelho ou sem um navegador com sessão real.
       `tratamentoLousa.ts`.
 - [ ] Salvar e abrir a aula: a página é a lousa tratada; em Galeria → Fotos
       aparece a foto original.
+- [ ] **Lousa reconhecida.** Abrir a câmera em Foto apontando para uma lousa
+      escrita, inteira no enquadramento: em 2 ou 3 s o carrossel vai para Aula
+      com o aviso. Apontar para parede, porta ou lousa vazia: fica em Foto. Cada
+      procura aparece no terminal como
+      `[JOVI Flow] procura: quadro com X% da foto, traco Y% -> LOUSA`. Se lousa
+      escrita de verdade der traço abaixo de 1,5%, baixar `DETALHE_MINIMO` em
+      `quadro.ts`.
+- [ ] Em Foto, com a procura rodando: o obturador continua tirando foto (espera
+      a procura soltar a câmera, menos de 1 s) e o visor não engasga.
 - [ ] Modo ao vivo com chave: matéria, tema, tópico, transcrição, resumo,
       flashcards e questões vindos da foto.
 - [ ] Ouvir **com o iPhone no silencioso**: a sessão de áudio agora é de
@@ -193,13 +206,20 @@ Ficou de fora, por decisão e não por esquecimento:
 
 ### Encenado, e a banca pode perceber
 
-A regra "a tela nunca afirma o que o app não sabe" ainda não vale neste ponto:
+Os dois pontos que sustentavam o [D1] viraram verdade em 16/09:
 
-- [x] ~~Antes e depois da tela de processamento.~~ Virou verdade: ver "Lousa
-      tratada no aparelho" em "Estado atual".
-- [ ] **"Lousa reconhecida".** Depois de 2,5 s em Foto o carrossel vai para
-      Aula e o aviso afirma que reconheceu a lousa, com qualquer coisa na frente
-      da câmera.
+- [x] ~~Antes e depois da tela de processamento.~~ Ver "Lousa tratada no
+      aparelho" em "Estado atual".
+- [x] ~~"Lousa reconhecida" depois de 2,5 s com qualquer coisa na frente da
+      câmera.~~ Ver "A câmera acha a lousa sozinha". Limite conhecido: janela
+      com árvore ou prédio ocupando o vidro tem traço e pode passar por lousa.
+
+Sobrou um ponto menor:
+
+- [ ] **Etapas de "Analisando conteúdo".** Seguem o relógio, e não as respostas
+      da IA. Com a análise ligada as três chamadas rodam de verdade em paralelo,
+      mas a transcrição leva uns 8 s e a tela não espera por ela. Sem chave, as
+      etapas animam sobre o conteúdo de exemplo.
 
 ### Antes de apresentar
 

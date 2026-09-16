@@ -202,6 +202,8 @@ export type Chip = { id: string; icone: NomeIcone; label: string };
 export type SubModo = {
   id: string;
   nome: string;
+  /** O aviso de quando o visor acha a superficie sozinho, com o genero certo. */
+  reconhecido: string;
   icone: NomeIcone;
   /** O problema optico especifico que este sub-modo resolve. */
   problema: string;
@@ -217,6 +219,7 @@ export const subModos: SubModo[] = [
   {
     id: 'lousa',
     nome: 'Lousa',
+    reconhecido: 'Lousa reconhecida',
     icone: 'presentation',
     problema: 'Reflexo da janela e giz apagado, capturados de lado',
     chips: [
@@ -229,6 +232,7 @@ export const subModos: SubModo[] = [
   {
     id: 'slide',
     nome: 'Slide',
+    reconhecido: 'Slide reconhecido',
     icone: 'projector-screen-outline',
     problema: 'Projeção estourada em sala escura, com cintilação',
     chips: [
@@ -241,6 +245,7 @@ export const subModos: SubModo[] = [
   {
     id: 'caderno',
     nome: 'Caderno',
+    reconhecido: 'Caderno reconhecido',
     icone: 'notebook-outline',
     problema: 'Sombra da própria mão e papel curvado sobre a mesa',
     chips: [

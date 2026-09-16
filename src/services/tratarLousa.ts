@@ -3,10 +3,12 @@ import * as FileSystem from 'expo-file-system/legacy';
 import { SaveFormat, manipulateAsync } from 'expo-image-manipulator';
 
 import type { Quadrilatero } from './quadro';
-import { tratarImagem } from './tratamentoLousa';
+import { temEscrita } from './quadro';
+import { LADO_PROCURA, acharQuadro, tratarImagem } from './tratamentoLousa';
 
 /**
- * Trata a foto da lousa no aparelho [D1] e grava o resultado como JPEG.
+ * Trata a foto da lousa no aparelho [D1] e grava o resultado como JPEG, e
+ * procura a lousa nas fotos pequenas que o visor tira sozinho em Foto.
  *
  * A matematica e os shaders moram em tratamentoLousa.ts, que roda tambem no
  * computador. Aqui fica o que depende do aparelho: ler a foto, reduzir, gravar.
@@ -41,6 +43,40 @@ export type ResultadoLousa =
 /** Lado maior da foto que entra no tratamento. A camera entrega 12 MP; tratar
  *  isso inteiro so gasta memoria e tempo, a lousa sai com 1600 px no maximo. */
 const LADO_ENTRADA = 2000;
+
+/**
+ * Procura uma lousa escrita na foto pequena que o visor tira sozinho em Foto. E
+ * o que decide o aviso "Lousa reconhecida": sem quadro inteiro na foto e sem
+ * traco dentro dele, a camera nao troca de modo. Cada procura vai para o log,
+ * para o limiar poder ser conferido com numero do aparelho.
+ */
+export async function procurarLousa(uri: string, largura: number, altura: number): Promise<boolean> {
+  const inicio = Date.now();
+  try {
+    const reduzida = await manipulateAsync(
+      uri,
+      [largura >= altura ? { resize: { width: LADO_PROCURA } } : { resize: { height: LADO_PROCURA } }],
+      { base64: true, compress: 0.9, format: SaveFormat.JPEG }
+    );
+    if (!reduzida.base64) return false;
+    const foto = Skia.Image.MakeImageFromEncoded(Skia.Data.fromBase64(reduzida.base64));
+    if (foto === null) return false;
+
+    const quadro = acharQuadro(Skia, foto);
+    const lousa = quadro !== null && temEscrita(quadro);
+    console.log(
+      `[JOVI Flow] procura: ${
+        quadro
+          ? `quadro com ${Math.round(quadro.area * 100)}% da foto, traco ${(quadro.detalhe * 100).toFixed(1)}%`
+          : 'sem quadro'
+      } -> ${lousa ? 'LOUSA' : 'nada'} (${Date.now() - inicio}ms)`
+    );
+    return lousa;
+  } catch (erro) {
+    console.log('[JOVI Flow] procura da lousa falhou:', erro);
+    return false;
+  }
+}
 
 export async function tratarLousa(
   uri: string,

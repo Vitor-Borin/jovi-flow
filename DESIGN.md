@@ -164,6 +164,14 @@ lousa, a tela diz isso e segue com a original.
 A tela promete luz por igual e traço forte, nunca "remove reflexo": reflexo
 estourado não se recupera com uma foto só, porque ali não sobrou traço.
 
+**"Lousa reconhecida" só depois de achar a lousa.**
+
+O aviso aparecia 2,5 s depois de abrir a câmera em Foto, com qualquer coisa na
+frente dela, até com a câmera sem permissão. Hoje a câmera procura de verdade:
+quadro inteiro na foto e escrita dentro dele, duas vezes seguidas. Sem isso, ela
+fica em Foto e o estudante escolhe Aula no carrossel. Não achar é melhor que
+afirmar errado.
+
 ## Proibido
 
 | Proibido | Motivo | No lugar disso |

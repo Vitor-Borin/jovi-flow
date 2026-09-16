@@ -26,7 +26,7 @@ import type {
   TileMode,
 } from '@shopify/react-native-skia';
 
-import type { Quadrilatero } from './quadro';
+import type { Deteccao, Quadrilatero } from './quadro';
 import { detectarQuadro, homografiaDoQuadrado, proporcaoReal, tamanhoEndireitado } from './quadro';
 
 // Valores dos enums do Skia. Importar o enum em si puxaria o React Native, e
@@ -39,6 +39,10 @@ const SEM_PREMULTIPLICAR = 3 as AlphaType;
 
 /** Lado maior da imagem onde os cantos sao procurados. */
 const LADO_DETECCAO = 320;
+/** Lado maior da foto que o visor tira para procurar a lousa. Basta para dizer
+ *  se ha lousa escrita, e a conta roda na thread do JavaScript: quanto menor,
+ *  menos o visor engasga. O minimo de traco foi medido neste tamanho. */
+export const LADO_PROCURA = 200;
 /** Lado maior da lousa tratada. Mais que isso nao melhora leitura nem tela. */
 const LADO_SAIDA = 1600;
 /** O fundo e estimado em resolucao reduzida: e so luz, nao tem detalhe. */
@@ -132,6 +136,39 @@ function luzMedia(rgba: Uint8Array): number {
   return n > 0 ? soma / n : 0;
 }
 
+/** Copia pequena da foto, em RGBA, onde os cantos sao procurados. */
+function pixelsReduzidos(skia: typeof Skia, foto: SkImage, lado: number) {
+  const larguraFoto = foto.width();
+  const alturaFoto = foto.height();
+  const pequena = reduzir(larguraFoto, alturaFoto, lado);
+  const sup = skia.Surface.Make(pequena.largura, pequena.altura);
+  if (sup === null) throw new Error('superficie da deteccao nao abriu');
+  sup
+    .getCanvas()
+    .drawImageRect(
+      foto,
+      skia.XYWHRect(0, 0, larguraFoto, alturaFoto),
+      skia.XYWHRect(0, 0, pequena.largura, pequena.altura),
+      skia.Paint()
+    );
+  sup.flush();
+  const pixels = sup.makeImageSnapshot().readPixels(0, 0, {
+    width: pequena.largura,
+    height: pequena.altura,
+    colorType: RGBA_8888,
+    alphaType: SEM_PREMULTIPLICAR,
+  });
+  if (!(pixels instanceof Uint8Array)) throw new Error('pixels da deteccao nao vieram');
+  return { pixels, largura: pequena.largura, altura: pequena.altura };
+}
+
+/** O quadro na foto pequena que o visor tira sozinho, para a procura da lousa. */
+export function acharQuadro(skia: typeof Skia, foto: SkImage): Deteccao | null {
+  if (foto.width() < 16 || foto.height() < 16) return null;
+  const pequena = pixelsReduzidos(skia, foto, LADO_PROCURA);
+  return detectarQuadro(pequena.pixels, pequena.largura, pequena.altura);
+}
+
 /**
  * Trata a foto. Devolve nulo quando nao ha o que tratar com seguranca: sem
  * cantos e com a foto escura no geral, clarear seria estragar uma foto que nem
@@ -147,28 +184,9 @@ export function tratarImagem(skia: typeof Skia, foto: SkImage): ResultadoTratame
   if (larguraFoto < 16 || alturaFoto < 16) return null;
 
   // 1. Cantos, numa copia pequena.
-  const pequena = reduzir(larguraFoto, alturaFoto, LADO_DETECCAO);
-  const supPequena = skia.Surface.Make(pequena.largura, pequena.altura);
-  if (supPequena === null) throw new Error('superficie da deteccao nao abriu');
-  supPequena
-    .getCanvas()
-    .drawImageRect(
-      foto,
-      skia.XYWHRect(0, 0, larguraFoto, alturaFoto),
-      skia.XYWHRect(0, 0, pequena.largura, pequena.altura),
-      skia.Paint()
-    );
-  supPequena.flush();
-  const pixels = supPequena.makeImageSnapshot().readPixels(0, 0, {
-    width: pequena.largura,
-    height: pequena.altura,
-    colorType: RGBA_8888,
-    alphaType: SEM_PREMULTIPLICAR,
-  });
-  if (!(pixels instanceof Uint8Array)) throw new Error('pixels da deteccao nao vieram');
-
-  const deteccao = detectarQuadro(pixels, pequena.largura, pequena.altura);
-  const claro = deteccao?.claro ?? luzMedia(pixels) > 110;
+  const pequena = pixelsReduzidos(skia, foto, LADO_DETECCAO);
+  const deteccao = detectarQuadro(pequena.pixels, pequena.largura, pequena.altura);
+  const claro = deteccao?.claro ?? luzMedia(pequena.pixels) > 110;
   if (deteccao === null && !claro) return null;
 
   // 2. Perspectiva. Sem cantos, a foto segue inteira, so com a luz tratada.
