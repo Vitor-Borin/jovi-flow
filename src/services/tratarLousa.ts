@@ -1,4 +1,4 @@
-import { ImageFormat, Skia } from '@shopify/react-native-skia';
+import type { ImageFormat, Skia } from '@shopify/react-native-skia';
 import * as FileSystem from 'expo-file-system/legacy';
 import { SaveFormat, manipulateAsync } from 'expo-image-manipulator';
 
@@ -40,9 +40,34 @@ export type ResultadoLousa =
   /** O navegador nao trata foto. */
   | { estado: 'indisponivel' };
 
+/** ImageFormat.JPEG. O valor vem escrito aqui porque o enum mora na raiz do
+ *  pacote, que nao pode ser carregada (ver skiaNativo). */
+const JPEG = 3 as ImageFormat;
+
 /** Lado maior da foto que entra no tratamento. A camera entrega 12 MP; tratar
  *  isso inteiro so gasta memoria e tempo, a lousa sai com 1600 px no maximo. */
 const LADO_ENTRADA = 2000;
+
+/**
+ * A API do Skia, ligada na primeira vez que ela e preciso.
+ *
+ * Nunca pela raiz do pacote: a raiz carrega tambem o video do Skia, que chama o
+ * react-native-reanimated assim que abre, e sem ele instalado o app nem inicia
+ * ("react-native-reanimated is not installed!"). O NativeSetup so liga o Skia
+ * nativo e deixa a API em globalThis.SkiaApi, que e o mesmo objeto que a raiz
+ * exporta como Skia. Carregado aqui, dentro de try, um Skia com problema so
+ * desliga o tratamento: o app abre e a foto segue original. O caminho vale para
+ * a versao fixada no package.json.
+ */
+function skiaNativo(): typeof Skia | null {
+  try {
+    require('@shopify/react-native-skia/lib/module/skia/NativeSetup');
+    return globalThis.SkiaApi ?? null;
+  } catch (erro) {
+    console.log('[JOVI Flow] Skia nativo indisponivel:', erro);
+    return null;
+  }
+}
 
 /**
  * Procura uma lousa escrita na foto pequena que o visor tira sozinho em Foto. E
@@ -52,6 +77,8 @@ const LADO_ENTRADA = 2000;
  */
 export async function procurarLousa(uri: string, largura: number, altura: number): Promise<boolean> {
   const inicio = Date.now();
+  const skia = skiaNativo();
+  if (skia === null) return false;
   try {
     const reduzida = await manipulateAsync(
       uri,
@@ -59,10 +86,10 @@ export async function procurarLousa(uri: string, largura: number, altura: number
       { base64: true, compress: 0.9, format: SaveFormat.JPEG }
     );
     if (!reduzida.base64) return false;
-    const foto = Skia.Image.MakeImageFromEncoded(Skia.Data.fromBase64(reduzida.base64));
+    const foto = skia.Image.MakeImageFromEncoded(skia.Data.fromBase64(reduzida.base64));
     if (foto === null) return false;
 
-    const quadro = acharQuadro(Skia, foto);
+    const quadro = acharQuadro(skia, foto);
     const lousa = quadro !== null && temEscrita(quadro);
     console.log(
       `[JOVI Flow] procura: ${
@@ -84,6 +111,8 @@ export async function tratarLousa(
   altura: number
 ): Promise<ResultadoLousa> {
   const inicio = Date.now();
+  const skia = skiaNativo();
+  if (skia === null) return { estado: 'falhou' };
   try {
     const maior = Math.max(largura, altura);
     const acoes =
@@ -97,16 +126,16 @@ export async function tratarLousa(
     });
     if (!reduzida.base64) throw new Error('a foto reduzida veio sem base64');
 
-    const foto = Skia.Image.MakeImageFromEncoded(Skia.Data.fromBase64(reduzida.base64));
+    const foto = skia.Image.MakeImageFromEncoded(skia.Data.fromBase64(reduzida.base64));
     if (foto === null) throw new Error('o Skia nao leu a foto');
 
-    const resultado = tratarImagem(Skia, foto);
+    const resultado = tratarImagem(skia, foto);
     if (resultado === null) {
       console.log(`[JOVI Flow] nenhuma lousa para tratar (${Date.now() - inicio}ms), seguindo com a original`);
       return { estado: 'sem-lousa' };
     }
 
-    const jpeg = resultado.imagem.encodeToBase64(ImageFormat.JPEG, 90);
+    const jpeg = resultado.imagem.encodeToBase64(JPEG, 90);
     const pasta = FileSystem.cacheDirectory;
     if (pasta === null || jpeg.length === 0) throw new Error('nao deu para gravar a lousa tratada');
     const destino = `${pasta}lousa-${Date.now()}.jpg`;

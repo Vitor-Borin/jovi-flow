@@ -39,6 +39,7 @@ Cada uma destas já custou caro para descobrir.
 | Emoji nunca como ícone | Depende da fonte do sistema e não aceita token de cor. Use `Ionicons` ou `MaterialCommunityIcons`. |
 | Todo texto visível em **português do Brasil** | |
 | Rede só em `src/services/analiseAoVivo.ts` | Nenhum outro arquivo faz chamada externa. |
+| Skia **nunca** pela raiz do pacote em código que roda | Em 16/09 o app nem abriu no iPhone: a raiz `@shopify/react-native-skia` carrega também o vídeo do Skia, que chama o `react-native-reanimated` ao abrir, e ele não está instalado. A API do Skia vem só de `skiaNativo()` em `tratarLousa.ts`; da raiz, só `import type`. O build web e o teste da lousa não pegam isso: confira o bundle do iPhone (`npx expo export -p ios --no-bytecode --no-minify`) e procure `createWorkletRuntime`, que não pode aparecer. |
 | Chave da API só no cofre do aparelho | Nunca em `.env` nem no Git: variável `EXPO_PUBLIC_*` entra no pacote que o PC serve pela rede, e qualquer um no mesmo Wi-Fi lê a chave. |
 | Nenhuma barra de abas de aplicativo | O Flow mora na câmera, na galeria (Fotos e Aulas) e nos ajustes da câmera. Tela inicial ou aba Perfil dizem "app para baixar", o contrário da tese. |
 | O acervo só muda pelas ações do `AcervoContext` | Nenhuma tela guarda cópia própria de pasta ou aula. |
