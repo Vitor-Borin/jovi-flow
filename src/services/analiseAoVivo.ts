@@ -289,7 +289,13 @@ export function temChaveConfigurada(): boolean {
   return chaveAtual() !== null;
 }
 
-export type Verificacao = 'valida' | 'recusada' | 'indisponivel' | 'sem-chave';
+export type Verificacao =
+  | 'valida'
+  | 'recusada'
+  /** A chave vale, mas a conta nao tem credito para gastar. */
+  | 'sem-credito'
+  | 'indisponivel'
+  | 'sem-chave';
 
 /** Teto do teste da chave. A lista de modelos responde em menos de meio segundo
  *  numa rede boa; 15 s cobre rede de evento sem o teste morrer antes da hora. */
@@ -308,19 +314,33 @@ export async function verificarChave(): Promise<Verificacao> {
   const relogio = setTimeout(() => controlador.abort(), LIMITE_TESTE_MS);
   const inicio = Date.now();
   try {
-    const r = await fetch('https://api.anthropic.com/v1/models?limit=1', {
-      method: 'GET',
+    // O teste faz a MESMA chamada do app, com a resposta mais curta possivel.
+    // Antes ele pedia a lista de modelos, e ela exige o cabecalho de workspace
+    // quando a chave nao esta presa a um: chave boa era reprovada por isso.
+    const r = await fetch(ENDPOINT, {
+      method: 'POST',
       signal: controlador.signal,
-      headers: { 'x-api-key': chave, 'anthropic-version': VERSAO_API },
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': chave,
+        'anthropic-version': VERSAO_API,
+      },
+      body: JSON.stringify({
+        model: MODELO,
+        max_tokens: 1,
+        messages: [{ role: 'user', content: 'oi' }],
+      }),
     });
-    // O motivo vai para o log: "nao deu para falar com a Anthropic" cobre rede
-    // bloqueada, demora e resposta inesperada, e so o log separa uma da outra.
+    // O motivo vai para o log: a tela tem espaco para uma frase, e o log tem a
+    // resposta da Anthropic inteira.
     const corpo = r.ok ? '' : (await r.text().catch(() => '')).slice(0, 200);
     console.log(
       `[JOVI Flow] teste da chave: HTTP ${r.status} em ${Date.now() - inicio}ms${corpo ? ` · ${corpo}` : ''}`
     );
     if (r.ok) return 'valida';
-    return r.status === 401 || r.status === 403 ? 'recusada' : 'indisponivel';
+    if (r.status === 401 || r.status === 403) return 'recusada';
+    if (/credit balance|insufficient|billing/i.test(corpo)) return 'sem-credito';
+    return 'indisponivel';
   } catch (erro) {
     const demorou = Date.now() - inicio >= LIMITE_TESTE_MS;
     console.log(

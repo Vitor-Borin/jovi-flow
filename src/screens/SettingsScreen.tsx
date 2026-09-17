@@ -41,6 +41,8 @@ const AMOSTRA_DE_VOZ = 'Olá! Esta é a voz que lê as suas aulas no JOVI Flow.'
 const TEXTO_VERIFICACAO: Record<Verificacao, string> = {
   valida: 'A Anthropic aceitou a chave. A análise está pronta.',
   recusada: 'A Anthropic recusou esta chave. Confira se ela foi revogada ou colada pela metade.',
+  'sem-credito':
+    'A chave vale, mas a conta está sem crédito. Adicione crédito em Billing, no console da Anthropic.',
   indisponivel: 'Não deu para falar com a Anthropic agora. Confira a internet e teste de novo.',
   'sem-chave': 'Nenhuma chave guardada.',
 };
