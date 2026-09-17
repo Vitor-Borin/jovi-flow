@@ -3,6 +3,7 @@ import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
 import {
+  Alert,
   Animated,
   KeyboardAvoidingView,
   Modal,
@@ -27,6 +28,7 @@ import { plataformas } from '../data/mock';
 import { useLeitura } from '../hooks/useLeitura';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
 import type { RootStackParamList } from '../navigation/types';
+import { compartilharPdfDaAula } from '../services/pdfDaAula';
 import { useAcervo } from '../store/AcervoContext';
 import { useFlow } from '../store/FlowContext';
 import { colors, font, fontMono, radius, spacing } from '../theme';
@@ -47,6 +49,7 @@ export function ActionsScreen({ navigation, route }: Props) {
     useFlow();
   const { falando, alternar } = useLeitura();
   const [editando, setEditando] = useState(false);
+  const [gerandoPdf, setGerandoPdf] = useState(false);
 
   const aula = aulaPorId(aulaId);
 
@@ -72,6 +75,23 @@ export function ActionsScreen({ navigation, route }: Props) {
       await Share.share({ message: `${aula.titulo}\n${aula.tema}\n\n${texto}` });
     } catch {
       // O usuario fechou a folha de compartilhamento. Nao ha o que tratar.
+    }
+  };
+
+  // A aula inteira num PDF: foto, resumo, texto da lousa, flashcards e questoes
+  // com gabarito. Serve para entregar como trabalho ou mandar para a turma.
+  const exportarPdf = async () => {
+    if (gerandoPdf) return;
+    setGerandoPdf(true);
+    try {
+      const r = await compartilharPdfDaAula(aula);
+      if (r === 'falhou') {
+        Alert.alert('Não deu para gerar o PDF', 'Tente de novo daqui a pouco.');
+      } else if (r === 'sem-compartilhamento') {
+        Alert.alert('Este aparelho não compartilha arquivos', 'O PDF foi montado, mas não há para onde mandar.');
+      }
+    } finally {
+      setGerandoPdf(false);
     }
   };
 
@@ -122,9 +142,17 @@ export function ActionsScreen({ navigation, route }: Props) {
       onPress: () => setEditando(true),
     },
     {
+      id: 'pdf',
+      titulo: gerandoPdf ? 'Montando…' : 'PDF da aula',
+      descricao: 'Foto, resumo, texto e questões',
+      icone: 'file-pdf-box',
+      onPress: () => void exportarPdf(),
+      ativo: gerandoPdf,
+    },
+    {
       id: 'compartilhar',
       titulo: 'Compartilhar',
-      descricao: 'Mandar para alguém',
+      descricao: 'Só o texto, para colar',
       icone: 'share-variant-outline',
       onPress: () => void compartilhar(),
     },

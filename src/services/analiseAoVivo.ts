@@ -151,10 +151,11 @@ function promptClassificacao(
     '- tema: a disciplina ou assunto maior.',
     '- topico: o assunto específico da imagem, em uma linha curta.',
     '- pasta: onde salvar, como caminho de exatamente dois níveis: [área, disciplina ou assunto maior].',
-    '  Se UMA das pastas existentes acima couber para este conteúdo, repita exatamente',
-    '  os nomes dela, separando os níveis no array, e devolva pastaNova como false.',
-    '  Só proponha nomes novos quando nenhuma das existentes fizer sentido. Nesse',
-    '  caso devolva pastaNova como true.',
+    '  Uma pasta existente só serve quando o conteúdo é da MESMA disciplina dela. Estar na mesma',
+    '  área não basta: código React ou TypeScript não vai na pasta de Python, e cálculo não vai na',
+    '  pasta de estatística. Servindo, repita exatamente os nomes dela, separando os níveis no',
+    '  array, e devolva pastaNova como false. Não servindo, proponha nomes novos, com a disciplina',
+    '  de verdade do conteúdo, e devolva pastaNova como true.',
     '- leitura: "completa" se todo o conteúdo escrito aparece inteiro na foto; "parcial" se',
     '  parte dele ficou cortada pela borda da foto, fora de foco, escondida por reflexo ou por',
     '  alguém na frente; "ilegivel" se quase nada dá para ler. Não julgue pelo tamanho da',
@@ -185,18 +186,31 @@ const PROMPT_TRANSCRICAO = [
   'Tudo em português do Brasil. Não invente conteúdo que não está na imagem.',
 ].join('\n');
 
-const PROMPT_ESTUDO = [
-  'Esta é a foto de uma lousa, slide ou caderno de aula. Crie material de revisão SOMENTE com o que está na imagem.',
-  '',
-  'Responda SOMENTE com JSON válido, sem cercas de código e sem texto ao redor:',
-  '{"flashcards":[{"p":"pergunta","r":"resposta"}],"questoes":[{"q":"enunciado","alt":["a","b","c","d"],"certa":0}]}',
-  '',
-  '- flashcards: de 5 a 8 cartões. Pergunta curta na frente, resposta de uma ou duas frases no verso.',
-  '- questoes: 3 questões de múltipla escolha, cada uma com exatamente 4 alternativas plausíveis,',
-  '  e "certa" é o índice (0 a 3) da alternativa correta. Varie a posição da correta.',
-  '',
-  'Tudo em português do Brasil. Não invente conteúdo que não está na imagem.',
-].join('\n');
+/** Quantas questões a captura gera sozinha. Depois, a tela de questões deixa
+ *  pedir mais, e aí quem escolhe a quantidade é o estudante. */
+export const QUESTOES_DA_CAPTURA = 3;
+/** Teto do que a tela pode pedir de uma vez, para a resposta não estourar o
+ *  tempo limite nem o max_tokens. */
+export const QUESTOES_MAXIMO = 10;
+
+function promptEstudo(quantidadeQuestoes: number, comFlashcards: boolean): string {
+  return [
+    'Esta é a foto de uma lousa, slide ou caderno de aula. Crie material de revisão SOMENTE com o que está na imagem.',
+    '',
+    'Responda SOMENTE com JSON válido, sem cercas de código e sem texto ao redor:',
+    comFlashcards
+      ? '{"flashcards":[{"p":"pergunta","r":"resposta"}],"questoes":[{"q":"enunciado","alt":["a","b","c","d"],"certa":0}]}'
+      : '{"flashcards":[],"questoes":[{"q":"enunciado","alt":["a","b","c","d"],"certa":0}]}',
+    '',
+    comFlashcards
+      ? '- flashcards: de 5 a 8 cartões. Pergunta curta na frente, resposta de uma ou duas frases no verso.'
+      : '- flashcards: devolva a lista vazia.',
+    `- questoes: exatamente ${quantidadeQuestoes} ${quantidadeQuestoes === 1 ? 'questão' : 'questões'} de múltipla escolha, cada uma com exatamente 4 alternativas`,
+    '  plausíveis, e "certa" é o índice (0 a 3) da alternativa correta. Varie a posição da correta.',
+    '',
+    'Tudo em português do Brasil. Não invente conteúdo que não está na imagem.',
+  ].join('\n');
+}
 
 type BlocoTexto = { type: string; text?: string };
 type RespostaApi = { content?: BlocoTexto[] };
@@ -622,6 +636,11 @@ export async function classificarCaptura(
       ? { aulaId: idRelacionada, motivo }
       : null;
 
+  // A IA ja disse "pasta nova" repetindo uma pasta que existe, e ja disse o
+  // contrario. Quem decide e a lista: pasta nova e a que nao esta nela.
+  const alvo = semAcento(`${pasta[0]} › ${pasta[1]}`);
+  const pastaNova = !pastas.some((p) => semAcento(p) === alvo);
+
   return {
     estado: 'ok',
     ms: r.ms,
@@ -630,7 +649,7 @@ export async function classificarCaptura(
       tema: temaFinal,
       topico: topico === '' ? temaFinal : topico,
       pasta,
-      pastaNova: o.pastaNova === true,
+      pastaNova,
       leitura,
       problema: leitura === 'completa' ? '' : texto(o.problema),
       relacionada,
@@ -668,16 +687,25 @@ ${PROMPT_TRANSCRICAO}`;
   return { estado: 'ok', ms: r.ms, dados: { textoExtraido, resumo } };
 }
 
+/**
+ * Flashcards e questoes da propria foto. `quantidadeQuestoes` vem da tela quando
+ * o estudante pede mais questoes; sem flashcards, porque nesse caso ele ja tem
+ * os da captura e a resposta fica mais curta e mais rapida.
+ */
 export async function gerarEstudo(
   b64: string | null,
-  subModo: string
+  subModo: string,
+  quantidadeQuestoes: number = QUESTOES_DA_CAPTURA,
+  comFlashcards: boolean = true
 ): Promise<Resultado<EstudoAoVivo>> {
   if (b64 === null || b64.length === 0) return { estado: 'sem-foto' };
 
+  const quantidade = Math.max(1, Math.min(QUESTOES_MAXIMO, Math.trunc(quantidadeQuestoes)));
+  const base = promptEstudo(quantidade, comFlashcards);
   const dica = DICA_SUBMODO[subModo];
-  const prompt = dica === undefined ? PROMPT_ESTUDO : `${dica}\n\n${PROMPT_ESTUDO}`;
+  const prompt = dica === undefined ? base : `${dica}\n\n${base}`;
 
-  const r = await chamarComRetentativa(b64, prompt, 2000, LIMITE_ESTUDO_MS);
+  const r = await chamarComRetentativa(b64, prompt, 400 + quantidade * 220, LIMITE_ESTUDO_MS);
   if (!r.ok) return r.resultado;
 
   const d = extrairJson(r.texto);

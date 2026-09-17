@@ -81,6 +81,8 @@ export type AcervoState = {
   excluirAula: (id: string) => void;
   marcarResumoSalvo: (id: string) => void;
   atualizarTextoDaAula: (id: string, texto: string) => void;
+  /** Junta questoes novas as que a aula ja tem, sem repetir enunciado. */
+  adicionarQuestoes: (id: string, questoes: Questao[]) => void;
   /** Apaga as capturas e volta aos cinco exemplos. */
   restaurarExemplos: () => void;
 };
@@ -360,6 +362,19 @@ export function AcervoProvider({ children }: { children: ReactNode }) {
 
   /** Edicao do texto extraido. Vai para a ultima pagina, que e a que acabou de
    *  ser capturada. */
+  const adicionarQuestoes = useCallback(
+    (id: string, questoes: Questao[]) => {
+      if (questoes.length === 0) return;
+      atualizar((a) => ({
+        ...a,
+        aulas: a.aulas.map((x) =>
+          x.id === id ? { ...x, questoes: unir(x.questoes, questoes, (q) => q.q) } : x
+        ),
+      }));
+    },
+    [atualizar]
+  );
+
   const atualizarTextoDaAula = useCallback(
     (id: string, texto: string) => {
       atualizar((a) => ({
@@ -401,6 +416,7 @@ export function AcervoProvider({ children }: { children: ReactNode }) {
       excluirAula,
       marcarResumoSalvo,
       atualizarTextoDaAula,
+      adicionarQuestoes,
       restaurarExemplos,
     }),
     [
@@ -419,6 +435,7 @@ export function AcervoProvider({ children }: { children: ReactNode }) {
       excluirAula,
       marcarResumoSalvo,
       atualizarTextoDaAula,
+      adicionarQuestoes,
       restaurarExemplos,
     ]
   );

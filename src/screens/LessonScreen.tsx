@@ -22,6 +22,7 @@ import type { Aula } from '../data/acervo';
 import { ligacoesDaAula, textoDaAula } from '../data/acervo';
 import { useLeitura } from '../hooks/useLeitura';
 import type { RootStackParamList } from '../navigation/types';
+import { compartilharPdfDaAula } from '../services/pdfDaAula';
 import { useAcervo } from '../store/AcervoContext';
 import { TOQUE_MIN, colors, font, fontDado, fontMono, radius, spacing } from '../theme';
 
@@ -50,6 +51,7 @@ export function LessonScreen({ navigation, route }: Props) {
   const [movendo, setMovendo] = useState(false);
   const [textoAberto, setTextoAberto] = useState(false);
   const [paginaAtual, setPaginaAtual] = useState(0);
+  const [gerandoPdf, setGerandoPdf] = useState(false);
 
   const aula = aulaPorId(aulaId);
 
@@ -75,8 +77,28 @@ export function LessonScreen({ navigation, route }: Props) {
     ]);
   };
 
+  // A aula inteira num PDF, para entregar como trabalho ou mandar para a turma.
+  const exportarPdf = async () => {
+    if (gerandoPdf) return;
+    setGerandoPdf(true);
+    try {
+      const r = await compartilharPdfDaAula(aula);
+      if (r === 'falhou') {
+        Alert.alert('Não deu para gerar o PDF', 'Tente de novo daqui a pouco.');
+      } else if (r === 'sem-compartilhamento') {
+        Alert.alert(
+          'Este aparelho não compartilha arquivos',
+          'O PDF foi montado, mas não há para onde mandar.'
+        );
+      }
+    } finally {
+      setGerandoPdf(false);
+    }
+  };
+
   const abrirMenu = () => {
     Alert.alert(aula.titulo, aula.pasta.join(' › '), [
+      { text: gerandoPdf ? 'Montando o PDF…' : 'PDF da aula', onPress: () => void exportarPdf() },
       { text: 'Renomear', onPress: () => setRenomeando(true) },
       { text: 'Mover para outra pasta', onPress: () => setMovendo(true) },
       { text: 'Excluir', style: 'destructive', onPress: confirmarExclusao },

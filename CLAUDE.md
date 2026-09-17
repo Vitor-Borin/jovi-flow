@@ -64,6 +64,7 @@ src/services/quadro.ts         acha a lousa escrita numa foto pequena;
                                matemática pura, testável no computador
 src/services/procurarLousa.ts  a procura da lousa no aparelho, com Skia; a
                                versão .web.ts não procura
+src/services/pdfDaAula.ts      a aula vira um PDF e vai para o compartilhar
 scripts/testar-lousa.js        cenas 3D sintéticas contra o mesmo código do app
 src/hooks/                     captura contínua, procura da lousa, leitura em
                                voz alta, reduzir movimento
@@ -106,6 +107,19 @@ comporta igual ao aparelho).
   "Conteúdo identificado" mostra "Continua uma aula sua", que abre a aula. A
   aula salva guarda a ligação, e a tela da aula mostra "Continua" e "Continuada
   em". Só com a análise por IA ligada.
+- **A pasta certa, ou uma nova.** A IA só pode reaproveitar uma pasta que já
+  existe quando o conteúdo é da mesma disciplina dela: estar na mesma área não
+  basta, então código React não cai na pasta de Python. Quem decide se a pasta é
+  nova não é a IA, e sim a lista: pasta nova é a que não está nela.
+- **O estudante escolhe quantas questões.** A captura gera 3. Na tela de
+  questões, "Gerar mais questões desta foto" pede 3, 5 ou 10 à IA, que lê a mesma
+  foto de novo; as novas entram no fim da lista sem repetir enunciado, e a aula
+  guarda.
+- **A aula vira PDF.** Em "PDF da aula" (nas ações depois da captura e no menu
+  da aula salva), o aparelho monta um PDF com a foto, o resumo, o texto da
+  lousa, os flashcards e as questões com gabarito, e abre o compartilhar do
+  iPhone. Serve para entregar como trabalho ou mandar para o grupo. Nada sai do
+  aparelho sem o estudante mandar.
 - **Busca no texto da lousa.** A busca da galeria entra no texto lido de cada
   página e no resumo, e não só no título.
 - **A foto fica como a câmera tirou.** Ela aparece inteira em "Conteúdo
