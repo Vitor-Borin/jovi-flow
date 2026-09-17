@@ -161,8 +161,10 @@ comporta igual ao aparelho).
        texto.
 5. [x] **Resolver o que é encenado.** O "Lousa reconhecida" virou verdade e o
        antes e depois saiu. Sobrou um ponto menor, na seção "Encenado" abaixo.
-6. [ ] **Fechar o roteiro e a apresentação** com o Vitor: o trecho de 0:50 a
-       2:05 do README tem um rascunho com os dois destaques.
+6. [x] **Roteiro da apresentação**, montado em 17/09: página do pitch (ver
+       "Onde está o resto") e resumo no README. Falta o grupo combinar o
+       espelhamento da tela, levar a lousa de Flexbox sobre fundo escuro e
+       ensaiar três vezes com o cronômetro da página.
 
 ## O que falta
 
@@ -307,3 +309,4 @@ sobre a aula.
 | `DESIGN.md` | Regras visuais. Manda na aparência; onde conflitar, vale ele. |
 | `docs/CONTINUAR-LOCAL.md` | A pesquisa sobre a câmera da JOVI e o passo a passo para continuar. |
 | `docs/superpowers/specs/` | As decisões de cada sprint, com o porquê. |
+| [Pitch do JOVI Flow](https://claude.ai/artifact/3ZubmN43rEcvhsdnGRQ8Y7) | O roteiro dos 5 minutos: falas, toques, plano B, a lousa, o checklist e as perguntas da banca. Página privada do Vitor; ele compartilha com o grupo. Se uma tela do app mudar, o roteiro muda junto. |

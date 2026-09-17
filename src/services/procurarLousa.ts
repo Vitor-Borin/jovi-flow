@@ -1,4 +1,5 @@
 import type { AlphaType, ColorType, Skia } from '@shopify/react-native-skia';
+import * as FileSystem from 'expo-file-system/legacy';
 import { SaveFormat, manipulateAsync } from 'expo-image-manipulator';
 
 import { detectarQuadro, temEscrita } from './quadro';
@@ -8,7 +9,8 @@ import { detectarQuadro, temEscrita } from './quadro';
  * decide o aviso "Lousa reconhecida".
  *
  * A foto do estudante nunca passa por aqui, e o app nao altera a foto que a
- * camera tirou: esta procura so le uma copia de 200 px, apagada logo depois.
+ * camera tirou: esta procura so le uma copia de 200 px, que nao sai do aparelho
+ * e e apagada logo depois, junto com a foto pequena de onde ela veio.
  *
  * A matematica mora em quadro.ts, que roda tambem no computador
  * (npm run testar:lousa). O navegador usa procurarLousa.web.ts, que nao procura.
@@ -60,6 +62,8 @@ export async function procurarLousa(uri: string, largura: number, altura: number
       [largura >= altura ? { resize: { width: LADO_PROCURA } } : { resize: { height: LADO_PROCURA } }],
       { base64: true, compress: 0.9, format: SaveFormat.JPEG }
     );
+    // A copia reduzida tambem vira arquivo no cache; os pixels ja estao em base64.
+    void FileSystem.deleteAsync(reduzida.uri, { idempotent: true }).catch(() => undefined);
     if (!reduzida.base64) return false;
     const foto = skia.Image.MakeImageFromEncoded(skia.Data.fromBase64(reduzida.base64));
     if (foto === null) return false;

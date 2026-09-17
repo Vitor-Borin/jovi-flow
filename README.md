@@ -240,14 +240,20 @@ Os três passam sem erro: o `expo-doctor` fecha 21 de 21, e o teste da lousa con
 
 Sobre acessibilidade: área tocável de no mínimo 44×44 pt, `accessibilityRole` e `accessibilityLabel` em todo elemento acionável, estado nunca comunicado só por cor, e animação reduzida quando o sistema pede menos movimento.
 
-## Roteiro dos 4 minutos
+## Roteiro dos 5 minutos
 
-1. **0:00** Abre no visor, em Foto. Aponta para a lousa inteira e o carrossel desliza sozinho para Aula, porque a câmera achou a lousa escrita. Se não achar, toque em Aula.
-2. **0:15** Foto. A IA lê de verdade: matéria, tópico e a pasta, confirmada pela grade.
-3. **0:50** Rascunho, a fechar com o Vitor. A câmera avisa: a moldura acende e o celular vibra com a lousa inteira; uma foto cortada de propósito abre com "A foto não pegou tudo · Tirar outra". A câmera lembra: uma foto de Flexbox abre com "Continua Grid e Bento Layout, de 14/08", e a aula mostra a linha do aprendizado.
-4. **2:05** Miniatura → galeria. Em Fotos, a foto é só mais uma; em Aulas, já está na matéria certa. Ouvir por 10 segundos.
-5. **2:50** `Mais` no visor: o "Documento em Ultra HD" já existe no V50, e o Flow especializa o que a JOVI já vende.
-6. **3:10** Folga para a IA demorar ou para a pergunta da banca.
+Um minuto de fala e quatro com o protótipo na mão. A versão completa, com o texto de cada fala, o que fazer se algo falhar, as perguntas prováveis da banca e um cronômetro de ensaio, está na página do pitch (link no `CLAUDE.md`). Papéis: um narrador, um operador com o iPhone e um apoio com a lousa e o tempo.
+
+1. **0:00** Minuto de fala, com a câmera virada para baixo: a foto da lousa some na galeria; ninguém abre outro aplicativo no meio da aula; o JOVI Flow é um modo da câmera da JOVI.
+2. **1:00** A câmera acha a lousa: o carrossel desliza sozinho para Aula, os cantos acendem e o celular vibra.
+3. **1:25** Uma foto cortada de propósito abre com "A foto não pegou tudo".
+4. **1:55** Tirar outra: a IA lê a matéria, confere com a grade e mostra "Continua uma aula sua". Tocar no cartão abre a aula de Grid.
+5. **2:40** Organizar e salvar, e Ouvir por uns 6 segundos.
+6. **3:15** Abrir a aula: a foto inteira e a linha do aprendizado.
+7. **3:40** `Mais` no visor: o "Documento em Ultra HD" já existe no V50, e o Flow especializa o que a JOVI já vende.
+8. **4:10** Fechamento. **4:25** Folga para a IA demorar ou para a pergunta da banca.
+
+A lousa da demonstração é uma folha A3 escrita com Flexbox, presa sobre um fundo escuro: sem contraste com a parede, a câmera não acha a lousa. Flexbox é de propósito. A IA liga Flexbox à aula de exemplo de Grid, e, se a rede cair, o conteúdo de exemplo do app também é Flexbox.
 
 ## Antes de apresentar
 
@@ -255,9 +261,10 @@ Sobre acessibilidade: área tocável de no mínimo 44×44 pt, `accessibilityRole
 - [ ] Vincular o projeto à conta Expo (`npx eas-cli@latest init`), para as aulas e a chave valerem em qualquer computador
 - [ ] Ajustes → Análise por IA: guardar a chave nova e tocar em Testar a chave, com a rede do local
 - [ ] Tirar uma foto de teste e conferir que matéria e tema vêm da foto
-- [ ] Ensaiar com a lousa do local: a troca sozinha para Aula
+- [ ] Ensaiar com a lousa da demonstração: a troca sozinha para Aula, a foto cortada e a memória
 - [ ] Ajustes → Voz do Ouvir: deixar a Luciana Aprimorada ou Premium baixada no iPhone da apresentação
-- [ ] Decidir se as capturas de teste ficam ou se "Apagar capturas e voltar aos exemplos" antes de subir
+- [ ] Ajustes → "Apagar capturas e voltar aos exemplos" antes de subir: a aula de Grid, que é a memória da demonstração, é um dos exemplos
+- [ ] Recarregar o app e deixá-lo em Foto, com a câmera longe da lousa: o reconhecimento automático só acontece uma vez por abertura
 - [ ] Desligar o Wi-Fi e ficar só no 5G, porque o iOS prefere Wi-Fi mesmo quando ele está congestionado
 - [ ] Rodar o fluxo completo algumas vezes seguidas, usando Ajustes → Reiniciar demonstração entre as voltas
 - [ ] Abrir o app no celular antes de subir ao palco, para o bundle já estar em memória
