@@ -33,6 +33,7 @@ import {
   PX,
   classificarCaptura,
   gerarEstudo,
+  motivoDaFalha,
   prepararImagem,
   transcreverCaptura,
 } from '../services/analiseAoVivo';
@@ -347,7 +348,7 @@ export function CameraScreen({ navigation }: Props) {
                     ` · ${r.dados.relacionada ? `continua ${r.dados.relacionada.aulaId}` : 'sem aula relacionada'}`
                 );
               } else {
-                console.log('[JOVI Flow] classificacao indisponivel:', r.estado);
+                console.log('[JOVI Flow] classificacao indisponivel:', motivoDaFalha(r));
               }
             });
 
@@ -358,7 +359,7 @@ export function CameraScreen({ navigation }: Props) {
                 definirTexto(r.dados.textoExtraido);
                 console.log(`[JOVI Flow] transcricao em ${r.ms}ms`);
               } else {
-                console.log('[JOVI Flow] transcricao indisponivel:', r.estado);
+                console.log('[JOVI Flow] transcricao indisponivel:', motivoDaFalha(r));
               }
             });
 
@@ -370,7 +371,7 @@ export function CameraScreen({ navigation }: Props) {
                   `[JOVI Flow] material de estudo em ${r.ms}ms: ${r.dados.flashcards.length} cartoes, ${r.dados.questoes.length} questoes`
                 );
               } else {
-                console.log('[JOVI Flow] material de estudo indisponivel:', r.estado);
+                console.log('[JOVI Flow] material de estudo indisponivel:', motivoDaFalha(r));
               }
             });
 

@@ -400,6 +400,19 @@ function texto(v: unknown): string {
   return typeof v === 'string' ? v.trim() : '';
 }
 
+/**
+ * O esforco baixo corta segundos da resposta, mas e um parametro novo da API.
+ * Se ela recusar, a primeira resposta que reclamar dele desliga o esforco, e a
+ * repeticao que ja existe vai sem ele: uma mudanca na API nao derruba a demo.
+ */
+let esforcoBaixoAceito = true;
+
+/** Descreve a falha numa linha, para o log de quem esta testando no aparelho. */
+export function motivoDaFalha(r: Resultado<unknown>): string {
+  if (r.estado === 'falha') return r.motivo;
+  return r.estado;
+}
+
 /** Uma tentativa de chamada. O retry fica na camada de cima. */
 async function chamarUmaVez(
   b64: string,
@@ -429,7 +442,7 @@ async function chamarUmaVez(
         max_tokens: maxTokens,
         // A tarefa e ler e classificar, nao raciocinar. Esforco baixo corta
         // varios segundos sem prejudicar a leitura. Medido.
-        output_config: { effort: 'low' },
+        ...(esforcoBaixoAceito ? { output_config: { effort: 'low' } } : {}),
         messages: [
           {
             role: 'user',
@@ -444,6 +457,10 @@ async function chamarUmaVez(
 
     if (!r.ok) {
       const corpo = await r.text();
+      if (esforcoBaixoAceito && r.status === 400 && /output_config|effort/i.test(corpo)) {
+        esforcoBaixoAceito = false;
+        console.log('[JOVI Flow] a API recusou output_config; as proximas chamadas vao sem ele');
+      }
       return {
         ok: false,
         resultado: { estado: 'falha', motivo: `HTTP ${r.status}: ${corpo.slice(0, 160)}` },
