@@ -176,6 +176,28 @@ A folha de "Nova pasta" ficava presa no pé da tela, e o teclado cobria o campo:
 o estudante digitava sem ver. Toda folha com campo sobe com o teclado, e tela
 com rolagem ajusta o espaço dele.
 
+**A memória só aponta para aula que existe.**
+
+"Continua uma aula sua" vem da leitura da IA, mas o app confere o id devolvido
+contra o acervo antes de mostrar. Relação com aula que não existe some; sem
+relação de conteúdo, não aparece nada. Mesma matéria não basta.
+
+**O visor só confirma; quem avisa do problema é a leitura.**
+
+A moldura acende quando a lousa inteira está no enquadramento, e não diz nada
+quando não está. Um aviso de "lousa cortada" tirado da imagem do visor foi
+descartado: nas cenas de teste, uma parede com porta pareceria lousa cortada.
+Quem diz que a foto não pegou tudo é a leitura da IA, que vê o conteúdo, e o
+aviso diz o que faltou.
+
+**Acessibilidade dentro do fluxo, e não num modo à parte.**
+
+Rótulo falado em todo controle, aviso importante falado pelo VoiceOver
+(`AccessibilityInfo.announceForAccessibility`, porque no iOS
+`accessibilityLiveRegion` não fala nada) e vibração nos momentos que mudam o
+que o estudante faz. Texto grande e contraste vêm dos ajustes do próprio
+iPhone, e não de uma fonte ou tema do app.
+
 **"Lousa reconhecida" só depois de achar a lousa.**
 
 O aviso aparecia 2,5 s depois de abrir a câmera em Foto, com qualquer coisa na

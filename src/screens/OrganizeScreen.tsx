@@ -71,6 +71,7 @@ export function OrganizeScreen({ navigation }: Props) {
     try {
       const r = await salvarCaptura({
         fotoUri,
+        relacionada: classificacao?.relacionada?.aulaId ?? null,
         subModo,
         materia: conteudo.materia,
         tema: conteudo.tema,

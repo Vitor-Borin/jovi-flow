@@ -90,7 +90,24 @@ comporta igual ao aparelho).
   silêncio a cada segundo e procura um quadro inteiro com escrita dentro. Duas
   procuras seguidas achando, o carrossel desliza para Aula com o aviso "Lousa
   reconhecida". Lousa vazia, porta, parede e tela apagada não trocam o modo.
-  Para durante a captura, com flash, na lente frontal e com outra tela por cima.
+  Para durante a captura, com flash, na lente frontal, na captura contínua e
+  com outra tela por cima.
+- **A câmera avisa se a foto vai servir.** Em Aula, a procura continua rodando:
+  com a lousa inteira no enquadramento, os cantos da moldura ficam amarelos e
+  mais grossos, o celular vibra e o VoiceOver fala "Lousa inteira enquadrada"
+  (e "A lousa saiu do enquadramento" quando sai). Só confirmação positiva: o
+  visor nunca diz "lousa cortada", porque nas cenas de teste uma parede com
+  porta pareceria. Depois da foto, a leitura da IA (uns 2 s) diz se pegou tudo;
+  se não, "Conteúdo identificado" abre com "A foto não pegou tudo", o que faltou
+  e "Tirar outra", com vibração e aviso falado.
+- **A câmera lembra.** A mesma chamada de classificação recebe as 30 aulas mais
+  recentes e aponta qual esta foto continua, com o motivo numa frase. Só aula
+  que existe: o id devolvido é conferido contra a lista, e o que não bate some.
+  "Conteúdo identificado" mostra "Continua uma aula sua", que abre a aula. A
+  aula salva guarda a ligação, e a tela da aula mostra "Continua" e "Continuada
+  em". Só com a análise por IA ligada.
+- **Busca no texto da lousa.** A busca da galeria entra no texto lido de cada
+  página e no resumo, e não só no título.
 - **A foto fica como a câmera tirou.** Ela aparece inteira em "Conteúdo
   identificado", sem corte e sem zoom, vai assim para a aula e para a galeria, e
   é a que a IA lê. Validado no iPhone em 16/09: a procura da lousa roda em uns
@@ -114,16 +131,21 @@ comporta igual ao aparelho).
   mais natural instalada e nunca as vozes de novidade do iOS (Eddy, Flo,
   Grandma…), que imitam robô. O texto é limpo antes (seta e barra viram pausa).
   Ajustes → Voz do Ouvir mostra a voz em uso, testa, e ensina a baixar a
-  Aprimorada ou a Premium quando só há a básica.
+  Aprimorada ou a Premium quando só há a básica. A aula tem também "Ouvir o
+  texto", que lê a lousa inteira.
+- **Acessibilidade no fluxo, e não num modo à parte.** Todos os 47 controles
+  tocáveis têm rótulo falado (conferido por script), o Controle por Voz do iOS
+  funciona com eles, e os avisos que importam são falados pelo VoiceOver:
+  lousa reconhecida, lousa enquadrada e foto que não pegou tudo.
 - **Viabilidade técnica.** Inclui o achado de que o JOVI V50 já tem
   "Documento em Ultra HD".
 
-## Para fazer hoje, 16/09, nesta ordem
+## Para fazer agora, nesta ordem
 
-1. [ ] **Destaque do pitch: em aberto de novo.** O antes e depois da lousa
-       tratada saiu em 16/09 por decisão do Vitor, depois do teste no iPhone: a
-       foto do estudante não é alterada. Continua de pé a câmera que acha a
-       lousa sozinha.
+1. [x] **Destaque do pitch, decidido em 17/09.** A câmera avisa se a foto serve e
+       a câmera lembra (ver "Estado atual" e "Destaque do pitch"). Falta testar
+       com a chave e ensaiar. O Vitor quer ajuda para montar como mostrar tudo
+       isso: é o próximo passo depois do teste.
 2. [ ] **Chave nova da API.** Revogar a antiga no console da Anthropic, criar
        outra com limite de gasto baixo, colar em Ajustes → Análise por IA →
        Guardar a chave, e conferir a mensagem "A Anthropic aceitou a chave".
@@ -133,13 +155,14 @@ comporta igual ao aparelho).
        Até lá, aulas e chave guardadas pelo iPhone ficam presas ao PC que rodou
        o servidor.
 4. [ ] **Testar no iPhone 17** a lista "No celular" abaixo. O que mudou desde o
-       teste das 22h: a foto sem tratamento, "Nova pasta" e renomear com o
-       teclado aberto, a voz do Ouvir e Ajustes → Voz do Ouvir, e o cartão da
-       grade só confirmando quando a matéria bate com a aula de agora.
+       teste de 16/09 às 22h: a foto sem tratamento, "Nova pasta" e renomear
+       com o teclado aberto, a voz do Ouvir, o cartão da grade, a moldura que
+       acende, "A foto não pegou tudo", "Continua uma aula sua" e a busca no
+       texto.
 5. [x] **Resolver o que é encenado.** O "Lousa reconhecida" virou verdade e o
        antes e depois saiu. Sobrou um ponto menor, na seção "Encenado" abaixo.
-6. [ ] **Fechar o roteiro**: o trecho de 0:50 a 2:05 do README voltou a ficar
-       em aberto, junto com o destaque.
+6. [ ] **Fechar o roteiro e a apresentação** com o Vitor: o trecho de 0:50 a
+       2:05 do README tem um rascunho com os dois destaques.
 
 ## O que falta
 
@@ -156,6 +179,24 @@ Nada disso dá para fechar sem um aparelho ou sem um navegador com sessão real.
 - [ ] Ajustes → Voz do Ouvir → Testar. Se aparecer "Básica", baixar a Luciana
       Aprimorada ou Premium no iPhone e voltar: a tela troca sozinha. No terminal
       aparece `[JOVI Flow] voz da leitura: ...` com a voz usada.
+- [ ] **Moldura que acende.** Em Aula, apontar para uma lousa escrita inteira:
+      em uns 2 s os cantos ficam amarelos e grossos e o celular vibra; tirar a
+      lousa do enquadramento: os cantos voltam brancos. Com o VoiceOver ligado
+      (três cliques no botão lateral), ouvir "Lousa inteira enquadrada".
+- [ ] **A foto não pegou tudo.** Com a chave, fotografar a lousa cortada de
+      propósito: "Conteúdo identificado" abre com o aviso e o que faltou, e
+      "Tirar outra" volta para a câmera. No terminal:
+      `[JOVI Flow] classificacao ... · leitura parcial: ...`. Fotografar a lousa
+      inteira: nenhum aviso.
+- [ ] **A câmera lembra.** Com a chave, fotografar algo parecido com uma aula
+      de exemplo (Flexbox e a aula de Grid; um laço `for` e a de Listas): aparece
+      "Continua uma aula sua", que abre a aula. Salvar e abrir a aula nova:
+      "Continua · Grid..."; na de Grid, "Continuada em". Fotografar um assunto
+      sem relação: nada aparece. No terminal: `· continua ex-grid`.
+- [ ] Galeria → Aulas → buscar uma palavra que só está no texto da lousa.
+- [ ] Percorrer o fluxo com o VoiceOver: câmera, processamento, conteúdo
+      identificado, organizar, ações e aula. Antes disso, não afirmar no pitch
+      que o app é acessível para quem não enxerga.
 - [ ] **Lousa reconhecida.** Abrir a câmera em Foto apontando para uma lousa
       escrita, inteira no enquadramento: em 2 ou 3 s o carrossel vai para Aula
       com o aviso. Apontar para parede, porta ou lousa vazia: fica em Foto. Cada
@@ -191,9 +232,27 @@ Ficou de fora, por decisão e não por esquecimento:
 
 ### Destaque do pitch
 
-- [ ] Em aberto. O brief da JOVI pede "a próxima geração da experiência de
-      câmera", e não um app de estudo: ideia de resumo, flashcard, chat, "não
-      entendi" ou correção de exercício não diferencia, porque todo grupo tem.
+Decidido em 17/09, depois de debater as ideias da Nicole (funções de estudo) e
+do Ryan (acessibilidade). O brief da JOVI pede "a próxima geração da experiência
+de câmera", e não um app de estudo.
+
+- [x] **A câmera avisa se a foto serve** (Nicole: "identificar partes
+      incompletas"; Ryan: guia de enquadramento com vibração). Antes de o
+      professor apagar a lousa, que é a primeira frase do pitch.
+- [x] **A câmera lembra o que já viu** (Nicole: "Flow lembra", "conectar
+      conteúdos", "prever o que você precisa"). Memória é traço de câmera, e
+      nenhuma câmera tem.
+- [x] Nos bastidores: busca no texto, "Ouvir o texto", rótulos e avisos falados.
+- Ficou de fora, com o motivo: chat sobre a aula, "não entendi", correção e
+  geração de exercício além do que já existe, tradução (todo grupo tem, e
+  ChatGPT e NotebookLM já fazem); mapa mental, modo prova, progresso e "o que
+  falta estudar" (app de estudo genérico); exportar PDF (utilidade, não
+  destaque); fonte para dislexia (sem ganho comprovado, e o projeto não usa
+  fonte própria: vale respeitar Texto Maior, Negrito e Aumentar Contraste do
+  iOS); comandos de voz próprios (não dá no Expo Go, e o Controle por Voz do
+  iOS já funciona com os rótulos); modo de acessibilidade separado e virar
+  "ferramenta de inclusão" (dilui a tese, e ninguém testou com pessoas com
+  deficiência).
 - [x] ~~O antes e depois da lousa tratada.~~ Funcionou nas cenas de teste, mas
       saiu em 16/09: numa foto de tela de computador deu zoom e inventou brilho,
       e o Vitor decidiu que a foto do estudante não se altera. O código está no

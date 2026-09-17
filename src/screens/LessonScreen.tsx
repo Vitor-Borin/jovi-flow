@@ -19,7 +19,7 @@ import { ModalTexto } from '../components/ModalTexto';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { SeletorPasta } from '../components/SeletorPasta';
 import type { Aula } from '../data/acervo';
-import { textoDaAula } from '../data/acervo';
+import { ligacoesDaAula, textoDaAula } from '../data/acervo';
 import { useLeitura } from '../hooks/useLeitura';
 import type { RootStackParamList } from '../navigation/types';
 import { useAcervo } from '../store/AcervoContext';
@@ -41,8 +41,11 @@ export function LessonScreen({ navigation, route }: Props) {
   const { aulaId } = route.params;
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const { aulaPorId, renomearAula, moverAula, excluirAula } = useAcervo();
+  const { acervo, aulaPorId, renomearAula, moverAula, excluirAula } = useAcervo();
   const { falando, alternar } = useLeitura();
+  // Uma leitura para o resumo e outra para o texto inteiro da lousa: cada botao
+  // mostra Parar so quando e ele que esta falando.
+  const leituraDoTexto = useLeitura();
   const [renomeando, setRenomeando] = useState(false);
   const [movendo, setMovendo] = useState(false);
   const [textoAberto, setTextoAberto] = useState(false);
@@ -87,6 +90,7 @@ export function LessonScreen({ navigation, route }: Props) {
   };
 
   const texto = textoDaAula(aula);
+  const ligacoes = ligacoesDaAula(acervo, aula);
 
   return (
     <View style={styles.tela}>
@@ -117,7 +121,12 @@ export function LessonScreen({ navigation, route }: Props) {
           {aula.paginas.map((pagina, i) => (
             <View key={pagina.id} style={[styles.pagina, { width: larguraPagina }]}>
               {pagina.fotoUri ? (
-                <Image source={{ uri: pagina.fotoUri }} style={styles.foto} resizeMode="cover" />
+                <Image
+                  source={{ uri: pagina.fotoUri }}
+                  style={styles.foto}
+                  resizeMode="contain"
+                  accessibilityLabel={`Foto da página ${i + 1}`}
+                />
               ) : (
                 <View style={styles.semFoto}>
                   <MaterialCommunityIcons name="image-off-outline" size={28} color={colors.textFaint} />
@@ -160,6 +169,26 @@ export function LessonScreen({ navigation, route }: Props) {
         </View>
 
         <LinhaSessao aula={aula} />
+
+        {/* A linha do aprendizado: a camera lembra o que ja viu. */}
+        {ligacoes.continua.map((ligada) => (
+          <LinhaLigacao
+            key={`continua-${ligada.id}`}
+            rotulo="Continua"
+            icone="history"
+            aula={ligada}
+            onAbrir={() => navigation.push('Aula', { aulaId: ligada.id })}
+          />
+        ))}
+        {ligacoes.continuadaEm.map((ligada) => (
+          <LinhaLigacao
+            key={`continuada-${ligada.id}`}
+            rotulo="Continuada em"
+            icone="arrow-right-bottom"
+            aula={ligada}
+            onAbrir={() => navigation.push('Aula', { aulaId: ligada.id })}
+          />
+        ))}
 
         <View style={styles.acoes}>
           <BotaoOuvir falando={falando} onPress={() => alternar(aula.resumo.join('. '))} />
@@ -212,6 +241,12 @@ export function LessonScreen({ navigation, route }: Props) {
         <Text style={styles.textoExtraido} numberOfLines={textoAberto ? undefined : LINHAS_TEXTO_FECHADO}>
           {texto}
         </Text>
+        <BotaoOuvir
+          falando={leituraDoTexto.falando}
+          rotulo="Ouvir o texto"
+          onPress={() => leituraDoTexto.alternar(texto)}
+          style={styles.ouvirTexto}
+        />
       </ScrollView>
 
       <ModalTexto
@@ -239,6 +274,34 @@ export function LessonScreen({ navigation, route }: Props) {
 }
 
 /* --------------------------------------------------------------- sessao */
+
+function LinhaLigacao({
+  rotulo,
+  icone,
+  aula,
+  onAbrir,
+}: {
+  rotulo: string;
+  icone: 'history' | 'arrow-right-bottom';
+  aula: Aula;
+  onAbrir: () => void;
+}) {
+  return (
+    <Pressable
+      onPress={onAbrir}
+      accessibilityRole="button"
+      accessibilityLabel={`${rotulo} a aula ${aula.titulo}. Abrir.`}
+      style={({ pressed }) => [styles.sessao, pressed && styles.pressionado]}
+    >
+      <MaterialCommunityIcons name={icone} size={16} color={colors.primaryHi} />
+      <Text style={styles.textoSessao} numberOfLines={2}>
+        <Text style={styles.rotuloLigacao}>{rotulo} · </Text>
+        {aula.titulo}
+      </Text>
+      <Ionicons name="chevron-forward" size={16} color={colors.primaryHi} />
+    </Pressable>
+  );
+}
 
 function LinhaSessao({ aula }: { aula: Aula }) {
   if (aula.sessao === null) return null;
@@ -376,6 +439,13 @@ const styles = StyleSheet.create({
     ...font.small,
     color: colors.text,
     flex: 1,
+  },
+  rotuloLigacao: {
+    color: colors.primaryHi,
+  },
+  ouvirTexto: {
+    alignSelf: 'flex-start',
+    marginTop: spacing(3),
   },
 
   acoes: {

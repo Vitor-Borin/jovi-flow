@@ -6,6 +6,7 @@ import type { CameraType, FlashMode } from 'expo-camera';
 import * as Haptics from 'expo-haptics';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
+  AccessibilityInfo,
   Animated,
   Image,
   Pressable,
@@ -185,31 +186,47 @@ export function CameraScreen({ navigation }: Props) {
     ocupada: cameraOcupada,
   });
 
-  // A procura da lousa: em Foto, com a lente traseira, sem flash, com a camera
-  // na frente e fora de uma captura do estudante. Achou lousa escrita de
-  // verdade, o carrossel desliza para Aula e um aviso curto diz por que. Uma vez
-  // por abertura da camera.
+  // A procura da lousa, com a lente traseira, sem flash, com a camera na frente
+  // e fora de uma captura do estudante (e da captura continua, que ja usa a
+  // camera). Em Foto, achar lousa escrita desliza o carrossel para Aula, uma vez
+  // por abertura da camera. Em Aula, a moldura acende enquanto a lousa inteira
+  // esta no enquadramento: vibra ao entrar, e o leitor de tela fala ao entrar e
+  // ao sair, para quem nao enxerga o visor saber quando a foto vai pegar tudo.
   const focada = useIsFocused();
   const procurandoLousa =
-    modo === 'Foto' &&
+    (modoAula || (modo === 'Foto' && !lousaReconhecida)) &&
     mostrarCamera &&
     focada &&
     lente === 'back' &&
     !flashLigado &&
     !capturando &&
-    !lousaReconhecida;
-  const aoAcharLousa = useCallback(() => {
-    if (!montado.current) return;
-    setLousaReconhecida(true);
-    void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    setModo('Aula');
-    setAvisoDeteccao(true);
-  }, [setModo]);
-  useProcuraLousa({
+    !continuaAtiva;
+  const aoMudarLousa = useCallback(
+    (noQuadro: boolean) => {
+      if (!montado.current) return;
+      if (modo === 'Foto') {
+        if (!noQuadro) return;
+        setLousaReconhecida(true);
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+        setModo('Aula');
+        setAvisoDeteccao(true);
+        AccessibilityInfo.announceForAccessibility(`${modoAtual.reconhecido}. Modo Aula ligado.`);
+        return;
+      }
+      if (noQuadro) {
+        void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        AccessibilityInfo.announceForAccessibility(modoAtual.enquadrado);
+      } else {
+        AccessibilityInfo.announceForAccessibility(modoAtual.saiu);
+      }
+    },
+    [modo, setModo, modoAtual.reconhecido, modoAtual.enquadrado, modoAtual.saiu]
+  );
+  const lousaNoQuadro = useProcuraLousa({
     ativo: procurandoLousa,
     cameraRef,
     ocupada: cameraOcupada,
-    aoAchar: aoAcharLousa,
+    aoMudar: aoMudarLousa,
   });
 
   useEffect(() => {
@@ -228,6 +245,19 @@ export function CameraScreen({ navigation }: Props) {
     return null;
   }, [acervo.aulas]);
   const miniatura = ultimaFoto ?? miniaturaAcervo;
+
+  // As aulas ja fotografadas, da mais recente para a mais antiga: e com elas que
+  // a leitura da foto acha qual aula esta captura continua.
+  const aulasParaRelacionar = useMemo(
+    () =>
+      ordenarAulas(acervo.aulas).map((a) => ({
+        id: a.id,
+        data: a.data,
+        titulo: a.titulo,
+        topico: a.topico,
+      })),
+    [acervo.aulas]
+  );
 
   const dimensoesVisor = useMemo(() => {
     const disponivel =
@@ -301,13 +331,20 @@ export function CameraScreen({ navigation }: Props) {
 
             // Tres chamadas independentes e paralelas. Se uma falhar, so aquela
             // parte cai no exemplo.
-            const pClass = classificarCaptura(pequena, modoAtual.id, caminhos).then((r) => {
+            const pClass = classificarCaptura(
+              pequena,
+              modoAtual.id,
+              caminhos,
+              aulasParaRelacionar
+            ).then((r) => {
               if (capturaAtual.current !== seq) return;
               if (r.estado === 'ok') {
                 definirClassificacao(r.dados);
                 definirDestino(r.dados.pasta);
                 console.log(
-                  `[JOVI Flow] classificacao em ${r.ms}ms: ${r.dados.topico} -> ${r.dados.pasta.join(' > ')}${r.dados.pastaNova ? ' (pasta nova)' : ''}`
+                  `[JOVI Flow] classificacao em ${r.ms}ms: ${r.dados.topico} -> ${r.dados.pasta.join(' > ')}${r.dados.pastaNova ? ' (pasta nova)' : ''}` +
+                    ` · leitura ${r.dados.leitura}${r.dados.problema ? `: ${r.dados.problema}` : ''}` +
+                    ` · ${r.dados.relacionada ? `continua ${r.dados.relacionada.aulaId}` : 'sem aula relacionada'}`
                 );
               } else {
                 console.log('[JOVI Flow] classificacao indisponivel:', r.estado);
@@ -369,6 +406,7 @@ export function CameraScreen({ navigation }: Props) {
     definirFotoBase64,
     modoAtual.id,
     caminhos,
+    aulasParaRelacionar,
     definirClassificacao,
     definirDestino,
     definirTranscricao,
@@ -407,7 +445,7 @@ export function CameraScreen({ navigation }: Props) {
             <WhiteboardFallback style={styles.fallback} />
           )}
 
-          {modoAula ? <MolduraDeteccao reduzir={reduzir} /> : null}
+          {modoAula ? <MolduraDeteccao reduzir={reduzir} enquadrada={lousaNoQuadro} /> : null}
 
           {avisoDeteccao ? <AvisoDeteccao reduzir={reduzir} texto={modoAtual.reconhecido} /> : null}
 
@@ -537,7 +575,10 @@ function BarraSuperior({
 
 /** Quatro cantos encaixando na lousa. E o unico sinal visual de que a camera
  *  entrou em Aula, alem do proprio carrossel. */
-function MolduraDeteccao({ reduzir }: { reduzir: boolean }) {
+/** Os cantos do Modo Aula. Acendem em amarelo e engrossam quando a procura
+ *  confirma a lousa inteira no enquadramento: cor e espessura juntas, para o
+ *  estado nao depender so de cor. */
+function MolduraDeteccao({ reduzir, enquadrada }: { reduzir: boolean; enquadrada: boolean }) {
   const encaixe = useRef(new Animated.Value(reduzir ? 1 : 0)).current;
 
   useEffect(() => {
@@ -551,16 +592,18 @@ function MolduraDeteccao({ reduzir }: { reduzir: boolean }) {
   }, [reduzir, encaixe]);
 
   const escala = encaixe.interpolate({ inputRange: [0, 1], outputRange: [1.06, 1] });
+  const e = enquadrada ? ESPESSURA_CANTO_ENQUADRADO : ESPESSURA_CANTO;
+  const cor = { borderColor: enquadrada ? colors.visor.destaque : colors.visor.icone };
 
   return (
     <Animated.View
       pointerEvents="none"
       style={[styles.moldura, { opacity: encaixe, transform: [{ scale: escala }] }]}
     >
-      <View style={[styles.canto, styles.cantoSE]} />
-      <View style={[styles.canto, styles.cantoSD]} />
-      <View style={[styles.canto, styles.cantoIE]} />
-      <View style={[styles.canto, styles.cantoID]} />
+      <View style={[styles.canto, styles.cantoSE, cor, { borderTopWidth: e, borderLeftWidth: e }]} />
+      <View style={[styles.canto, styles.cantoSD, cor, { borderTopWidth: e, borderRightWidth: e }]} />
+      <View style={[styles.canto, styles.cantoIE, cor, { borderBottomWidth: e, borderLeftWidth: e }]} />
+      <View style={[styles.canto, styles.cantoID, cor, { borderBottomWidth: e, borderRightWidth: e }]} />
     </Animated.View>
   );
 }
@@ -908,6 +951,7 @@ function AvisoPermissao({ onPermitir }: { onPermitir: () => void }) {
 
 const TAMANHO_CANTO = 28;
 const ESPESSURA_CANTO = 3;
+const ESPESSURA_CANTO_ENQUADRADO = 5;
 
 const styles = StyleSheet.create({
   tela: {

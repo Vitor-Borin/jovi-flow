@@ -1,16 +1,19 @@
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { useMemo } from 'react';
-import { Image, ScrollView, StyleSheet, Text, View } from 'react-native';
+import * as Haptics from 'expo-haptics';
+import { useEffect, useMemo } from 'react';
+import { AccessibilityInfo, Image, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { Badge } from '../components/Badge';
+import { GhostButton } from '../components/GhostButton';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { WhiteboardFallback } from '../components/WhiteboardFallback';
 import type { ContextoCaptura } from '../data/mock';
 import { conteudoIdentificado, contextoDaCaptura } from '../data/mock';
 import type { RootStackParamList } from '../navigation/types';
+import { useAcervo } from '../store/AcervoContext';
 import { useFlow } from '../store/FlowContext';
 import { colors, font, fontDado, fontMono, radius, spacing } from '../theme';
 
@@ -38,7 +41,36 @@ const ALTURA_TEXTO_EXTRAIDO = 168;
 export function IdentifiedScreen({ navigation }: Props) {
   const insets = useSafeAreaInsets();
   const { fotoUri, textoExtraido, classificacao, quadrosSequencia, janelaSequencia } = useFlow();
+  const { aulaPorId } = useAcervo();
   const conteudo = classificacao ?? conteudoIdentificado;
+
+  // Chega com a classificacao, uns 2 s depois da foto: ainda da tempo de tirar
+  // outra antes de o professor apagar a lousa.
+  const avisoFoto =
+    classificacao === null || classificacao.leitura === 'completa'
+      ? null
+      : classificacao.leitura === 'ilegivel'
+        ? {
+            titulo: 'Quase nada ficou legível',
+            detalhe: classificacao.problema || 'Tente de novo, mais perto e sem reflexo.',
+          }
+        : {
+            titulo: 'A foto não pegou tudo',
+            detalhe: classificacao.problema || 'Parte do conteúdo ficou de fora da foto.',
+          };
+
+  // Vibra e fala uma vez quando o aviso aparece, e nao a cada nova renderizacao.
+  const falaDoAviso = avisoFoto ? `${avisoFoto.titulo}. ${avisoFoto.detalhe}` : null;
+  useEffect(() => {
+    if (falaDoAviso === null) return;
+    void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+    AccessibilityInfo.announceForAccessibility(falaDoAviso);
+  }, [falaDoAviso]);
+
+  // A memoria da camera: so aparece aula que ainda existe no acervo.
+  const aulaRelacionada = classificacao?.relacionada
+    ? aulaPorId(classificacao.relacionada.aulaId)
+    : null;
 
   // Calculado uma vez: a data exibida nao pode mudar no meio da apresentacao.
   const dataFormatada = useMemo(() => {
@@ -56,6 +88,24 @@ export function IdentifiedScreen({ navigation }: Props) {
       <ScrollView
         contentContainerStyle={[styles.conteudo, { paddingBottom: insets.bottom + spacing(6) }]}
       >
+        {avisoFoto ? (
+          <View style={styles.avisoFoto}>
+            <View style={styles.linhaAvisoFoto}>
+              <MaterialCommunityIcons name="camera-retake-outline" size={20} color={colors.warn} />
+              <View style={styles.textosAvisoFoto}>
+                <Text style={styles.tituloAvisoFoto}>{avisoFoto.titulo}</Text>
+                <Text style={styles.detalheAvisoFoto}>{avisoFoto.detalhe}</Text>
+              </View>
+            </View>
+            <GhostButton
+              label="Tirar outra"
+              variant="outline"
+              onPress={() => navigation.goBack()}
+              style={styles.botaoTirarOutra}
+            />
+          </View>
+        ) : null}
+
         {/* contain, e nao cover: a foto inteira, do jeito que foi tirada. */}
         <View style={styles.foto}>
           {fotoUri ? (
@@ -97,6 +147,23 @@ export function IdentifiedScreen({ navigation }: Props) {
         {/* O Flow nao adivinha a materia. Quando a grade confirma, ele diz que
             confirmou; quando nao confirma, ele diz isso tambem. */}
         <CardContexto contexto={contexto} materia={conteudo.materia} />
+
+        {aulaRelacionada && classificacao?.relacionada ? (
+          <Pressable
+            onPress={() => navigation.push('Aula', { aulaId: aulaRelacionada.id })}
+            accessibilityRole="button"
+            accessibilityLabel={`Continua a aula ${aulaRelacionada.titulo}. ${classificacao.relacionada.motivo} Abrir a aula.`}
+            style={({ pressed }) => [styles.cardMemoria, pressed && styles.cardPressionado]}
+          >
+            <View style={styles.linhaGrade}>
+              <MaterialCommunityIcons name="history" size={20} color={colors.primaryHi} />
+              <Text style={styles.tituloGrade}>Continua uma aula sua</Text>
+              <Ionicons name="chevron-forward" size={18} color={colors.primaryHi} style={styles.setaMemoria} />
+            </View>
+            <Text style={styles.detalheGrade}>{aulaRelacionada.titulo}</Text>
+            <Text style={styles.rodapeGrade}>{classificacao.relacionada.motivo}</Text>
+          </Pressable>
+        ) : null}
 
         <View style={styles.blocoTexto}>
           <Text style={styles.rotuloTexto}>TEXTO EXTRAÍDO</Text>
@@ -171,6 +238,46 @@ const styles = StyleSheet.create({
   },
   conteudo: {
     paddingHorizontal: spacing(5),
+  },
+
+  avisoFoto: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing(4),
+    marginTop: spacing(2),
+  },
+  linhaAvisoFoto: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing(3),
+  },
+  textosAvisoFoto: {
+    flex: 1,
+  },
+  tituloAvisoFoto: {
+    ...font.h3,
+    color: colors.text,
+  },
+  detalheAvisoFoto: {
+    ...font.small,
+    color: colors.textDim,
+    lineHeight: 17,
+    marginTop: spacing(1),
+  },
+  botaoTirarOutra: {
+    marginTop: spacing(3),
+  },
+  cardMemoria: {
+    backgroundColor: colors.surface,
+    borderRadius: radius.md,
+    padding: spacing(4),
+    marginTop: spacing(3),
+  },
+  cardPressionado: {
+    opacity: 0.7,
+  },
+  setaMemoria: {
+    marginLeft: 'auto',
   },
 
   foto: {

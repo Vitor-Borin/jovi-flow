@@ -36,6 +36,8 @@ type Persistido = { versao: 1; acervo: Acervo };
 
 export type NovaCaptura = {
   fotoUri: string | null;
+  /** A aula que esta captura continua, segundo a leitura da foto. */
+  relacionada: string | null;
   subModo: string;
   materia: string;
   tema: string;
@@ -224,6 +226,13 @@ export function AcervoProvider({ children }: { children: ReactNode }) {
           flashcards: unir(existente.flashcards, entrada.flashcards, (f) => f.p),
           questoes: unir(existente.questoes, entrada.questoes, (q) => q.q),
           aoVivo: existente.aoVivo || entrada.aoVivo,
+          relacionadas: unir(
+            existente.relacionadas ?? [],
+            entrada.relacionada !== null && entrada.relacionada !== existente.id
+              ? [entrada.relacionada]
+              : [],
+            (id) => id
+          ),
           atualizadaEm: agora.getTime(),
         };
         atualizar((a) => ({
@@ -252,6 +261,7 @@ export function AcervoProvider({ children }: { children: ReactNode }) {
         questoes: entrada.questoes,
         aoVivo: entrada.aoVivo,
         resumoSalvo: false,
+        relacionadas: entrada.relacionada !== null ? [entrada.relacionada] : [],
       };
       atualizar((a) => {
         const comPasta = garantirPasta(a, entrada.pasta);

@@ -195,8 +195,12 @@ export type Chip = { id: string; icone: NomeIcone; label: string };
 export type SubModo = {
   id: string;
   nome: string;
-  /** O aviso de quando o visor acha a superficie sozinho, com o genero certo. */
+  /** Os avisos do visor sobre esta superficie, com o genero certo: quando ele
+   *  troca para Aula sozinho, quando ela entra inteira no enquadramento e
+   *  quando sai. Os dois ultimos sao falados pelo leitor de tela. */
   reconhecido: string;
+  enquadrado: string;
+  saiu: string;
   icone: NomeIcone;
   /** O problema optico especifico que este sub-modo resolve. */
   problema: string;
@@ -213,6 +217,8 @@ export const subModos: SubModo[] = [
     id: 'lousa',
     nome: 'Lousa',
     reconhecido: 'Lousa reconhecida',
+    enquadrado: 'Lousa inteira enquadrada',
+    saiu: 'A lousa saiu do enquadramento',
     icone: 'presentation',
     problema: 'Reflexo da janela e giz apagado, capturados de lado',
     chips: [
@@ -226,6 +232,8 @@ export const subModos: SubModo[] = [
     id: 'slide',
     nome: 'Slide',
     reconhecido: 'Slide reconhecido',
+    enquadrado: 'Slide inteiro enquadrado',
+    saiu: 'O slide saiu do enquadramento',
     icone: 'projector-screen-outline',
     problema: 'Projeção estourada em sala escura, com cintilação',
     chips: [
@@ -239,6 +247,8 @@ export const subModos: SubModo[] = [
     id: 'caderno',
     nome: 'Caderno',
     reconhecido: 'Caderno reconhecido',
+    enquadrado: 'Caderno inteiro enquadrado',
+    saiu: 'O caderno saiu do enquadramento',
     icone: 'notebook-outline',
     problema: 'Sombra da própria mão e papel curvado sobre a mesa',
     chips: [

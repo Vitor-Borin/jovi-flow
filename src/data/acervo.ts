@@ -62,6 +62,9 @@ export type Aula = {
   /** true quando o conteudo foi lido da foto pela IA, e nao do exemplo. */
   aoVivo: boolean;
   resumoSalvo: boolean;
+  /** Ids das aulas que esta continua, achados pela leitura da foto: a memoria da
+   *  camera. Ausente nas aulas de exemplo e nas gravadas antes de 17/09. */
+  relacionadas?: string[];
 };
 
 export type PastaDef = { materia: string; nome: string; icone: NomeIcone };
@@ -71,6 +74,22 @@ export type Acervo = { pastas: PastaDef[]; aulas: Aula[] };
 /** Arvore derivada para a aba Estudos: materia > subpasta > aulas. */
 export type Subpasta = { nome: string; aulas: Aula[] };
 export type Pasta = { nome: string; icone: NomeIcone; subpastas: Subpasta[] };
+
+/**
+ * A linha do aprendizado de uma aula: as que ela continua e as que vieram
+ * depois dela. So entre aulas que ainda existem, porque uma aula excluida deixa
+ * o id para tras nas outras.
+ */
+export function ligacoesDaAula(acervo: Acervo, aula: Aula): { continua: Aula[]; continuadaEm: Aula[] } {
+  const porId = new Map(acervo.aulas.map((a) => [a.id, a]));
+  const continua = (aula.relacionadas ?? [])
+    .map((id) => porId.get(id))
+    .filter((a): a is Aula => a !== undefined && a.id !== aula.id);
+  const continuadaEm = acervo.aulas.filter(
+    (a) => a.id !== aula.id && (a.relacionadas ?? []).includes(aula.id)
+  );
+  return { continua, continuadaEm };
+}
 
 /** Duas fotos fora do horario da grade contam como a mesma aula se cairem na
  *  mesma pasta, no mesmo dia, com menos de meia hora entre elas. */

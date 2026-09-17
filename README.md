@@ -20,11 +20,13 @@ Tudo o que aparece na tela funciona. Pastas e aulas são estado real, gravado no
 
 Com a análise por IA ligada, a IA lê a foto que você acabou de tirar e devolve matéria, tema, tópico, pasta, transcrição, resumo, flashcards e questões. Nada de Flexbox se a lousa era de Cálculo.
 
-### Os quatro diferenciais
+### Os diferenciais
 
 **O Modo Aula muda o comportamento da câmera, e não apenas a pasta onde a foto cai.**
 
 Em Foto, a câmera procura a lousa sozinha: tira uma foto pequena em silêncio a cada segundo e, quando acha um quadro inteiro com escrita dentro, desliza o carrossel para Aula. Lousa vazia, porta e tela apagada não trocam o modo.
+
+Em Aula, a câmera avisa se a foto vai servir. Com a lousa inteira no enquadramento, os cantos da moldura acendem em amarelo, o celular vibra e o VoiceOver fala "Lousa inteira enquadrada". Depois da foto, a leitura da IA diz em uns 2 segundos se pegou tudo; se não pegou, a tela mostra o que faltou e oferece "Tirar outra", enquanto o professor ainda não apagou a lousa.
 
 A foto do estudante nunca é alterada: ela aparece, vai para a aula e é lida pela IA do jeito que a câmera tirou.
 
@@ -56,9 +58,13 @@ A terceira situação cobre quem está revisando em casa, no fim de semana, long
 
 Duas fotos tiradas durante a mesma aula da grade viram páginas da **mesma aula**, e não dois itens soltos. A tela Organizar avisa antes de salvar: "Entra na aula de hoje como página 2". Fora do horário da grade vale a sessão livre: mesma pasta, mesmo dia, menos de meia hora desde a última foto. É a grade como contexto virando funcionalidade.
 
+**A câmera lembra o que já viu.**
+
+A leitura da foto recebe as aulas que o estudante já fotografou e aponta qual esta foto continua: "Continua *Grid e Bento Layout*, da aula de 14/08", com o motivo numa frase. A aula salva guarda a ligação e mostra "Continua" e "Continuada em", uma linha do aprendizado que se monta sozinha. A memória só aponta para aula que existe: o app confere o que a IA devolve contra o acervo e descarta o resto.
+
 **O celular lê a aula em voz alta.**
 
-Botão de play no resumo e na tela da aula. Usa a síntese de voz nativa do aparelho, offline. Serve para revisar no ônibus, e serve para quem não enxerga bem a lousa.
+Botão de play no resumo e no texto inteiro da lousa. Usa a síntese de voz nativa do aparelho, offline, com a voz mais natural instalada. Serve para revisar no ônibus, e serve para quem não enxerga bem a lousa. Os controles têm rótulo falado e os avisos importantes saem pelo VoiceOver, dentro do fluxo normal, sem um modo à parte.
 
 ## Como rodar
 
@@ -103,6 +109,10 @@ npx eas-cli@latest init
 ```
 
 Isso grava o `projectId` no `app.json`, e ele vai no commit.
+
+### A classificação faz três trabalhos
+
+A chamada rápida, de uns 2 segundos, é a única que chega a tempo de mudar o que o estudante faz na hora. Por isso ela diz onde salvar, se a foto pegou todo o conteúdo e qual aula já fotografada esta foto continua. Para isso ela leva junto a lista das 30 aulas mais recentes. O tempo dessa chamada com a lista ainda não foi medido no aparelho.
 
 ### Por que são três chamadas em vez de uma
 
@@ -234,7 +244,7 @@ Sobre acessibilidade: área tocável de no mínimo 44×44 pt, `accessibilityRole
 
 1. **0:00** Abre no visor, em Foto. Aponta para a lousa inteira e o carrossel desliza sozinho para Aula, porque a câmera achou a lousa escrita. Se não achar, toque em Aula.
 2. **0:15** Foto. A IA lê de verdade: matéria, tópico e a pasta, confirmada pela grade.
-3. **0:50** Destaque do pitch, em aberto de novo: o antes e depois da lousa tratada saiu, porque a foto do estudante não se altera.
+3. **0:50** Rascunho, a fechar com o Vitor. A câmera avisa: a moldura acende e o celular vibra com a lousa inteira; uma foto cortada de propósito abre com "A foto não pegou tudo · Tirar outra". A câmera lembra: uma foto de Flexbox abre com "Continua Grid e Bento Layout, de 14/08", e a aula mostra a linha do aprendizado.
 4. **2:05** Miniatura → galeria. Em Fotos, a foto é só mais uma; em Aulas, já está na matéria certa. Ouvir por 10 segundos.
 5. **2:50** `Mais` no visor: o "Documento em Ultra HD" já existe no V50, e o Flow especializa o que a JOVI já vende.
 6. **3:10** Folga para a IA demorar ou para a pergunta da banca.

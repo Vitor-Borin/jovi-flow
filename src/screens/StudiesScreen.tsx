@@ -92,7 +92,13 @@ export function StudiesScreen({ route }: Props) {
     termo === ''
       ? aulas
       : aulas.filter(
-          (a) => a.titulo.toLowerCase().includes(termo) || a.topico.toLowerCase().includes(termo)
+          (a) =>
+            a.titulo.toLowerCase().includes(termo) ||
+            a.topico.toLowerCase().includes(termo) ||
+            // "Eu vi isso em alguma aula": a busca entra no texto lido da lousa
+            // e no resumo, e nao so no titulo.
+            a.paginas.some((p) => p.textoExtraido.toLowerCase().includes(termo)) ||
+            a.resumo.some((r) => r.toLowerCase().includes(termo))
         );
 
   const abrirAula = (aula: Aula) => navigation.navigate('Aula', { aulaId: aula.id });
@@ -190,7 +196,7 @@ export function StudiesScreen({ route }: Props) {
           <TextInput
             value={busca}
             onChangeText={setBusca}
-            placeholder="Buscar por título ou assunto"
+            placeholder="Buscar no título, assunto ou texto da lousa"
             placeholderTextColor={colors.textFaint}
             style={styles.campoBusca}
             autoFocus

@@ -60,6 +60,20 @@ const PX_CLASSIFICACAO = 768;
 const PX_TRANSCRICAO = 1568;
 const QUALIDADE_ENVIO = 0.82;
 
+/** Aulas salvas enviadas para a IA achar a relacionada. As mais recentes: e onde
+ *  a continuacao de um assunto costuma estar, e a lista nao cresce sem fim. */
+const MAX_AULAS_PARA_RELACIONAR = 30;
+
+/** Se a foto pegou todo o conteudo escrito. Nao e sobre o tamanho da letra: a
+ *  classificacao ve a foto reduzida. E sobre borda cortando, foco e reflexo. */
+export type Leitura = 'completa' | 'parcial' | 'ilegivel';
+
+/** Uma aula que o estudante ja fotografou e que esta foto continua. */
+export type AulaRelacionada = { aulaId: string; motivo: string };
+
+/** O que a classificacao recebe de cada aula salva para achar a relacionada. */
+export type AulaParaRelacionar = { id: string; data: string; titulo: string; topico: string };
+
 export type ClassificacaoAoVivo = {
   materia: string;
   tema: string;
@@ -68,6 +82,12 @@ export type ClassificacaoAoVivo = {
   pasta: [string, string];
   /** true quando nenhuma pasta existente servia e uma nova foi proposta. */
   pastaNova: boolean;
+  leitura: Leitura;
+  /** O que faltou na foto e onde, numa frase. Vazio quando a leitura e completa. */
+  problema: string;
+  /** So aula que existe no acervo: o id devolvido e conferido contra a lista
+   *  enviada, e o que nao bate e descartado. Nulo quando nada se relaciona. */
+  relacionada: AulaRelacionada | null;
 };
 
 export type TranscricaoAoVivo = {
@@ -96,7 +116,20 @@ const DICA_SUBMODO: Record<string, string> = {
   caderno: 'É a foto de um caderno ou folha sobre a mesa, possivelmente com sombra e escrita à mão.',
 };
 
-function promptClassificacao(subModo: string, pastas: string[]): string {
+/**
+ * A classificacao faz tres trabalhos na mesma chamada de ~2 s, porque e a unica
+ * que chega a tempo de mudar o que o estudante faz na hora:
+ *
+ * - onde salvar (materia, tema, topico e pasta);
+ * - se a foto pegou tudo: com a resposta em 2 s ainda da para tirar outra antes
+ *   de o professor apagar a lousa;
+ * - qual aula ja fotografada esta foto continua, a memoria da camera.
+ */
+function promptClassificacao(
+  subModo: string,
+  pastas: string[],
+  aulas: AulaParaRelacionar[]
+): string {
   return [
     'Olhe esta foto de material de estudo de um estudante universitário brasileiro.',
     DICA_SUBMODO[subModo] ?? '',
@@ -104,8 +137,15 @@ function promptClassificacao(subModo: string, pastas: string[]): string {
     'Estas são as pastas que já existem no aplicativo dele:',
     ...pastas.map((p) => `- ${p}`),
     '',
+    ...(aulas.length > 0
+      ? [
+          'Estas são aulas que ele já fotografou (id | data | título | assunto):',
+          ...aulas.map((a) => `- ${a.id} | ${a.data} | ${a.titulo} | ${a.topico}`),
+          '',
+        ]
+      : []),
     'Responda SOMENTE com JSON válido, sem cercas de código e sem texto ao redor:',
-    '{"materia":"...","tema":"...","topico":"...","pasta":["...","..."],"pastaNova":false}',
+    '{"materia":"...","tema":"...","topico":"...","pasta":["...","..."],"pastaNova":false,"leitura":"completa","problema":"","relacionada":null,"motivo":""}',
     '',
     '- materia: a área de estudo em uma ou duas palavras. Ex.: Design, Programação, Matemática.',
     '- tema: a disciplina ou assunto maior.',
@@ -115,6 +155,17 @@ function promptClassificacao(subModo: string, pastas: string[]): string {
     '  os nomes dela, separando os níveis no array, e devolva pastaNova como false.',
     '  Só proponha nomes novos quando nenhuma das existentes fizer sentido. Nesse',
     '  caso devolva pastaNova como true.',
+    '- leitura: "completa" se todo o conteúdo escrito aparece inteiro na foto; "parcial" se',
+    '  parte dele ficou cortada pela borda da foto, fora de foco, escondida por reflexo ou por',
+    '  alguém na frente; "ilegivel" se quase nada dá para ler. Não julgue pelo tamanho da',
+    '  letra: esta imagem foi reduzida de propósito.',
+    '- problema: vazio se a leitura é completa. Senão, uma frase curta dizendo o que faltou e',
+    '  onde. Ex.: "A parte de baixo da lousa ficou cortada."',
+    '- relacionada: o id de UMA aula da lista acima cujo conteúdo esta foto continua, aprofunda',
+    '  ou usa como base. A relação tem de ser de conteúdo, e não só a mesma matéria. Se nenhuma',
+    '  servir, ou se não houver lista, null.',
+    '- motivo: vazio se relacionada é null. Senão, uma frase curta com a relação entre os dois',
+    '  conteúdos.',
     '',
     'Tudo em português do Brasil.',
   ]
@@ -387,17 +438,23 @@ async function chamarComRetentativa(
   return segunda;
 }
 
+function semAcento(t: string): string {
+  return t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
 export async function classificarCaptura(
   b64: string | null,
   subModo: string,
-  pastas: string[]
+  pastas: string[],
+  aulasSalvas: AulaParaRelacionar[]
 ): Promise<Resultado<ClassificacaoAoVivo>> {
   if (b64 === null || b64.length === 0) return { estado: 'sem-foto' };
 
+  const aulas = aulasSalvas.slice(0, MAX_AULAS_PARA_RELACIONAR);
   const r = await chamarComRetentativa(
     b64,
-    promptClassificacao(subModo, pastas),
-    400,
+    promptClassificacao(subModo, pastas, aulas),
+    600,
     LIMITE_CLASSIFICACAO_MS
   );
   if (!r.ok) return r.resultado;
@@ -423,6 +480,20 @@ export async function classificarCaptura(
       ? [pastaBruta[0] ?? materia, pastaBruta[1] ?? temaFinal]
       : [materia, temaFinal];
 
+  // Qualquer coisa fora de "parcial" e "ilegivel" conta como completa: na
+  // duvida, o app nao manda o estudante tirar outra foto.
+  const leituraBruta = semAcento(texto(o.leitura));
+  const leitura: Leitura =
+    leituraBruta === 'parcial' || leituraBruta === 'ilegivel' ? leituraBruta : 'completa';
+
+  // A memoria so aponta para aula que existe: id fora da lista e descartado.
+  const idRelacionada = texto(o.relacionada);
+  const motivo = texto(o.motivo);
+  const relacionada =
+    motivo !== '' && aulas.some((a) => a.id === idRelacionada)
+      ? { aulaId: idRelacionada, motivo }
+      : null;
+
   return {
     estado: 'ok',
     ms: r.ms,
@@ -432,6 +503,9 @@ export async function classificarCaptura(
       topico: topico === '' ? temaFinal : topico,
       pasta,
       pastaNova: o.pastaNova === true,
+      leitura,
+      problema: leitura === 'completa' ? '' : texto(o.problema),
+      relacionada,
     },
   };
 }
