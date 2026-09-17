@@ -266,6 +266,10 @@ export function temChaveConfigurada(): boolean {
 
 export type Verificacao = 'valida' | 'recusada' | 'indisponivel' | 'sem-chave';
 
+/** Teto do teste da chave. A lista de modelos responde em menos de meio segundo
+ *  numa rede boa; 15 s cobre rede de evento sem o teste morrer antes da hora. */
+const LIMITE_TESTE_MS = 15000;
+
 /**
  * Confere a chave com a Anthropic sem gastar nada: listar modelos nao consome
  * token. Serve para descobrir antes da apresentacao, e nao no palco, que a
@@ -276,16 +280,28 @@ export async function verificarChave(): Promise<Verificacao> {
   if (chave === null) return 'sem-chave';
 
   const controlador = new AbortController();
-  const relogio = setTimeout(() => controlador.abort(), 8000);
+  const relogio = setTimeout(() => controlador.abort(), LIMITE_TESTE_MS);
+  const inicio = Date.now();
   try {
     const r = await fetch('https://api.anthropic.com/v1/models?limit=1', {
       method: 'GET',
       signal: controlador.signal,
       headers: { 'x-api-key': chave, 'anthropic-version': VERSAO_API },
     });
+    // O motivo vai para o log: "nao deu para falar com a Anthropic" cobre rede
+    // bloqueada, demora e resposta inesperada, e so o log separa uma da outra.
+    const corpo = r.ok ? '' : (await r.text().catch(() => '')).slice(0, 200);
+    console.log(
+      `[JOVI Flow] teste da chave: HTTP ${r.status} em ${Date.now() - inicio}ms${corpo ? ` · ${corpo}` : ''}`
+    );
     if (r.ok) return 'valida';
     return r.status === 401 || r.status === 403 ? 'recusada' : 'indisponivel';
-  } catch {
+  } catch (erro) {
+    const demorou = Date.now() - inicio >= LIMITE_TESTE_MS;
+    console.log(
+      `[JOVI Flow] teste da chave falhou em ${Date.now() - inicio}ms:`,
+      demorou ? `passou de ${LIMITE_TESTE_MS}ms e foi cancelado` : erro
+    );
     return 'indisponivel';
   } finally {
     clearTimeout(relogio);
