@@ -220,11 +220,35 @@ async function cofreDisponivel(): Promise<boolean> {
 }
 
 /** Le a chave do cofre para a memoria. Chamado uma vez, na abertura do app. */
+/**
+ * A chave sem nada que a colagem tenha trazido junto.
+ *
+ * Espaco, quebra de linha e caractere invisivel no meio da chave viram valor
+ * invalido de cabecalho HTTP, e o fetch nem sai do aparelho: o app dizia "nao
+ * deu para falar com a Anthropic" sem nunca ter falado com ninguem. Chave da
+ * Anthropic e so texto ASCII visivel, entao o resto sai fora.
+ */
+function limparChave(valor: string): string {
+  return valor.replace(/[^!-~]/g, '');
+}
+
+/** Diz no log o tamanho e o comeco da chave, nunca o conteudo dela. */
+function registrarChave(origem: string, bruta: string, limpa: string): void {
+  const sujeira = bruta.length - limpa.length;
+  console.log(
+    `[JOVI Flow] chave ${origem}: ${limpa.length} caracteres` +
+      `${sujeira > 0 ? `, ${sujeira} invisiveis removidos` : ''}` +
+      `, ${limpa.startsWith('sk-ant-') ? 'comeca com sk-ant-' : 'SEM o comeco sk-ant-'}`
+  );
+}
+
 export async function carregarChaveGuardada(): Promise<boolean> {
   try {
     if (await cofreDisponivel()) {
       const valor = await SecureStore.getItemAsync(CHAVE_NO_COFRE);
-      chaveGuardada = valor !== null && valor.trim().length > 0 ? valor.trim() : null;
+      const limpa = valor === null ? '' : limparChave(valor);
+      chaveGuardada = limpa.length > 0 ? limpa : null;
+      if (valor !== null) registrarChave('do cofre', valor, limpa);
     }
   } catch (erro) {
     console.log('[JOVI Flow] nao deu para ler a chave do cofre:', erro);
@@ -235,7 +259,8 @@ export async function carregarChaveGuardada(): Promise<boolean> {
 /** Guarda a chave. Devolve se ela ficou no cofre ou so na memoria: sem cofre
  *  (no navegador, por exemplo) ela vale ate o app fechar. */
 export async function guardarChave(valor: string): Promise<'cofre' | 'memoria'> {
-  chaveGuardada = valor.trim();
+  chaveGuardada = limparChave(valor);
+  registrarChave('colada', valor, chaveGuardada);
   try {
     if (await cofreDisponivel()) {
       await SecureStore.setItemAsync(CHAVE_NO_COFRE, chaveGuardada);
