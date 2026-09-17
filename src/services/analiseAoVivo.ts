@@ -294,6 +294,9 @@ export type Verificacao =
   | 'recusada'
   /** A chave vale, mas a conta nao tem credito para gastar. */
   | 'sem-credito'
+  /** A chave foi criada no nivel da organizacao, e nao dentro de um workspace.
+   *  A API entao exige o cabecalho anthropic-workspace-id, que o app nao tem. */
+  | 'sem-workspace'
   | 'indisponivel'
   | 'sem-chave';
 
@@ -339,6 +342,7 @@ export async function verificarChave(): Promise<Verificacao> {
     );
     if (r.ok) return 'valida';
     if (r.status === 401 || r.status === 403) return 'recusada';
+    if (/anthropic-workspace-id|scoped to a workspace/i.test(corpo)) return 'sem-workspace';
     if (/credit balance|insufficient|billing/i.test(corpo)) return 'sem-credito';
     return 'indisponivel';
   } catch (erro) {

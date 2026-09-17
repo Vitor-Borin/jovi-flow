@@ -43,6 +43,8 @@ const TEXTO_VERIFICACAO: Record<Verificacao, string> = {
   recusada: 'A Anthropic recusou esta chave. Confira se ela foi revogada ou colada pela metade.',
   'sem-credito':
     'A chave vale, mas a conta está sem crédito. Adicione crédito em Billing, no console da Anthropic.',
+  'sem-workspace':
+    'Esta chave foi criada no nível da organização. No console da Anthropic, crie a chave dentro de um workspace (o Default serve) e cole a nova aqui.',
   indisponivel: 'Não deu para falar com a Anthropic agora. Confira a internet e teste de novo.',
   'sem-chave': 'Nenhuma chave guardada.',
 };
