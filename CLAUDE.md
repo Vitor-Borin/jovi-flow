@@ -162,9 +162,12 @@ comporta igual ao aparelho).
 5. [x] **Resolver o que é encenado.** O "Lousa reconhecida" virou verdade e o
        antes e depois saiu. Sobrou um ponto menor, na seção "Encenado" abaixo.
 6. [x] **Roteiro da apresentação**, montado em 17/09: página do pitch (ver
-       "Onde está o resto") e resumo no README. Falta o grupo combinar o
-       espelhamento da tela, levar a lousa de Flexbox sobre fundo escuro e
-       ensaiar três vezes com o cronômetro da página.
+       "Onde está o resto") e resumo no README. São quatro avaliadores da JOVI
+       e um celular só: o iPhone vai no projetor por um adaptador USB-C para
+       HDMI (a sala liga o projetor por HDMI no notebook). Falta comprar e
+       testar o adaptador, inclusive o som do Ouvir com ele ligado, levar a
+       lousa de Flexbox sobre fundo escuro e ensaiar três vezes com o
+       cronômetro da página.
 
 ## O que falta
 

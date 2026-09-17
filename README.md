@@ -242,7 +242,9 @@ Sobre acessibilidade: área tocável de no mínimo 44×44 pt, `accessibilityRole
 
 ## Roteiro dos 5 minutos
 
-Um minuto de fala e quatro com o protótipo na mão. A versão completa, com o texto de cada fala, o que fazer se algo falhar, as perguntas prováveis da banca e um cronômetro de ensaio, está na página do pitch (link no `CLAUDE.md`). Papéis: um narrador, um operador com o iPhone e um apoio com a lousa e o tempo.
+Um minuto de fala e quatro com o protótipo na mão, para quatro avaliadores da JOVI. O celular não passa de mão em mão: o iPhone vai direto no projetor por um adaptador USB-C para HDMI, que espelha a tela sem aplicativo e sem internet (iPhone 15 em diante, exceto os modelos "e").
+
+ A versão completa, com o texto de cada fala, o que fazer se algo falhar, as perguntas prováveis da banca e um cronômetro de ensaio, está na página do pitch (link no `CLAUDE.md`). Papéis: um narrador, um operador com o iPhone e um apoio com a lousa e o tempo.
 
 1. **0:00** Minuto de fala, com a câmera virada para baixo: a foto da lousa some na galeria; ninguém abre outro aplicativo no meio da aula; o JOVI Flow é um modo da câmera da JOVI.
 2. **1:00** A câmera acha a lousa: o carrossel desliza sozinho para Aula, os cantos acendem e o celular vibra.
@@ -257,6 +259,7 @@ A lousa da demonstração é uma folha A3 escrita com Flexbox, presa sobre um fu
 
 ## Antes de apresentar
 
+- [ ] Adaptador USB-C para HDMI testado com o iPhone numa TV ou monitor, e o som do Ouvir testado com ele ligado (o som passa a sair pelo HDMI)
 - [ ] Desligar atualização automática de apps no iPhone, senão o Expo Go atualiza e o app não abre
 - [ ] Vincular o projeto à conta Expo (`npx eas-cli@latest init`), para as aulas e a chave valerem em qualquer computador
 - [ ] Ajustes → Análise por IA: guardar a chave nova e tocar em Testar a chave, com a rede do local
