@@ -1,18 +1,17 @@
 /**
- * Teste do tratamento e da procura da lousa, no computador, sem celular.
+ * Teste da procura da lousa, no computador, sem celular.
  *
  *   npm run testar:lousa
  *
  * Monta cenas 3D sinteticas (lousa branca, lousa verde, caderno, lousa vazia,
- * janela, parede) vistas de lado por uma camera com foco de celular, e roda
- * sobre elas o MESMO codigo do app: src/services/quadro.ts e
- * src/services/tratamentoLousa.ts, compilados na hora, com o Skia do CanvasKit
- * no lugar do Skia do aparelho.
+ * janela, porta) vistas de lado por uma camera com foco de celular, reduz cada
+ * foto para 200 px como o visor faz, e roda nela o MESMO codigo do app:
+ * src/services/quadro.ts, compilado na hora, com o Skia do CanvasKit no lugar do
+ * Skia do aparelho.
  *
- * Confere o que da para saber com certeza numa cena sintetica, porque ali os
- * cantos e a proporcao reais sao conhecidos: erro dos cantos, proporcao da lousa
- * endireitada, quadro claro ou escuro, e se a procura do visor afirma "lousa"
- * so onde ha lousa escrita. Grava antes e depois em scripts/saida-lousa/.
+ * Confere se a procura afirma "lousa" so onde ha lousa escrita: e isso que
+ * decide o aviso "Lousa reconhecida". As fotos das cenas ficam em
+ * scripts/saida-lousa/.
  *
  * O que ele nao prova: foto real tem ruido, reflexo de verdade, lousa suja e
  * lente com distorcao. O teste no aparelho continua obrigatorio.
@@ -29,9 +28,6 @@ const COMPILADO = path.join(os.tmpdir(), 'jovi-flow-testar-lousa');
 
 /** Mesma reducao que o visor faz antes de procurar a lousa. */
 const LADO_PROCURA = 200;
-/** Tolerancias do que a cena sintetica permite exigir. */
-const ERRO_MAXIMO_CANTOS = 0.01;
-const ERRO_MAXIMO_PROPORCAO = 0.02;
 
 function compilar() {
   fs.rmSync(COMPILADO, { recursive: true, force: true });
@@ -40,7 +36,6 @@ function compilar() {
     [
       require.resolve('typescript/bin/tsc'),
       path.join(RAIZ, 'src/services/quadro.ts'),
-      path.join(RAIZ, 'src/services/tratamentoLousa.ts'),
       '--ignoreConfig',
       '--ignoreDeprecations',
       '6.0',
@@ -53,7 +48,6 @@ function compilar() {
       '--moduleResolution',
       'node',
       '--skipLibCheck',
-      '--esModuleInterop',
       '--strict',
     ],
     { stdio: 'inherit' }
@@ -81,6 +75,30 @@ function projetar({ largura, altura, centro, guinada, arfagem }, L, A) {
   });
 }
 
+/** Homografia do quadrado unitario para o quadrilatero (Heckbert, 1989): leva a
+ *  superficie plana do quadro para a posicao dele na foto. */
+function homografiaDoQuadrado([p0, p1, p2, p3]) {
+  const dx1 = p1.x - p2.x;
+  const dx2 = p3.x - p2.x;
+  const dx3 = p0.x - p1.x + p2.x - p3.x;
+  const dy1 = p1.y - p2.y;
+  const dy2 = p3.y - p2.y;
+  const dy3 = p0.y - p1.y + p2.y - p3.y;
+  const den = dx1 * dy2 - dx2 * dy1;
+  const g = (dx3 * dy2 - dx2 * dy3) / den;
+  const h = (dx1 * dy3 - dx3 * dy1) / den;
+  return {
+    a: p1.x - p0.x + g * p1.x,
+    b: p3.x - p0.x + h * p3.x,
+    c: p0.x,
+    d: p1.y - p0.y + g * p1.y,
+    e: p3.y - p0.y + h * p3.y,
+    f: p0.y,
+    g,
+    h,
+  };
+}
+
 async function main() {
   compilar();
   const CanvasKitInit = require('canvaskit-wasm/bin/full/canvaskit.js');
@@ -88,16 +106,15 @@ async function main() {
   global.CanvasKit = await CanvasKitInit({ locateFile: (f) => path.join(pastaWasm, f) });
   const { JsiSkApi } = require('@shopify/react-native-skia/lib/commonjs/skia/web/JsiSkia.js');
   const Skia = JsiSkApi(global.CanvasKit);
-  const { homografiaDoQuadrado, temEscrita } = require(path.join(COMPILADO, 'quadro.js'));
-  const { acharQuadro, tratarImagem } = require(path.join(COMPILADO, 'tratamentoLousa.js'));
+  const { detectarQuadro, temEscrita } = require(path.join(COMPILADO, 'quadro.js'));
 
   fs.mkdirSync(SAIDA, { recursive: true });
   const CLAMP = 0;
   const LINEAR = 1;
   const MIPMAP_LINEAR = 2;
-
-  const png = (img, nome) =>
-    fs.writeFileSync(path.join(SAIDA, nome), Buffer.from(img.encodeToBase64(4, 100), 'base64'));
+  const PNG = 4;
+  const RGBA_8888 = 4;
+  const SEM_PREMULTIPLICAR = 3;
 
   const pincel = (cor, espessura) => {
     const p = Skia.Paint();
@@ -174,9 +191,8 @@ async function main() {
     );
     c.drawPaint(parede);
 
-    let cantos = null;
     if (cena.quadro) {
-      cantos = projetar(cena.quadro, L, A);
+      const cantos = projetar(cena.quadro, L, A);
       const larg = Math.round(1000 * cena.quadro.largura);
       const alt = Math.round(1000 * cena.quadro.altura);
       const img = superficie(larg, alt, cena.tipo, cena.escrita);
@@ -239,11 +255,12 @@ async function main() {
       c.drawPaint(brilho);
     }
     sup.flush();
-    return { foto: sup.makeImageSnapshot(), cantos, L, A };
+    return { foto: sup.makeImageSnapshot(), L, A };
   }
 
-  /** A foto pequena da procura, reduzida com filtro como o aparelho reduz. */
-  function reduzirParaProcura(foto, L, A) {
+  /** A foto pequena da procura, reduzida com filtro como o aparelho reduz, em
+   *  RGBA como o app le. */
+  function pixelsDaProcura(foto, L, A) {
     const escala = LADO_PROCURA / Math.max(L, A);
     const w = Math.round(L * escala);
     const h = Math.round(A * escala);
@@ -252,7 +269,13 @@ async function main() {
       .getCanvas()
       .drawImageRectOptions(foto, Skia.XYWHRect(0, 0, L, A), Skia.XYWHRect(0, 0, w, h), LINEAR, MIPMAP_LINEAR, Skia.Paint());
     sup.flush();
-    return sup.makeImageSnapshot();
+    const rgba = sup.makeImageSnapshot().readPixels(0, 0, {
+      width: w,
+      height: h,
+      colorType: RGBA_8888,
+      alphaType: SEM_PREMULTIPLICAR,
+    });
+    return { rgba, w, h };
   }
 
   const paredeEscura = ['#7C7368', '#5F574D'];
@@ -260,130 +283,64 @@ async function main() {
   const deLado = { largura: 1.6, altura: 1.0, centro: [0.1, -0.05, 2.4], guinada: 32, arfagem: 6 };
   const verdeDeLado = { largura: 1.6, altura: 1.0, centro: [-0.05, 0.0, 2.3], guinada: -28, arfagem: -5 };
 
-  // `espera` diz o que a cena tem de dar. `null` em tratada = nada para tratar.
+  // `lousa` diz o que a procura tem de responder em cada cena.
   const cenas = [
-    {
-      nome: 'branca',
-      tipo: 'branca',
-      escrita: true,
-      quadro: deLado,
-      parede: paredeEscura,
-      reflexo: true,
-      espera: { tratada: { perspectiva: true, claro: true }, lousa: true },
-    },
-    {
-      nome: 'verde',
-      tipo: 'verde',
-      escrita: true,
-      quadro: verdeDeLado,
-      parede: paredeClara,
-      espera: { tratada: { perspectiva: true, claro: false }, lousa: true },
-    },
+    { nome: 'branca', tipo: 'branca', escrita: true, quadro: deLado, parede: paredeEscura, reflexo: true, lousa: true },
+    { nome: 'verde', tipo: 'verde', escrita: true, quadro: verdeDeLado, parede: paredeClara, lousa: true },
     {
       nome: 'caderno',
       tipo: 'caderno',
       escrita: true,
       quadro: { largura: 0.707, altura: 1.0, centro: [0.0, 0.05, 1.7], guinada: 12, arfagem: 38 },
       parede: ['#6B4F36', '#4E3826'],
-      espera: { tratada: { perspectiva: true, claro: true }, lousa: true },
+      lousa: true,
     },
     {
-      // Lousa enchendo a foto: sem os cantos dentro dela, trata so a luz.
+      // Lousa enchendo a foto: sem os cantos dentro dela, nao da para afirmar.
       nome: 'cheia',
       tipo: 'branca',
       escrita: true,
       quadro: { largura: 1.6, altura: 1.0, centro: [0.0, 0.0, 0.9], guinada: 10, arfagem: 0 },
       parede: paredeEscura,
-      espera: { tratada: { perspectiva: false, claro: true }, lousa: false },
+      lousa: false,
     },
-    {
-      nome: 'lousa-vazia',
-      tipo: 'branca',
-      escrita: false,
-      quadro: deLado,
-      parede: paredeEscura,
-      reflexo: true,
-      espera: { tratada: { perspectiva: true, claro: true }, lousa: false },
-    },
-    {
-      nome: 'verde-vazia',
-      tipo: 'verde',
-      escrita: false,
-      quadro: verdeDeLado,
-      parede: paredeClara,
-      espera: { tratada: { perspectiva: true, claro: false }, lousa: false },
-    },
-    {
-      // Retangulo claro com textura: o tratamento endireita, mas nao e lousa.
-      nome: 'janela',
-      tipo: 'janela',
-      quadro: null,
-      parede: paredeEscura,
-      espera: { lousa: false },
-    },
-    {
-      nome: 'porta-e-mesa',
-      tipo: 'nenhum',
-      quadro: null,
-      parede: paredeEscura,
-      espera: { tratada: null, lousa: false },
-    },
+    { nome: 'lousa-vazia', tipo: 'branca', escrita: false, quadro: deLado, parede: paredeEscura, reflexo: true, lousa: false },
+    { nome: 'verde-vazia', tipo: 'verde', escrita: false, quadro: verdeDeLado, parede: paredeClara, lousa: false },
+    // Retangulo claro com textura: tem forma de quadro, mas nao e lousa escrita.
+    { nome: 'janela', tipo: 'janela', quadro: null, parede: paredeEscura, lousa: false },
+    { nome: 'porta-e-mesa', tipo: 'nenhum', quadro: null, parede: paredeEscura, lousa: false },
   ];
 
   let falhas = 0;
   for (const cena of cenas) {
-    const { foto, cantos, L, A } = fotografar(cena);
-    png(foto, `${cena.nome}-antes.png`);
-    const problemas = [];
-    const linha = { cena: cena.nome };
+    const { foto, L, A } = fotografar(cena);
+    png(foto, `${cena.nome}.png`);
 
+    const { rgba, w, h } = pixelsDaProcura(foto, L, A);
     const inicio = Date.now();
-    const r = tratarImagem(Skia, foto);
-    linha.msTratamento = Date.now() - inicio;
-    if (r === null) {
-      linha.tratamento = 'nada para tratar';
-    } else {
-      png(r.imagem, `${cena.nome}-depois.png`);
-      linha.tratamento = `${r.largura}x${r.altura}, ${r.perspectiva ? 'endireitada' : 'so a luz'}, ${r.claro ? 'clara' : 'escura'}`;
-      if (cena.quadro && r.perspectiva) {
-        const real = cena.quadro.largura / cena.quadro.altura;
-        const erroProporcao = Math.abs(r.largura / r.altura - real) / real;
-        linha.erroProporcao = `${(erroProporcao * 100).toFixed(1)}%`;
-        if (erroProporcao > ERRO_MAXIMO_PROPORCAO) problemas.push('proporcao da lousa endireitada');
-      }
-      if (cantos && r.cantos && cantos.every((p) => p.x > 0 && p.x < L && p.y > 0 && p.y < A)) {
-        const erroCantos = Math.max(
-          ...r.cantos.map((p, i) => Math.hypot(p.x - cantos[i].x / (L - 1), p.y - cantos[i].y / (A - 1)))
-        );
-        linha.erroCantos = `${(erroCantos * 100).toFixed(2)}%`;
-        if (erroCantos > ERRO_MAXIMO_CANTOS) problemas.push('cantos longe dos reais');
-      }
-    }
-    if ('tratada' in cena.espera) {
-      const esperado = cena.espera.tratada;
-      if (esperado === null && r !== null) problemas.push('tratou uma foto sem lousa');
-      if (esperado !== null && r === null) problemas.push('nao tratou');
-      if (esperado !== null && r !== null) {
-        if (r.perspectiva !== esperado.perspectiva) problemas.push(`perspectiva deveria ser ${esperado.perspectiva}`);
-        if (r.claro !== esperado.claro) problemas.push(`claro deveria ser ${esperado.claro}`);
-      }
-    }
-
-    const quadro = acharQuadro(Skia, reduzirParaProcura(foto, L, A));
+    const quadro = detectarQuadro(rgba, w, h);
     const lousa = quadro !== null && temEscrita(quadro);
-    linha.procura = quadro
-      ? `quadro com traco ${(quadro.detalhe * 100).toFixed(1)}% -> ${lousa ? 'LOUSA' : 'nada'}`
-      : 'sem quadro -> nada';
-    if (lousa !== cena.espera.lousa) {
-      problemas.push(cena.espera.lousa ? 'a procura nao achou a lousa' : 'a procura afirmou lousa onde nao ha');
-    }
-
-    linha.resultado = problemas.length === 0 ? 'ok' : `FALHOU: ${problemas.join('; ')}`;
-    if (problemas.length > 0) falhas += 1;
-    console.log(JSON.stringify(linha));
+    const ok = lousa === cena.lousa;
+    if (!ok) falhas += 1;
+    console.log(
+      JSON.stringify({
+        cena: cena.nome,
+        procura: quadro
+          ? `quadro com ${Math.round(quadro.area * 100)}% da foto, traco ${(quadro.detalhe * 100).toFixed(1)}% -> ${lousa ? 'LOUSA' : 'nada'}`
+          : 'sem quadro -> nada',
+        ms: Date.now() - inicio,
+        resultado: ok
+          ? 'ok'
+          : `FALHOU: ${cena.lousa ? 'a procura nao achou a lousa' : 'a procura afirmou lousa onde nao ha'}`,
+      })
+    );
   }
 
-  console.log(`\n${cenas.length - falhas} de ${cenas.length} cenas conferem. Imagens em ${SAIDA}`);
+  function png(img, nome) {
+    fs.writeFileSync(path.join(SAIDA, nome), Buffer.from(img.encodeToBase64(PNG, 100), 'base64'));
+  }
+
+  console.log(`\n${cenas.length - falhas} de ${cenas.length} cenas conferem. Fotos em ${SAIDA}`);
   if (falhas > 0) process.exit(1);
 }
 

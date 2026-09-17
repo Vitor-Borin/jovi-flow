@@ -79,8 +79,7 @@ export function PhotosScreen() {
         if (pagina.fotoUri === null) return;
         itens.push({
           chave: pagina.id,
-          // Na galeria a foto aparece como a camera tirou; a tratada mora na aula.
-          uri: pagina.fotoOriginalUri ?? pagina.fotoUri,
+          uri: pagina.fotoUri,
           // O indice desempata paginas tiradas no mesmo minuto.
           momento: instante(aula.data, pagina.hora) + indice,
           hora: pagina.hora,

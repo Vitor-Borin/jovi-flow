@@ -112,29 +112,38 @@ function normalizar(t: string): string {
     .trim();
 }
 
+function casaExato(alvo: string, s: Slot): boolean {
+  return normalizar(s.materia) === alvo || normalizar(s.disciplina) === alvo;
+}
+
+function casaParcial(alvo: string, s: Slot): boolean {
+  return normalizar(s.disciplina).startsWith(alvo) || alvo.startsWith(normalizar(s.materia));
+}
+
 export function contextoDaCaptura(
   materiaDetectada: string,
   agora = new Date()
 ): ContextoCaptura {
-  const emAula = aulaAgora(agora);
-  if (emAula) return { tipo: 'em-aula', slot: emAula };
-
-  // Fora de aula a grade ainda serve, nao como relogio, mas como vocabulario
-  // das disciplinas que este estudante cursa.
   const alvo = normalizar(materiaDetectada);
+
+  // So confirma pela grade quando a materia da foto e a da aula de agora. Antes
+  // bastava haver aula no horario: a tela dizia "Confirmado pela sua grade:
+  // Computational Thinking" em cima de uma foto de Front-End Design.
+  const emAula = aulaAgora(agora);
+  if (emAula && alvo !== '' && (casaExato(alvo, emAula) || casaParcial(alvo, emAula))) {
+    return { tipo: 'em-aula', slot: emAula };
+  }
+
+  // Fora de aula, ou com outra materia na foto, a grade ainda serve, nao como
+  // relogio, mas como vocabulario das disciplinas que este estudante cursa.
   if (alvo !== '') {
     // Ordem importa. A busca por substring casava "Design" com "Software &
     // Total Experience Design" de segunda, que vem antes na grade, e a tela
     // mostrava a disciplina errada. Casamento exato tem precedencia.
-    const exato = gradeHoraria.find(
-      (s) => normalizar(s.materia) === alvo || normalizar(s.disciplina) === alvo
-    );
+    const exato = gradeHoraria.find((s) => casaExato(alvo, s));
     if (exato) return { tipo: 'disciplina-conhecida', slot: exato };
 
-    const parcial = gradeHoraria.find((s) => {
-      const d = normalizar(s.disciplina);
-      return d.startsWith(alvo) || alvo.startsWith(normalizar(s.materia));
-    });
+    const parcial = gradeHoraria.find((s) => casaParcial(alvo, s));
     if (parcial) return { tipo: 'disciplina-conhecida', slot: parcial };
   }
 
@@ -142,22 +151,6 @@ export function contextoDaCaptura(
 }
 
 export type Etapa = { id: string; label: string; detalhe: string };
-
-/**
- * Etapas do tratamento da foto pela CAMERA, antes da IA [D1]. Sao as etapas de
- * services/tratamentoLousa.ts, na mesma ordem, e e o que amarra o projeto ao
- * brief da JOVI: o Modo Aula muda o que a camera faz com a foto.
- *
- * A tela de processamento mostra so as que foram aplicadas naquela foto, e o
- * detalhe da primeira diz o que o tratamento achou. Ate a Sprint 4 esta lista
- * dizia "Combinando 4 frames" e "Suprimindo reflexo", e nada disso acontecia.
- */
-export const etapasCamera: Etapa[] = [
-  { id: 'lousa', label: 'Procurando a lousa na foto', detalhe: 'Os quatro cantos do quadro' },
-  { id: 'perspectiva', label: 'Endireitando a perspectiva', detalhe: 'A foto de lado fica de frente' },
-  { id: 'luz', label: 'Deixando a luz por igual', detalhe: 'Sombra e degradê somem' },
-  { id: 'traco', label: 'Realçando o traço', detalhe: 'Traço forte sobre fundo limpo' },
-];
 
 /**
  * Os modos que a camera do JOVI V50 tem de verdade, na traducao oficial em
@@ -405,41 +398,3 @@ export const plataformas: Plataforma[] = [
     automaticaPorPadrao: false,
   },
 ];
-
-/* ------------------------------------------------- economia de armazenamento */
-
-/** Uma das dores levantadas na pesquisa do grupo e a falta de espaco no celular.
- *  O Flow guarda texto e uma imagem tratada, e nao a foto original de 12 MP. */
-export const economia = {
-  /** Tamanho tipico de uma foto de 12 MP, em MB. */
-  fotoOriginalMb: 4.2,
-  /** Texto reconhecido mais miniatura tratada, em KB. */
-  salvoKb: 38,
-  /**
-   * Capturas de um semestre. Base do calculo: 5 aulas por semana, 16 semanas,
-   * e cerca de 5 fotos de quadro por aula. Numero conservador de proposito,
-   * inflar aqui seria facil e destruiria a credibilidade se a banca perguntar.
-   */
-  capturasPorSemestre: 400,
-};
-
-/** Formata em MB ou GB conforme a grandeza, com virgula decimal. */
-function tamanho(mb: number): string {
-  if (mb >= 1024) return `${(mb / 1024).toFixed(1).replace('.', ',')} GB`;
-  return `${Math.round(mb)} MB`;
-}
-
-export function economiaFormatada() {
-  const fotoKb = economia.fotoOriginalMb * 1024;
-  const fator = Math.round(fotoKb / economia.salvoKb);
-  const comFlowMb = (economia.salvoKb * economia.capturasPorSemestre) / 1024;
-  const semFlowMb = economia.fotoOriginalMb * economia.capturasPorSemestre;
-  return {
-    fator,
-    capturas: economia.capturasPorSemestre,
-    porAula: `${economia.salvoKb} KB`,
-    porAulaSemFlow: `${economia.fotoOriginalMb.toFixed(1).replace('.', ',')} MB`,
-    semestre: tamanho(comFlowMb),
-    semestreSemFlow: tamanho(semFlowMb),
-  };
-}

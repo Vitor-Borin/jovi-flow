@@ -149,20 +149,32 @@ Hoje o sub-modo escolhido entra no prompt das duas chamadas, descrevendo o
 problema óptico daquela superfície. Vale para qualquer controle novo: se ele
 existe na tela, ele faz alguma coisa.
 
-**Antes e depois é imagem de verdade.**
+**A foto é do estudante.**
 
-Até a Sprint 4, a tela de processamento entortava a foto de propósito (girava 4°
-e inclinava 3°), punha um reflexo falso por cima e animava tudo voltando. O
-"depois" era a própria foto original, e a lista de etapas dizia "Combinando 4
-frames" e "Suprimindo reflexo" sem nada disso acontecer.
+Até a Sprint 4, a tela de processamento entortava a foto de propósito, punha um
+reflexo falso por cima e animava tudo voltando, e a lista de etapas dizia
+"Combinando 4 frames" e "Suprimindo reflexo" sem nada disso acontecer.
 
-Hoje o antes é a foto como a câmera tirou, e o depois é a lousa que o tratamento
-devolveu. O contorno fica onde os cantos foram achados, o tempo é medido no
-aparelho, e a lista mostra só as etapas aplicadas naquela foto. Quando não acha a
-lousa, a tela diz isso e segue com a original.
+Em 16/09 isso virou um tratamento de verdade, que endireitava a lousa e deixava
+a luz por igual, com antes e depois real. Funcionou nas cenas de teste e saiu no
+mesmo dia, depois do teste no iPhone: numa foto da tela de um computador, o
+tratamento deu zoom e inventou brilho que não existia. A decisão ficou assim: o
+app não altera a foto que o estudante tirou. Ela aparece inteira, sem corte e
+sem zoom, e é a mesma na aula, na galeria e na leitura da IA.
 
-A tela promete luz por igual e traço forte, nunca "remove reflexo": reflexo
-estourado não se recupera com uma foto só, porque ali não sobrou traço.
+**"Confirmado pela sua grade" só quando confirma.**
+
+O cartão afirmava a confirmação sempre que havia aula no horário, mesmo com a
+foto de outra matéria: "Confirmado pela sua grade: Computational Thinking" em
+cima de "Front-End Design". Hoje ele só confirma quando a matéria da foto é a da
+aula de agora; senão cai para "Uma das suas disciplinas" ou "Assunto fora da sua
+grade".
+
+**Campo de texto nunca fica atrás do teclado.**
+
+A folha de "Nova pasta" ficava presa no pé da tela, e o teclado cobria o campo:
+o estudante digitava sem ver. Toda folha com campo sobe com o teclado, e tela
+com rolagem ajusta o espaço dele.
 
 **"Lousa reconhecida" só depois de achar a lousa.**
 

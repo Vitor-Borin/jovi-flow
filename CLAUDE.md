@@ -23,7 +23,7 @@ Antes de commitar:
 ```bash
 npx tsc --noEmit        # passa
 npx expo-doctor         # 21/21 (SDK 57)
-npm run testar:lousa    # 8 de 8, sempre que mexer em quadro.ts ou tratamentoLousa.ts
+npm run testar:lousa    # 8 de 8, sempre que mexer em quadro.ts
 ```
 
 ## Regras que não se quebram
@@ -39,11 +39,13 @@ Cada uma destas já custou caro para descobrir.
 | Emoji nunca como ícone | Depende da fonte do sistema e não aceita token de cor. Use `Ionicons` ou `MaterialCommunityIcons`. |
 | Todo texto visível em **português do Brasil** | |
 | Rede só em `src/services/analiseAoVivo.ts` | Nenhum outro arquivo faz chamada externa. |
-| Skia **nunca** pela raiz do pacote em código que roda | Em 16/09 o app nem abriu no iPhone: a raiz `@shopify/react-native-skia` carrega também o vídeo do Skia, que chama o `react-native-reanimated` ao abrir, e ele não está instalado. A API do Skia vem só de `skiaNativo()` em `tratarLousa.ts`; da raiz, só `import type`. O build web e o teste da lousa não pegam isso: confira o bundle do iPhone (`npx expo export -p ios --no-bytecode --no-minify`) e procure `createWorkletRuntime`, que não pode aparecer. |
+| Skia **nunca** pela raiz do pacote em código que roda | Em 16/09 o app nem abriu no iPhone: a raiz `@shopify/react-native-skia` carrega também o vídeo do Skia, que chama o `react-native-reanimated` ao abrir, e ele não está instalado. A API do Skia vem só de `skiaNativo()` em `procurarLousa.ts`; da raiz, só `import type`. O build web e o teste da lousa não pegam isso: confira o bundle do iPhone (`npx expo export -p ios --no-bytecode --no-minify`) e procure `createWorkletRuntime`, que não pode aparecer. |
 | Chave da API só no cofre do aparelho | Nunca em `.env` nem no Git: variável `EXPO_PUBLIC_*` entra no pacote que o PC serve pela rede, e qualquer um no mesmo Wi-Fi lê a chave. |
 | Nenhuma barra de abas de aplicativo | O Flow mora na câmera, na galeria (Fotos e Aulas) e nos ajustes da câmera. Tela inicial ou aba Perfil dizem "app para baixar", o contrário da tese. |
 | O acervo só muda pelas ações do `AcervoContext` | Nenhuma tela guarda cópia própria de pasta ou aula. |
+| A foto é do estudante: o app **não altera** | Aparece, vai para a aula e é lida pela IA como a câmera tirou. Em 16/09 o tratamento que endireitava e limpava a lousa saiu depois do teste no iPhone: numa foto de tela de computador ele deu zoom e inventou brilho. Ver `DESIGN.md` → "Honestidade da interface". |
 | A tela nunca afirma o que o app não sabe | Ver `DESIGN.md` → "Honestidade da interface". |
+| Campo de texto nunca fica atrás do teclado | Folha com campo usa `KeyboardAvoidingView`; tela com rolagem usa `automaticallyAdjustKeyboardInsets`. Em 16/09 o teclado cobria o campo de "Nova pasta" e o estudante digitava sem ver. |
 | Controle que não muda nada não existe | Ou o controle age, ou sai da tela. |
 
 ## Mapa do código
@@ -58,12 +60,10 @@ src/data/acervo.ts             tipos do acervo, funções puras, sessão pela
 src/store/AcervoContext.tsx    pastas e aulas, gravadas no aparelho
 src/store/FlowContext.tsx      a captura em andamento
 src/services/analiseAoVivo.ts  as 3 chamadas à IA (único ponto de rede)
-src/services/quadro.ts         cantos da lousa, homografia e proporção real;
+src/services/quadro.ts         acha a lousa escrita numa foto pequena;
                                matemática pura, testável no computador
-src/services/tratamentoLousa.ts
-                               shaders do Skia: endireitar, luz por igual, traço
-src/services/tratarLousa.ts    lê, trata e grava a foto no aparelho [D1]; a
-                               versão .web.ts não trata nada
+src/services/procurarLousa.ts  a procura da lousa no aparelho, com Skia; a
+                               versão .web.ts não procura
 scripts/testar-lousa.js        cenas 3D sintéticas contra o mesmo código do app
 src/hooks/                     captura contínua, procura da lousa, leitura em
                                voz alta, reduzir movimento
@@ -91,17 +91,10 @@ comporta igual ao aparelho).
   procuras seguidas achando, o carrossel desliza para Aula com o aviso "Lousa
   reconhecida". Lousa vazia, porta, parede e tela apagada não trocam o modo.
   Para durante a captura, com flash, na lente frontal e com outra tela por cima.
-- **Lousa tratada no aparelho [D1].** Em Aula, a foto passa pelo Skia antes da
-  IA: acha os quatro cantos, endireita a perspectiva com a proporção real do
-  quadro, deixa a luz por igual e realça o traço (caneta escura em quadro claro,
-  giz em quadro escuro). A tela de processamento mostra o antes e o depois de
-  verdade, com o contorno de onde a lousa foi achada e o tempo medido no
-  aparelho. A transcrição e o estudo leem a lousa tratada; a aula guarda a
-  tratada e a aba Fotos, a original. Sem lousa na foto, a tela diz isso e segue
-  com a original. Validado com cenas 3D sintéticas no computador
-  (`npm run testar:lousa`: cantos com erro abaixo de 0,3%, proporção dentro de
-  1%, nenhum falso positivo) e a cena conferida no build web com esses
-  resultados. Falta a câmera real.
+- **A foto fica como a câmera tirou.** Ela aparece inteira em "Conteúdo
+  identificado", sem corte e sem zoom, vai assim para a aula e para a galeria, e
+  é a que a IA lê. Validado no iPhone em 16/09: a procura da lousa roda em uns
+  200 a 340 ms por foto pequena, e reconheceu uma tela com texto.
 - **Galeria em vez de app com abas.** A miniatura abre a galeria: em Aula, na
   aba Aulas (pastas, recentes e o cartão da próxima aula pela grade); nos outros
   modos, na aba Fotos, com tudo o que a câmera tirou. A engrenagem abre Ajustes.
@@ -117,15 +110,20 @@ comporta igual ao aparelho).
 - **Sessão de aula pela grade.** Fotos da mesma aula do horário viram páginas da
   mesma aula. Fora do horário vale a sessão livre: mesma pasta, meia hora.
 - **Ouvir a aula.** `expo-speech`, offline, com a sessão de áudio de reprodução
-  (`expo-audio`) para funcionar com o iPhone no silencioso.
+  (`expo-audio`) para funcionar com o iPhone no silencioso. Usa a voz pt-BR
+  mais natural instalada e nunca as vozes de novidade do iOS (Eddy, Flo,
+  Grandma…), que imitam robô. O texto é limpo antes (seta e barra viram pausa).
+  Ajustes → Voz do Ouvir mostra a voz em uso, testa, e ensina a baixar a
+  Aprimorada ou a Premium quando só há a básica.
 - **Viabilidade técnica.** Inclui o achado de que o JOVI V50 já tem
   "Documento em Ultra HD".
 
 ## Para fazer hoje, 16/09, nesta ordem
 
-1. [x] **Destaque do pitch: o [D1] de verdade.** Feito (ver "Estado atual"). A
-       foto torta e com sombra vira lousa reta e limpa na frente da banca, e é
-       essa versão que a IA lê. Falta testar com a câmera real (item 4).
+1. [ ] **Destaque do pitch: em aberto de novo.** O antes e depois da lousa
+       tratada saiu em 16/09 por decisão do Vitor, depois do teste no iPhone: a
+       foto do estudante não é alterada. Continua de pé a câmera que acha a
+       lousa sozinha.
 2. [ ] **Chave nova da API.** Revogar a antiga no console da Anthropic, criar
        outra com limite de gasto baixo, colar em Ajustes → Análise por IA →
        Guardar a chave, e conferir a mensagem "A Anthropic aceitou a chave".
@@ -135,13 +133,13 @@ comporta igual ao aparelho).
        Até lá, aulas e chave guardadas pelo iPhone ficam presas ao PC que rodou
        o servidor.
 4. [ ] **Testar no iPhone 17** a lista "No celular" abaixo. O que mudou desde o
-       último teste: a lousa tratada e o antes e depois, Ouvir com o silencioso
-       ligado, a galeria (Fotos e Aulas), os Ajustes pela engrenagem e a
-       análise ligando sozinha ao reabrir.
-5. [x] **Resolver o que é encenado.** O antes e depois e o "Lousa reconhecida"
-       viraram verdade. Sobrou um ponto menor, na seção "Encenado" abaixo.
-6. [ ] **Fechar o roteiro**: o trecho de 0:50 a 2:05 do README agora é o antes e
-       depois. Ensaiar com uma lousa de verdade.
+       teste das 22h: a foto sem tratamento, "Nova pasta" e renomear com o
+       teclado aberto, a voz do Ouvir e Ajustes → Voz do Ouvir, e o cartão da
+       grade só confirmando quando a matéria bate com a aula de agora.
+5. [x] **Resolver o que é encenado.** O "Lousa reconhecida" virou verdade e o
+       antes e depois saiu. Sobrou um ponto menor, na seção "Encenado" abaixo.
+6. [ ] **Fechar o roteiro**: o trecho de 0:50 a 2:05 do README voltou a ficar
+       em aberto, junto com o destaque.
 
 ## O que falta
 
@@ -149,19 +147,15 @@ Nada disso dá para fechar sem um aparelho ou sem um navegador com sessão real.
 
 ### No celular
 
-- [ ] Câmera real em Aula: foto → processamento → a sua lousa, tratada, no
-      topo de "Conteúdo identificado".
-- [ ] **Lousa tratada.** Fotografar uma lousa de lado e com sombra. Em "Tratando
-      a foto", as etapas; no antes e depois, o contorno azul em cima da lousa e
-      ela saindo reta e limpa. No terminal do Expo aparece
-      `[JOVI Flow] lousa tratada em ...ms` com o tamanho e o tipo de quadro.
-      Repetir com lousa verde, caderno, slide projetado e uma foto sem lousa (a
-      tela diz "Lousa não encontrada" e segue com a original).
-- [ ] O tempo do antes e depois ("NO APARELHO"). Passando de uns 2 s, baixar
-      `LADO_ENTRADA` em `tratarLousa.ts` ou `LADO_SAIDA` em
-      `tratamentoLousa.ts`.
-- [ ] Salvar e abrir a aula: a página é a lousa tratada; em Galeria → Fotos
-      aparece a foto original.
+- [ ] Câmera real em Aula: foto → processamento → a sua foto, inteira e sem
+      zoom, no topo de "Conteúdo identificado". Salvar e abrir a aula: a mesma
+      foto. Aulas salvas na tarde de 16/09 com a lousa tratada voltam a mostrar
+      a foto original sozinhas.
+- [ ] "Nova pasta" (Organizar → Alterar pasta de destino), renomear pasta e aula,
+      e a chave em Ajustes: o campo sobe junto com o teclado.
+- [ ] Ajustes → Voz do Ouvir → Testar. Se aparecer "Básica", baixar a Luciana
+      Aprimorada ou Premium no iPhone e voltar: a tela troca sozinha. No terminal
+      aparece `[JOVI Flow] voz da leitura: ...` com a voz usada.
 - [ ] **Lousa reconhecida.** Abrir a câmera em Foto apontando para uma lousa
       escrita, inteira no enquadramento: em 2 ou 3 s o carrossel vai para Aula
       com o aviso. Apontar para parede, porta ou lousa vazia: fica em Foto. Cada
@@ -173,10 +167,7 @@ Nada disso dá para fechar sem um aparelho ou sem um navegador com sessão real.
       a procura soltar a câmera, menos de 1 s) e o visor não engasga.
 - [ ] Modo ao vivo com chave: matéria, tema, tópico, transcrição, resumo,
       flashcards e questões vindos da foto.
-- [ ] Ouvir **com o iPhone no silencioso**: a sessão de áudio agora é de
-      reprodução. A voz escolhida é a melhor pt-BR instalada (premium >
-      aprimorada > compacta); a compacta soa robótica, e dá para baixar a
-      aprimorada em Ajustes → Acessibilidade → Conteúdo Falado → Vozes.
+- [ ] Ouvir **com o iPhone no silencioso**: a sessão de áudio é de reprodução.
 - [ ] Fechar e reabrir o app: as aulas capturadas continuam lá, com foto, e a
       Análise por IA abre ligada, sem colar a chave de novo.
 - [ ] Galeria: foto em Aula aparece em Fotos (com o selo de aula) e em Aulas;
@@ -200,23 +191,28 @@ Ficou de fora, por decisão e não por esquecimento:
 
 ### Destaque do pitch
 
-- [x] O [D1] de verdade. O brief da JOVI pede "a próxima geração da experiência
-      de câmera", e não um app de estudo: ideia de resumo, flashcard, chat, "não
-      entendi" ou correção de exercício não diferencia, porque todo grupo tem. A
-      tela promete "luz por igual e traço forte", e não "remove reflexo":
-      reflexo estourado não se recupera com uma foto só.
-- [ ] Possível próximo passo: ajustar os cantos arrastando, para quando a
-      detecção errar ou a lousa não couber inteira na foto.
+- [ ] Em aberto. O brief da JOVI pede "a próxima geração da experiência de
+      câmera", e não um app de estudo: ideia de resumo, flashcard, chat, "não
+      entendi" ou correção de exercício não diferencia, porque todo grupo tem.
+- [x] ~~O antes e depois da lousa tratada.~~ Funcionou nas cenas de teste, mas
+      saiu em 16/09: numa foto de tela de computador deu zoom e inventou brilho,
+      e o Vitor decidiu que a foto do estudante não se altera. O código está no
+      commit 6460146, se um dia voltar como cópia opcional, nunca no lugar da
+      foto.
 
 ### Encenado, e a banca pode perceber
 
-Os dois pontos que sustentavam o [D1] viraram verdade em 16/09:
+Resolvidos em 16/09:
 
-- [x] ~~Antes e depois da tela de processamento.~~ Ver "Lousa tratada no
-      aparelho" em "Estado atual".
+- [x] ~~Antes e depois da tela de processamento com a foto entortada de
+      propósito.~~ A cena saiu: a foto não é alterada.
 - [x] ~~"Lousa reconhecida" depois de 2,5 s com qualquer coisa na frente da
       câmera.~~ Ver "A câmera acha a lousa sozinha". Limite conhecido: janela
       com árvore ou prédio ocupando o vidro tem traço e pode passar por lousa.
+- [x] ~~"Confirmado pela sua grade" com qualquer matéria, só por haver aula no
+      horário.~~ Agora só confirma quando a matéria da foto é a da aula.
+- [x] ~~"38 KB de texto no lugar de 4,2 MB de foto" na tela de ações.~~ O app
+      guarda a foto inteira; a linha saiu.
 
 Sobrou um ponto menor:
 

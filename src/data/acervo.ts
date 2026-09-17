@@ -15,13 +15,9 @@ import { aulaAgora } from './mock';
  *  junta as fotos tiradas durante a mesma aula do horario. */
 export type Pagina = {
   id: string;
-  /** Caminho da foto copiada para o diretorio de documentos: a lousa tratada,
-   *  quando o tratamento deu certo, senao a foto como saiu da camera. Nulo nas
-   *  aulas de exemplo e quando a camera nao estava disponivel. */
+  /** Caminho da foto copiada para o diretorio de documentos, como a camera
+   *  tirou. Nulo nas aulas de exemplo e quando a camera nao estava disponivel. */
   fotoUri: string | null;
-  /** A foto como a camera tirou, antes do tratamento. E a que aparece na aba
-   *  Fotos da galeria. Ausente em paginas antigas e quando nao houve tratamento. */
-  fotoOriginalUri?: string | null;
   hora: string;
   subModo: string;
   textoExtraido: string;

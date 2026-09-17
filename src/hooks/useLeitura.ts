@@ -33,34 +33,77 @@ function prepararSessaoDeAudio(): Promise<void> {
   return sessaoDeAudio;
 }
 
-/** Pontua uma voz em portugues do Brasil. No iOS a premium e a aprimorada soam
- *  bem melhor que a compacta, que e a padrao e a mais robotica. O iOS so marca
- *  a aprimorada no campo quality, por isso o identificador entra na conta. No
- *  Android a voz "network" depende de internet e perde para a local. */
+export type QualidadeDaVoz = 'premium' | 'aprimorada' | 'basica';
+
+export type VozDaLeitura = {
+  identificador: string;
+  nome: string;
+  qualidade: QualidadeDaVoz;
+};
+
+/**
+ * Pontua uma voz em portugues do Brasil. Zero fica de fora.
+ *
+ * No iOS a premium e a aprimorada soam bem mais naturais que a basica, que ja
+ * vem instalada. O iOS so marca a aprimorada no campo quality, por isso o
+ * identificador entra na conta.
+ *
+ * O iOS 17 em diante traz tambem vozes de novidade (Eddy, Flo, Grandma, Reed,
+ * Rocko, Sandy, Shelley) que imitam sintetizador antigo de proposito. Pelo
+ * identificador elas vinham antes da Luciana e empatavam com ela na nota, e a
+ * leitura saia com voz de robo. No Android a voz "network" depende de internet.
+ */
 function notaDaVoz(voz: Speech.Voice): number {
   const id = voz.identifier.toLowerCase();
-  if (id.includes('network')) return 0;
+  if (id.includes('eloquence') || id.includes('network')) return 0;
   if (id.includes('premium')) return 3;
   if (id.includes('enhanced') || voz.quality === Speech.VoiceQuality.Enhanced) return 2;
   return 1;
 }
 
-let vozEscolhida: Promise<string | undefined> | null = null;
-
-function escolherVoz(): Promise<string | undefined> {
-  if (vozEscolhida === null) {
-    vozEscolhida = Speech.getAvailableVoicesAsync()
-      .then((vozes) => {
-        const ptBr = vozes
-          .filter((v) => v.language.replace('_', '-').toLowerCase() === 'pt-br')
-          .sort((a, b) => notaDaVoz(b) - notaDaVoz(a));
-        const melhor = ptBr[0];
-        console.log('[JOVI Flow] voz da leitura:', melhor ? melhor.identifier : 'padrao do sistema');
-        return melhor?.identifier;
-      })
-      .catch(() => undefined);
+/**
+ * A voz mais natural em portugues do Brasil instalada agora. Nulo quando nao ha
+ * nenhuma boa: a leitura usa a voz padrao do sistema. Consultada a cada leitura,
+ * para uma voz baixada nos ajustes do iPhone valer na hora, sem reabrir o app.
+ */
+export async function melhorVoz(): Promise<VozDaLeitura | null> {
+  try {
+    const vozes = await Speech.getAvailableVoicesAsync();
+    const melhor = vozes
+      .filter((v) => v.language.replace('_', '-').toLowerCase() === 'pt-br' && notaDaVoz(v) > 0)
+      .sort((a, b) => notaDaVoz(b) - notaDaVoz(a))[0];
+    if (!melhor) return null;
+    const nota = notaDaVoz(melhor);
+    return {
+      identificador: melhor.identifier,
+      nome: melhor.name,
+      qualidade: nota === 3 ? 'premium' : nota === 2 ? 'aprimorada' : 'basica',
+    };
+  } catch {
+    return null;
   }
-  return vozEscolhida;
+}
+
+/**
+ * Prepara o texto para a voz. Simbolo lido em voz alta soa como maquina: a voz
+ * soletra seta e barra, ou emenda uma linha na outra sem respirar. Seta e
+ * separador viram pausa, marca de formatacao sai, e cada linha fecha com ponto.
+ */
+export function textoParaFala(texto: string): string {
+  return texto
+    .split(/\n+/)
+    .map((linha) =>
+      linha
+        .replace(/\s*(->|=>|→|›|»|\||·|•)\s*/g, ', ')
+        .replace(/[{}[\];`*_#]/g, ' ')
+        .replace(/\.{2,}/g, '.')
+        .replace(/\s+/g, ' ')
+        .replace(/\s+([,.:!?])/g, '$1')
+        .replace(/^[\s,.]+|[\s,]+$/g, '')
+    )
+    .filter((linha) => linha !== '')
+    .map((linha) => (/[.!?:]$/.test(linha) ? linha : `${linha}.`))
+    .join(' ');
 }
 
 export function useLeitura() {
@@ -86,8 +129,8 @@ export function useLeitura() {
   }, []);
 
   const falar = useCallback((texto: string) => {
-    const limpo = texto.trim();
-    if (limpo === '') return;
+    const fala = textoParaFala(texto);
+    if (fala === '') return;
     const vez = leituraAtual.current + 1;
     leituraAtual.current = vez;
     void Speech.stop();
@@ -97,11 +140,15 @@ export function useLeitura() {
       if (montado.current && leituraAtual.current === vez) setFalando(false);
     };
 
-    void Promise.all([prepararSessaoDeAudio(), escolherVoz()]).then(([, voz]) => {
+    void Promise.all([prepararSessaoDeAudio(), melhorVoz()]).then(([, voz]) => {
       if (!montado.current || leituraAtual.current !== vez) return;
-      Speech.speak(limpo, {
+      console.log(
+        '[JOVI Flow] voz da leitura:',
+        voz ? `${voz.nome}, ${voz.qualidade} (${voz.identificador})` : 'padrao do sistema'
+      );
+      Speech.speak(fala, {
         language: 'pt-BR',
-        voice: voz,
+        voice: voz?.identificador,
         rate: 1.0,
         pitch: 1.0,
         onDone: encerrar,

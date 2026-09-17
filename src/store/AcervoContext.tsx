@@ -35,10 +35,7 @@ const PASTA_FOTOS = 'aulas/';
 type Persistido = { versao: 1; acervo: Acervo };
 
 export type NovaCaptura = {
-  /** A lousa tratada, ou a foto original quando nao houve tratamento. */
   fotoUri: string | null;
-  /** A foto como a camera tirou, quando fotoUri e a versao tratada. */
-  fotoOriginalUri: string | null;
   subModo: string;
   materia: string;
   tema: string;
@@ -92,6 +89,25 @@ function limpar(t: string): string {
   return t.replace(/\s+/g, ' ').trim();
 }
 
+/**
+ * Paginas gravadas em 16/09, entre o tratamento da lousa entrar e sair do app,
+ * guardam a lousa tratada em fotoUri e a foto da camera em fotoOriginalUri. O app
+ * nao altera mais a foto do estudante: a pagina volta a mostrar a foto como a
+ * camera tirou.
+ */
+function semLousaTratada(acervo: Acervo): Acervo {
+  return {
+    ...acervo,
+    aulas: acervo.aulas.map((aula) => ({
+      ...aula,
+      paginas: aula.paginas.map((pagina) => {
+        const { fotoOriginalUri, ...resto } = pagina as Pagina & { fotoOriginalUri?: string | null };
+        return fotoOriginalUri ? { ...resto, fotoUri: fotoOriginalUri } : resto;
+      }),
+    })),
+  };
+}
+
 /** Copia a foto do cache da camera para um lugar permanente. Se falhar, segue
  *  com o caminho original: melhor uma foto que talvez suma do que nenhuma. */
 async function copiarFoto(uri: string | null): Promise<string | null> {
@@ -137,8 +153,9 @@ export function AcervoProvider({ children }: { children: ReactNode }) {
         if (!vivo || bruto === null) return;
         const p = JSON.parse(bruto) as Partial<Persistido>;
         if (p.versao === 1 && acervoValido(p.acervo)) {
-          acervoRef.current = p.acervo;
-          setAcervoState(p.acervo);
+          const gravado = semLousaTratada(p.acervo);
+          acervoRef.current = gravado;
+          setAcervoState(gravado);
         }
       })
       .catch((erro) => console.log('[JOVI Flow] acervo nao carregou, usando o exemplo:', erro))
@@ -186,10 +203,7 @@ export function AcervoProvider({ children }: { children: ReactNode }) {
 
   const salvarCaptura = useCallback(
     async (entrada: NovaCaptura): Promise<ResultadoSalvar> => {
-      const [fotoUri, fotoOriginalUri] = await Promise.all([
-        copiarFoto(entrada.fotoUri),
-        copiarFoto(entrada.fotoOriginalUri),
-      ]);
+      const fotoUri = await copiarFoto(entrada.fotoUri);
       const agora = new Date();
       const sessao = sessaoDeAgora(entrada.pasta, agora);
       const existente = aulaDaSessao(acervoRef.current, sessao, entrada.pasta, agora);
@@ -197,7 +211,6 @@ export function AcervoProvider({ children }: { children: ReactNode }) {
       const pagina: Pagina = {
         id: idNovo('pag'),
         fotoUri,
-        fotoOriginalUri,
         hora: horaBR(agora),
         subModo: entrada.subModo,
         textoExtraido: entrada.textoExtraido,

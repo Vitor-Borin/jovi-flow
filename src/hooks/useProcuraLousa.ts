@@ -3,7 +3,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 import type { RefObject } from 'react';
 import { useEffect, useRef } from 'react';
 
-import { procurarLousa } from '../services/tratarLousa';
+import { procurarLousa } from '../services/procurarLousa';
 
 /**
  * A camera procura a lousa sozinha enquanto esta em Foto, e so troca para Aula
@@ -13,8 +13,9 @@ import { procurarLousa } from '../services/tratarLousa';
  *
  * O Expo Go nao entrega os quadros do visor; isso exigiria build nativa com
  * vision-camera. Entao a procura usa a mesma tecnica da captura continua: tira
- * uma foto em silencio, reduz para 200 px e roda nela a deteccao de cantos do
- * tratamento da lousa, com a medida de traco no miolo do quadro.
+ * uma foto em silencio, reduz para 200 px e roda nela a deteccao de quadro de
+ * services/quadro.ts, com a medida de traco no miolo do quadro. Essa foto e
+ * apagada em seguida e nunca aparece para o estudante.
  *
  * So conta quando duas procuras seguidas acham quadro inteiro com escrita: uma
  * so pode ser a camera passando por um cartaz enquanto sobe. Porta, tela

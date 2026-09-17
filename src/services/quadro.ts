@@ -1,6 +1,7 @@
 /**
- * Geometria da lousa: acha os quatro cantos do quadro numa foto pequena e
- * calcula a transformacao que endireita a perspectiva.
+ * Acha a lousa numa foto pequena: um quadro inteiro na foto, com escrita dentro.
+ * E o que decide o aviso "Lousa reconhecida" no visor. A foto do estudante nao
+ * e alterada: isto so le os pixels de uma copia pequena.
  *
  * E matematica pura, sem Skia e sem React Native, para dar para testar no
  * computador com imagem sintetica antes de ir para o aparelho.
@@ -22,49 +23,29 @@
  * quadro, e o visor so afirma "Lousa reconhecida" com escrita dentro.
  */
 
-export type Ponto = { x: number; y: number };
+type Ponto = { x: number; y: number };
 
 /** Cantos na ordem superior esquerdo, superior direito, inferior direito e
  *  inferior esquerdo. */
-export type Quadrilatero = [Ponto, Ponto, Ponto, Ponto];
+type Quadrilatero = [Ponto, Ponto, Ponto, Ponto];
 
 export type Deteccao = {
-  /** Cantos em coordenadas normalizadas, de 0 a 1, da imagem analisada. */
-  cantos: Quadrilatero;
   /** Quadro mais claro que o entorno: quadro branco, papel ou slide. Falso para
    *  lousa verde ou preta. */
   claro: boolean;
-  /** Quanto do quadrilatero e ocupado pelo quadro, de 0 a 1. */
-  preenchimento: number;
   /** Fracao da foto ocupada pelo quadrilatero. */
   area: number;
   /** Fracao do miolo do quadro que e traco, de 0 a 1. Ver `temEscrita`. */
   detalhe: number;
 };
 
-/** Coeficientes que levam o quadrado unitario (u, v) ao quadrilatero:
- *  x = (a u + b v + c) / (g u + h v + 1), y = (d u + e v + f) / (g u + h v + 1). */
-export type Homografia = {
-  a: number;
-  b: number;
-  c: number;
-  d: number;
-  e: number;
-  f: number;
-  g: number;
-  h: number;
-};
-
-/** Abaixo disso o quadro e pequeno demais na foto para valer a pena endireitar. */
+/** Abaixo disso o quadro e pequeno demais na foto para ser a lousa fotografada. */
 const AREA_MINIMA = 0.12;
 /** Parede, janela e mesa nao preenchem o quadrilatero dos proprios extremos. */
 const PREENCHIMENTO_MINIMO = 0.8;
 /** Angulo interno fora desta faixa e perspectiva impossivel ou cantos errados. */
 const ANGULO_MINIMO = 35;
 const ANGULO_MAXIMO = 145;
-/** Folga para fora, para a borda do quadro nao cortar o que foi escrito nela.
- *  Maior que isso, sobra uma moldura de parede na lousa tratada. */
-const FOLGA = 0.005;
 /** Canto a menos disso da borda da foto conta como encostado na borda. */
 const MARGEM_BORDA = 2;
 /** Fracoes da distribuicao de luz testadas como limiar, alem do de Otsu. */
@@ -72,9 +53,6 @@ const PERCENTIS = [0.15, 0.25, 0.35, 0.45, 0.55, 0.65, 0.75, 0.85];
 /** Quadro assim ja e o quadro: para de testar limiar e poupa o aparelho. */
 const PREENCHIMENTO_SOBRA = 0.96;
 const AREA_SOBRA = 0.2;
-/** Distancia focal da camera principal do celular (26 mm equivalentes), como
- *  fracao da diagonal da foto. Serve quando os cantos nao dizem a propria. */
-const FOCAL_PADRAO = 0.6;
 /** A medida de traco ignora esta fracao da borda do quadro, para a moldura e o
  *  contorno contra a parede nao contarem como escrita. */
 const RECUO_DETALHE = 0.2;
@@ -290,7 +268,7 @@ function melhorRegiao(
 
   // Regiao com dois ou mais cantos na borda da foto e parede, mesa ou ceu, e nao
   // quadro. O quadro que enche a foto inteira tambem cai aqui, e tudo bem: sem
-  // os cantos dentro da foto nao ha perspectiva para endireitar, so luz.
+  // os cantos dentro da foto nao da para dizer que e um quadro.
   const naBorda = (p: Ponto) =>
     p.x <= MARGEM_BORDA ||
     p.y <= MARGEM_BORDA ||
@@ -336,9 +314,9 @@ function melhorRegiao(
 }
 
 /**
- * Procura o quadro numa imagem RGBA pequena, de umas 320 px no lado maior.
- * Devolve nulo quando nao ha quadro confiavel: e melhor nao endireitar do que
- * entortar uma foto boa por causa de cantos errados.
+ * Procura o quadro numa imagem RGBA pequena, de umas 200 px no lado maior.
+ * Devolve nulo quando nao ha quadro confiavel: e melhor nao reconhecer do que
+ * afirmar uma lousa que nao esta la.
  */
 export function detectarQuadro(
   rgba: Uint8Array,
@@ -387,23 +365,10 @@ export function detectarQuadro(
 
   if (melhor === null) return null;
 
-  const detalhe = detalheDoMiolo(lum, largura, altura, melhor.cantos);
-
-  // Normaliza e abre uma folga para fora a partir do centro.
-  const cx = melhor.cantos.reduce((s, q) => s + q.x, 0) / 4;
-  const cy = melhor.cantos.reduce((s, q) => s + q.y, 0) / 4;
-  const limitar = (v: number) => Math.max(0, Math.min(1, v));
-  const cantos = melhor.cantos.map((q) => ({
-    x: limitar((cx + (q.x - cx) * (1 + FOLGA)) / (largura - 1)),
-    y: limitar((cy + (q.y - cy) * (1 + FOLGA)) / (altura - 1)),
-  })) as Quadrilatero;
-
   return {
-    cantos,
     claro: melhor.claro,
-    preenchimento: melhor.preenchimento,
     area: melhor.area,
-    detalhe,
+    detalhe: detalheDoMiolo(lum, largura, altura, melhor.cantos),
   };
 }
 
@@ -459,120 +424,4 @@ function detalheDoMiolo(
 /** O quadro achado tem escrita. So com isso o visor afirma que achou uma lousa. */
 export function temEscrita(deteccao: Deteccao): boolean {
   return deteccao.detalhe >= DETALHE_MINIMO;
-}
-
-/** Homografia do quadrado unitario para o quadrilatero (Heckbert, 1989). */
-export function homografiaDoQuadrado(q: Quadrilatero): Homografia {
-  const [p0, p1, p2, p3] = q;
-  const dx1 = p1.x - p2.x;
-  const dx2 = p3.x - p2.x;
-  const dx3 = p0.x - p1.x + p2.x - p3.x;
-  const dy1 = p1.y - p2.y;
-  const dy2 = p3.y - p2.y;
-  const dy3 = p0.y - p1.y + p2.y - p3.y;
-
-  if (Math.abs(dx3) < 1e-9 && Math.abs(dy3) < 1e-9) {
-    return {
-      a: p1.x - p0.x,
-      b: p3.x - p0.x,
-      c: p0.x,
-      d: p1.y - p0.y,
-      e: p3.y - p0.y,
-      f: p0.y,
-      g: 0,
-      h: 0,
-    };
-  }
-
-  const den = dx1 * dy2 - dx2 * dy1;
-  const g = (dx3 * dy2 - dx2 * dy3) / den;
-  const h = (dx1 * dy3 - dx3 * dy1) / den;
-  return {
-    a: p1.x - p0.x + g * p1.x,
-    b: p3.x - p0.x + h * p3.x,
-    c: p0.x,
-    d: p1.y - p0.y + g * p1.y,
-    e: p3.y - p0.y + h * p3.y,
-    f: p0.y,
-    g,
-    h,
-  };
-}
-
-/** Aplica a homografia a um ponto (u, v) do quadrado unitario. */
-export function aplicarHomografia(m: Homografia, u: number, v: number): Ponto {
-  const w = m.g * u + m.h * v + 1;
-  return { x: (m.a * u + m.b * v + m.c) / w, y: (m.d * u + m.e * v + m.f) / w };
-}
-
-type Vetor = [number, number, number];
-
-function vetorial(a: Vetor, b: Vetor): Vetor {
-  return [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
-}
-
-function escalar(a: Vetor, b: Vetor): number {
-  return a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-}
-
-/**
- * Proporcao real (largura / altura) do retangulo fotografado de lado, pelo
- * metodo de Zhang e He ("Whiteboard scanning and image enhancement", 2007).
- * Sem isso a lousa sai esticada: medir os lados na foto mistura o tamanho do
- * quadro com o quanto ele esta de lado.
- *
- * Supoe o centro optico no centro da foto. A distancia focal sai dos proprios
- * cantos quando eles a determinam; senao vale a da camera principal do celular.
- * Devolve nulo quando a conta nao fecha, e quem chama mede os lados.
- */
-export function proporcaoReal(q: Quadrilatero, largura: number, altura: number): number | null {
-  const u0 = largura / 2;
-  const v0 = altura / 2;
-  const m = (p: Ponto): Vetor => [p.x - u0, p.y - v0, 1];
-  const [se, sd, id, ie] = q;
-  const m1 = m(se);
-  const m2 = m(sd);
-  const m3 = m(ie);
-  const m4 = m(id);
-
-  const den2 = escalar(vetorial(m2, m4), m3);
-  const den3 = escalar(vetorial(m3, m4), m2);
-  if (Math.abs(den2) < 1e-9 || Math.abs(den3) < 1e-9) return null;
-  const k2 = escalar(vetorial(m1, m4), m3) / den2;
-  const k3 = escalar(vetorial(m1, m4), m2) / den3;
-  const n2: Vetor = [k2 * m2[0] - m1[0], k2 * m2[1] - m1[1], k2 * m2[2] - m1[2]];
-  const n3: Vetor = [k3 * m3[0] - m1[0], k3 * m3[1] - m1[1], k3 * m3[2] - m1[2]];
-
-  const diagonal = Math.hypot(largura, altura);
-  let f2 = (FOCAL_PADRAO * diagonal) ** 2;
-  const produtoZ = n2[2] * n3[2];
-  if (Math.abs(produtoZ) > 1e-6) {
-    const estimado = -(n2[0] * n3[0] + n2[1] * n3[1]) / produtoZ;
-    const razao = Math.sqrt(Math.max(estimado, 0)) / diagonal;
-    // Foco fora de uma faixa de camera de celular e ruido dos cantos.
-    if (estimado > 0 && razao >= 0.35 && razao <= 3) f2 = estimado;
-  }
-
-  const numerador = n2[0] ** 2 + n2[1] ** 2 + f2 * n2[2] ** 2;
-  const denominador = n3[0] ** 2 + n3[1] ** 2 + f2 * n3[2] ** 2;
-  if (numerador <= 0 || denominador <= 0) return null;
-  const proporcao = Math.sqrt(numerador / denominador);
-  return Number.isFinite(proporcao) && proporcao > 0.2 && proporcao < 5 ? proporcao : null;
-}
-
-/** Tamanho da lousa endireitada. Com a proporcao real conhecida, o lado maior
- *  medido na foto define a escala e o outro sai da proporcao. */
-export function tamanhoEndireitado(
-  q: Quadrilatero,
-  proporcao: number | null
-): { largura: number; altura: number } {
-  const [se, sd, id, ie] = q;
-  const dist = (a: Ponto, b: Ponto) => Math.hypot(a.x - b.x, a.y - b.y);
-  const larguraMedida = Math.max(dist(se, sd), dist(ie, id));
-  const alturaMedida = Math.max(dist(se, ie), dist(sd, id));
-  if (proporcao === null) return { largura: larguraMedida, altura: alturaMedida };
-  if (larguraMedida >= alturaMedida) {
-    return { largura: larguraMedida, altura: larguraMedida / proporcao };
-  }
-  return { largura: alturaMedida * proporcao, altura: alturaMedida };
 }

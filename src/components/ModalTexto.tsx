@@ -1,5 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GhostButton } from './GhostButton';
@@ -59,7 +68,12 @@ export function ModalTexto({
 
   return (
     <Modal visible={aberto} animationType="fade" transparent onRequestClose={onFechar}>
-      <View style={styles.camada}>
+      {/* A folha sobe junto com o teclado, para o campo nunca ficar escondido. */}
+      <KeyboardAvoidingView
+        style={styles.camada}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={-insets.bottom}
+      >
         <Pressable
           style={styles.scrim}
           onPress={onFechar}
@@ -95,7 +109,7 @@ export function ModalTexto({
           />
           <GhostButton label="Cancelar" variant="text" onPress={onFechar} />
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

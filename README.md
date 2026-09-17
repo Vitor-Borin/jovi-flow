@@ -26,9 +26,7 @@ Com a análise por IA ligada, a IA lê a foto que você acabou de tirar e devolv
 
 Em Foto, a câmera procura a lousa sozinha: tira uma foto pequena em silêncio a cada segundo e, quando acha um quadro inteiro com escrita dentro, desliza o carrossel para Aula. Lousa vazia, porta e tela apagada não trocam o modo.
 
-Em Aula, a câmera trata a foto antes de a IA ler: acha os quatro cantos do quadro, endireita a perspectiva com a proporção real da lousa, deixa a luz por igual e realça o traço. Tudo no aparelho e sem internet, com shader próprio sobre `@shopify/react-native-skia`. A tela de processamento mostra o antes e o depois de verdade, com o contorno de onde a lousa foi achada e o tempo que o aparelho levou. A IA lê a versão tratada, a aula guarda a tratada, e a foto original continua na aba Fotos da galeria.
-
-O tratamento se ajusta sozinho ao quadro claro (caneta escura sobre branco) e ao escuro (giz sobre verde ou preto). O que ele não promete: reflexo estourado não se recupera com uma foto só, porque ali não sobrou traço. Sombra e degradê somem; o reflexo forte continua lá.
+A foto do estudante nunca é alterada: ela aparece, vai para a aula e é lida pela IA do jeito que a câmera tirou.
 
 O Modo Aula também separa três superfícies que têm problemas ópticos opostos entre si, e diz à IA qual delas está na foto:
 
@@ -131,7 +129,7 @@ A classificação usa imagem pequena de propósito. Medido, ela acerta igual com
 
 Sem chave, sem internet, resposta lenta ou JSON inválido: aquela parte cai no conteúdo de exemplo e o fluxo continua normalmente. As três chamadas são independentes, então uma falhar não derruba as outras. Existe uma repetição automática em falha de rede, e teto de tempo em cada chamada.
 
-Como a análise roda em paralelo com o tratamento da foto e a animação de processamento, que duram uns 8 s juntos, ligar o modo ao vivo não acrescenta espera perceptível.
+Como a análise roda em paralelo com a animação de processamento, que dura uns 2,7 s, ligar o modo ao vivo não acrescenta espera perceptível: o topo da tela chega pela classificação, que leva uns 2 s, e o resto preenche quando a transcrição chegar.
 
 ## Decisões de projeto
 
@@ -151,7 +149,7 @@ O Flow não depende de tecnologia que ainda não existe. A tela Ajustes → Viab
 
 | Capacidade | API | Onde roda |
 |---|---|---|
-| Recorte, perspectiva e realce | ML Kit Document Scanner | no aparelho |
+| Achar os cantos da lousa na foto | ML Kit Document Scanner | no aparelho |
 | Múltiplos frames e anti-reflexo | CameraX / Camera2 | no aparelho |
 | Reconhecer que o alvo é uma lousa | ML Kit Image Labeling | no aparelho |
 | Leitura do texto | ML Kit Text Recognition v2 | no aparelho |
@@ -159,7 +157,7 @@ O Flow não depende de tecnologia que ainda não existe. A tela Ajustes → Viab
 | Cruzar com a grade | Google Calendar API | nuvem |
 | Enviar para a turma | Google Classroom e Drive API | nuvem |
 
-A primeira linha já roda de verdade no protótipo: o recorte, a perspectiva e o realce são feitos com Skia no próprio aparelho, sem internet.
+No protótipo, a câmera já reconhece a lousa escrita de verdade, com Skia no próprio aparelho e sem internet.
 
 O protótipo usa a API da Anthropic no modo ao vivo para demonstrar o conceito ponta a ponta. Numa JOVI de verdade esse papel seria do Gemini Nano rodando no próprio aparelho.
 
@@ -172,7 +170,7 @@ O protótipo usa a API da Anthropic no modo ao vivo para demonstrar o conceito p
 | React | 19.2 |
 | TypeScript | 6.0, modo estrito |
 
-Navegação com React Navigation, usando stack nativo e abas. Gráficos com `react-native-svg`, câmera com `expo-camera`, tratamento da lousa com `@shopify/react-native-skia`, redimensionamento de imagem com `expo-image-manipulator`, ícones do `@expo/vector-icons`.
+Navegação com React Navigation, usando stack nativo e abas. Gráficos com `react-native-svg`, câmera com `expo-camera`, procura da lousa com `@shopify/react-native-skia`, redimensionamento de imagem com `expo-image-manipulator`, ícones do `@expo/vector-icons`.
 
 ## Estrutura
 
@@ -185,8 +183,8 @@ src/
 ├── data/acervo.ts            tipos do acervo, funções puras, sessão pela grade, exemplos iniciais
 ├── store/AcervoContext.tsx   pastas e aulas, gravadas no aparelho
 ├── store/FlowContext.tsx     a captura em andamento
-├── services/                 análise ao vivo (o único ponto que toca a rede) e o tratamento da lousa
-├── hooks/                    captura contínua, leitura em voz alta, reduzir movimento
+├── services/                 análise ao vivo (o único ponto que toca a rede) e a procura da lousa
+├── hooks/                    captura contínua, procura da lousa, leitura em voz alta, reduzir movimento
 ├── components/               13 componentes reutilizáveis
 ├── navigation/               RootStack, GaleriaTabs e os tipos de rota
 └── screens/                  14 telas
@@ -228,7 +226,7 @@ npx expo-doctor
 npm run testar:lousa
 ```
 
-Os três passam sem erro: o `expo-doctor` fecha 21 de 21, e o teste da lousa confere 8 de 8 cenas. Esse teste monta cenas 3D sintéticas (lousa branca e verde vistas de lado, caderno, lousa vazia, janela, porta) e roda sobre elas o mesmo código do app, com o Skia do CanvasKit: confere o erro dos cantos, a proporção da lousa endireitada e se a procura só afirma lousa onde há lousa escrita. As imagens de antes e depois ficam em `scripts/saida-lousa/`. Ele não substitui a câmera real: foto de verdade tem ruído, reflexo e lousa suja. O código não usa `any` nem `@ts-ignore`, e nenhuma cor é escrita fora de `src/theme.ts`.
+Os três passam sem erro: o `expo-doctor` fecha 21 de 21, e o teste da lousa confere 8 de 8 cenas. Esse teste monta cenas 3D sintéticas (lousa branca e verde vistas de lado, caderno, lousa vazia, janela, porta) e roda sobre elas o mesmo código que decide o aviso "Lousa reconhecida", com o Skia do CanvasKit: confere se a procura só afirma lousa onde há lousa escrita. As fotos das cenas ficam em `scripts/saida-lousa/`. Ele não substitui a câmera real: foto de verdade tem ruído, reflexo e lousa suja.
 
 Sobre acessibilidade: área tocável de no mínimo 44×44 pt, `accessibilityRole` e `accessibilityLabel` em todo elemento acionável, estado nunca comunicado só por cor, e animação reduzida quando o sistema pede menos movimento.
 
@@ -236,7 +234,7 @@ Sobre acessibilidade: área tocável de no mínimo 44×44 pt, `accessibilityRole
 
 1. **0:00** Abre no visor, em Foto. Aponta para a lousa inteira e o carrossel desliza sozinho para Aula, porque a câmera achou a lousa escrita. Se não achar, toque em Aula.
 2. **0:15** Foto. A IA lê de verdade: matéria, tópico e a pasta, confirmada pela grade.
-3. **0:50** O antes e o depois. A foto tirada de lado e com sombra vira lousa reta e limpa, com o contorno de onde a câmera achou o quadro e o tempo medido no aparelho, sem internet: é a câmera trabalhando antes da IA. Em "Conteúdo identificado", a IA leu a versão tratada.
+3. **0:50** Destaque do pitch, em aberto de novo: o antes e depois da lousa tratada saiu, porque a foto do estudante não se altera.
 4. **2:05** Miniatura → galeria. Em Fotos, a foto é só mais uma; em Aulas, já está na matéria certa. Ouvir por 10 segundos.
 5. **2:50** `Mais` no visor: o "Documento em Ultra HD" já existe no V50, e o Flow especializa o que a JOVI já vende.
 6. **3:10** Folga para a IA demorar ou para a pergunta da banca.
@@ -247,7 +245,8 @@ Sobre acessibilidade: área tocável de no mínimo 44×44 pt, `accessibilityRole
 - [ ] Vincular o projeto à conta Expo (`npx eas-cli@latest init`), para as aulas e a chave valerem em qualquer computador
 - [ ] Ajustes → Análise por IA: guardar a chave nova e tocar em Testar a chave, com a rede do local
 - [ ] Tirar uma foto de teste e conferir que matéria e tema vêm da foto
-- [ ] Ensaiar com a lousa do local: a troca sozinha para Aula e o antes e depois
+- [ ] Ensaiar com a lousa do local: a troca sozinha para Aula
+- [ ] Ajustes → Voz do Ouvir: deixar a Luciana Aprimorada ou Premium baixada no iPhone da apresentação
 - [ ] Decidir se as capturas de teste ficam ou se "Apagar capturas e voltar aos exemplos" antes de subir
 - [ ] Desligar o Wi-Fi e ficar só no 5G, porque o iOS prefere Wi-Fi mesmo quando ele está congestionado
 - [ ] Rodar o fluxo completo algumas vezes seguidas, usando Ajustes → Reiniciar demonstração entre as voltas

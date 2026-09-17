@@ -1,6 +1,16 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import {
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { GhostButton } from './GhostButton';
@@ -65,7 +75,14 @@ export function SeletorPasta({
 
   return (
     <Modal visible={aberto} animationType="slide" transparent onRequestClose={fechar}>
-      <View style={styles.camada}>
+      {/* A folha sobe junto com o teclado: sem isso o teclado cobria o campo e
+          o estudante digitava sem ver. O deslocamento negativo desconta a
+          margem da barra de gestos, que o teclado ja cobre. */}
+      <KeyboardAvoidingView
+        style={styles.camada}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={-insets.bottom}
+      >
         <Pressable
           style={styles.scrim}
           onPress={fechar}
@@ -182,7 +199,7 @@ export function SeletorPasta({
             </>
           )}
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }

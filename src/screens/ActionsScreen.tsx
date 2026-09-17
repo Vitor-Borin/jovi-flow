@@ -4,7 +4,9 @@ import * as Haptics from 'expo-haptics';
 import { useEffect, useRef, useState } from 'react';
 import {
   Animated,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   Share,
@@ -21,7 +23,7 @@ import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { textoDaAula } from '../data/acervo';
 import type { NomeIcone } from '../data/mock';
-import { economiaFormatada, plataformas } from '../data/mock';
+import { plataformas } from '../data/mock';
 import { useLeitura } from '../hooks/useLeitura';
 import { useReduzirMovimento } from '../hooks/useReduzirMovimento';
 import type { RootStackParamList } from '../navigation/types';
@@ -63,7 +65,6 @@ export function ActionsScreen({ navigation, route }: Props) {
   const pendentes = conectadas.filter(
     (p) => !plataformasAutomaticas.includes(p.id) && !enviadasManualmente.includes(p.id)
   );
-  const eco = economiaFormatada();
   const texto = textoDaAula(aula);
 
   const compartilhar = async () => {
@@ -188,11 +189,6 @@ export function ActionsScreen({ navigation, route }: Props) {
           </View>
         ) : null}
 
-        <Text style={styles.linhaEconomia}>
-          <Text style={styles.destaqueEconomia}>{eco.porAula}</Text> de texto no lugar de{' '}
-          {eco.porAulaSemFlow} de foto · <Text style={styles.destaqueEconomia}>{eco.fator}× menos</Text>
-        </Text>
-
         <View style={styles.grade}>
           {acoes.map((acao) => (
             <Card
@@ -294,7 +290,12 @@ function ModalEdicao({
 
   return (
     <Modal visible={aberto} animationType="slide" onRequestClose={onCancelar}>
-      <View style={[styles.telaModal, { paddingTop: insets.top }]}>
+      {/* O texto encolhe quando o teclado abre, e Salvar continua a vista. */}
+      <KeyboardAvoidingView
+        style={[styles.telaModal, { paddingTop: insets.top }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={-insets.bottom}
+      >
         <ScreenHeader title="Editar texto" onBack={onCancelar} semAreaSegura />
 
         <View style={styles.corpoModal}>
@@ -317,7 +318,7 @@ function ModalEdicao({
             style={styles.cancelarModal}
           />
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -403,18 +404,6 @@ const styles = StyleSheet.create({
   textoPendente: {
     ...font.small,
     fontWeight: '600',
-    color: colors.textDim,
-  },
-
-  linhaEconomia: {
-    ...font.small,
-    color: colors.textFaint,
-    textAlign: 'center',
-    marginTop: spacing(6),
-  },
-  destaqueEconomia: {
-    fontFamily: fontMono,
-    fontWeight: '700',
     color: colors.textDim,
   },
 

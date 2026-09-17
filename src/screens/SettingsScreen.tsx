@@ -2,20 +2,41 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Haptics from 'expo-haptics';
-import { useState } from 'react';
-import { Alert, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import {
+  Alert,
+  AppState,
+  Platform,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { BotaoOuvir } from '../components/BotaoOuvir';
 import { GhostButton } from '../components/GhostButton';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { ScreenHeader } from '../components/ScreenHeader';
 import { gradeHoraria } from '../data/mock';
+import type { QualidadeDaVoz, VozDaLeitura } from '../hooks/useLeitura';
+import { melhorVoz, useLeitura } from '../hooks/useLeitura';
 import type { RootStackParamList } from '../navigation/types';
 import type { Verificacao } from '../services/analiseAoVivo';
 import { verificarChave } from '../services/analiseAoVivo';
 import { useAcervo } from '../store/AcervoContext';
 import { useFlow } from '../store/FlowContext';
 import { TOQUE_MIN, colors, font, fontDado, fontMono, radius, spacing } from '../theme';
+
+const QUALIDADE: Record<QualidadeDaVoz, string> = {
+  premium: 'Premium, a mais natural',
+  aprimorada: 'Aprimorada',
+  basica: 'Básica, a que já vem instalada',
+};
+
+const AMOSTRA_DE_VOZ = 'Olá! Esta é a voz que lê as suas aulas no JOVI Flow.';
 
 const TEXTO_VERIFICACAO: Record<Verificacao, string> = {
   valida: 'A Anthropic aceitou a chave. A análise está pronta.',
@@ -42,6 +63,27 @@ export function SettingsScreen() {
   const [ondeFicou, setOndeFicou] = useState<'cofre' | 'memoria' | null>(null);
   const [verificacao, setVerificacao] = useState<Verificacao | 'verificando' | null>(null);
   const [reiniciado, setReiniciado] = useState(false);
+  const { falando, alternar } = useLeitura();
+  const [voz, setVoz] = useState<VozDaLeitura | null | 'procurando'>('procurando');
+
+  // Quem baixa uma voz nos ajustes do iPhone volta para o app: a tela confere
+  // de novo qual voz o Ouvir vai usar.
+  useEffect(() => {
+    let ativo = true;
+    const conferir = () => {
+      void melhorVoz().then((v) => {
+        if (ativo) setVoz(v);
+      });
+    };
+    conferir();
+    const assinatura = AppState.addEventListener('change', (estado) => {
+      if (estado === 'active') conferir();
+    });
+    return () => {
+      ativo = false;
+      assinatura.remove();
+    };
+  }, []);
 
   const testar = async () => {
     setVerificacao('verificando');
@@ -115,8 +157,12 @@ export function SettingsScreen() {
     <View style={styles.tela}>
       <ScreenHeader title="Ajustes" onBack={() => navigation.goBack()} />
 
+      {/* O campo da chave fica acima do teclado, e tocar em Guardar com o
+          teclado aberto funciona no primeiro toque. */}
       <ScrollView
         contentContainerStyle={[styles.conteudo, { paddingBottom: insets.bottom + spacing(6) }]}
+        automaticallyAdjustKeyboardInsets
+        keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.rotuloSecao}>Modo Aula</Text>
         <View style={styles.lista}>
@@ -257,6 +303,41 @@ export function SettingsScreen() {
               </Text>
             </>
           )}
+        </View>
+
+        {/* Mostra a voz de verdade que o Ouvir usa. A voz mais natural nao vem
+            instalada no iPhone, e o app nao consegue baixar por conta propria. */}
+        <View style={styles.bloco}>
+          <Text style={styles.rotuloSecao}>Voz do Ouvir</Text>
+          <View style={styles.lista}>
+            <View style={styles.item}>
+              <MaterialCommunityIcons name="account-voice" size={20} color={colors.textDim} />
+              <View style={styles.textosItem}>
+                <Text style={styles.tituloItem}>
+                  {voz === 'procurando'
+                    ? 'Procurando a voz…'
+                    : voz
+                      ? voz.nome
+                      : 'Voz padrão do sistema'}
+                </Text>
+                {voz !== 'procurando' && voz !== null ? (
+                  <Text style={styles.detalheItem}>{QUALIDADE[voz.qualidade]}</Text>
+                ) : null}
+              </View>
+              <BotaoOuvir
+                falando={falando}
+                rotulo="Testar"
+                onPress={() => alternar(AMOSTRA_DE_VOZ)}
+              />
+            </View>
+          </View>
+          {Platform.OS === 'ios' && voz !== 'procurando' && (voz === null || voz.qualidade === 'basica') ? (
+            <Text style={styles.explicacao}>
+              A voz básica é a mais robótica. Para uma bem mais natural, baixe a versão Aprimorada
+              ou Premium: Ajustes do iPhone → Acessibilidade → Conteúdo Falado → Vozes → Português.
+              Ao voltar, o Flow passa a usar a voz nova sozinho.
+            </Text>
+          ) : null}
         </View>
 
         {/* Existe para o fluxo poder ser refeito varias vezes durante o pitch

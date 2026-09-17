@@ -44,14 +44,14 @@ const GRUPOS: Grupo[] = [
     itens: [
       {
         id: 'scanner',
-        o_que: 'Recorte, correção de perspectiva e realce do traço',
+        o_que: 'Achar os cantos da lousa na foto, sem alterar a foto',
         api: 'ML Kit Document Scanner',
         onde: 'aparelho',
       },
       {
-        id: 'tratamento-prototipo',
-        o_que: 'No protótipo, cantos, perspectiva, luz e traço já são tratados de verdade',
-        api: 'Skia com shader próprio, sem internet',
+        id: 'procura-prototipo',
+        o_que: 'No protótipo, a câmera já reconhece a lousa escrita de verdade',
+        api: 'Skia, com a detecção de quadro do próprio Flow',
         onde: 'aparelho',
       },
       {
@@ -213,10 +213,11 @@ export function FeasibilityScreen({ navigation }: Props) {
         </View>
 
         <Text style={styles.rodape}>
-          No protótipo, o tratamento da foto roda de verdade no aparelho, sem internet. A leitura
-          do conteúdo usa um modelo multimodal quando a Análise por IA está ligada em Ajustes, e
-          volta sozinha para o conteúdo de exemplo se a rede falhar. Numa JOVI de verdade, esse
-          papel seria do Gemini Nano, rodando no próprio aparelho.
+          No protótipo, a câmera reconhece a lousa de verdade no aparelho, sem internet, e a foto
+          do estudante nunca é alterada. A leitura do conteúdo usa um modelo multimodal quando a
+          Análise por IA está ligada em Ajustes, e volta sozinha para o conteúdo de exemplo se a
+          rede falhar. Numa JOVI de verdade, esse papel seria do Gemini Nano, rodando no próprio
+          aparelho.
         </Text>
       </ScrollView>
     </View>

@@ -35,8 +35,6 @@ import {
   prepararImagem,
   transcreverCaptura,
 } from '../services/analiseAoVivo';
-import type { ResultadoLousa } from '../services/tratarLousa';
-import { tratarLousa } from '../services/tratarLousa';
 import { useAcervo } from '../store/AcervoContext';
 import { useFlow } from '../store/FlowContext';
 import { TOQUE_MIN, colors, font, fontModo, radius, spacing } from '../theme';
@@ -85,9 +83,6 @@ const FOLGA_PILULA = (TOQUE_MIN - ALTURA_PILULA) / 2;
 
 const MS_AVISO_DETECCAO = 2200;
 
-/** Quanto a transcricao espera pela lousa tratada antes de ler a original. */
-const MS_ESPERA_TRATAMENTO = 2500;
-
 /** Quanto o obturador espera a camera sair da procura da lousa ou da captura
  *  continua. Uma foto pequena leva menos de um segundo. */
 const MS_ESPERA_CAMERA = 2500;
@@ -135,7 +130,6 @@ export function CameraScreen({ navigation }: Props) {
     definirSequencia,
     limparCaptura,
     registrarFotoSolta,
-    definirTratamento,
   } = useFlow();
   const { acervo, caminhos } = useAcervo();
 
@@ -229,7 +223,7 @@ export function CameraScreen({ navigation }: Props) {
   const miniaturaAcervo = useMemo(() => {
     for (const aula of ordenarAulas(acervo.aulas)) {
       const pagina = [...aula.paginas].reverse().find((p) => p.fotoUri !== null);
-      if (pagina?.fotoUri) return pagina.fotoOriginalUri ?? pagina.fotoUri;
+      if (pagina?.fotoUri) return pagina.fotoUri;
     }
     return null;
   }, [acervo.aulas]);
@@ -290,32 +284,23 @@ export function CameraScreen({ navigation }: Props) {
         primeiro && ultimo ? { inicio: primeiro.hora.slice(0, 5), fim: ultimo.hora.slice(0, 5) } : null
       );
 
-      // [D1] O tratamento da foto comeca ja, em paralelo com a leitura da IA. A
-      // tela de processamento mostra o antes e o depois de verdade.
-      const tratamento: Promise<ResultadoLousa> | null = foto
-        ? tratarLousa(foto.uri, foto.width, foto.height)
-        : null;
-      if (tratamento) {
-        definirTratamento({ estado: 'tratando' });
-        void tratamento.then((resultado) => {
-          if (capturaAtual.current === seq) definirTratamento(resultado);
-        });
-      }
-
       if (modoAoVivo && foto) {
         definirAnalisando(true);
         const original = foto;
         // Nada aqui segura a camera: a tela de processamento abre na hora.
         void (async () => {
           try {
-            // A classificacao le a foto original pequena, que fica pronta logo:
-            // ela preenche o topo da tela e nao pode esperar o tratamento.
-            const pequena = await prepararImagem(
-              original.uri,
-              original.width,
-              original.height,
-              PX.classificacao
-            );
+            // A IA le a foto como a camera tirou, em dois tamanhos: a pequena
+            // classifica rapido, a grande tem detalhe para transcrever.
+            const [pequena, grande] = await Promise.all([
+              prepararImagem(original.uri, original.width, original.height, PX.classificacao),
+              prepararImagem(original.uri, original.width, original.height, PX.transcricao),
+            ]);
+            if (capturaAtual.current !== seq) return;
+            definirFotoBase64(grande);
+
+            // Tres chamadas independentes e paralelas. Se uma falhar, so aquela
+            // parte cai no exemplo.
             const pClass = classificarCaptura(pequena, modoAtual.id, caminhos).then((r) => {
               if (capturaAtual.current !== seq) return;
               if (r.estado === 'ok') {
@@ -329,27 +314,12 @@ export function CameraScreen({ navigation }: Props) {
               }
             });
 
-            // Transcricao e estudo leem a lousa tratada, se ela ficar pronta a
-            // tempo: reta e com a luz por igual, a leitura melhora. Se demorar
-            // ou falhar, leem a foto original.
-            const resultado = tratamento
-              ? await Promise.race([tratamento, esperar(MS_ESPERA_TRATAMENTO)])
-              : null;
-            const lousa = resultado?.estado === 'tratada' ? resultado.lousa : null;
-            const grande = lousa
-              ? await prepararImagem(lousa.uri, lousa.largura, lousa.altura, PX.transcricao)
-              : await prepararImagem(original.uri, original.width, original.height, PX.transcricao);
-            if (capturaAtual.current !== seq) return;
-            definirFotoBase64(grande);
-
             const pTrans = transcreverCaptura(grande, modoAtual.id).then((r) => {
               if (capturaAtual.current !== seq) return;
               if (r.estado === 'ok') {
                 definirTranscricao(r.dados);
                 definirTexto(r.dados.textoExtraido);
-                console.log(
-                  `[JOVI Flow] transcricao em ${r.ms}ms, lendo a foto ${lousa ? 'tratada' : 'original'}`
-                );
+                console.log(`[JOVI Flow] transcricao em ${r.ms}ms`);
               } else {
                 console.log('[JOVI Flow] transcricao indisponivel:', r.estado);
               }
@@ -392,7 +362,6 @@ export function CameraScreen({ navigation }: Props) {
     limparCaptura,
     registrarFotoSolta,
     definirFoto,
-    definirTratamento,
     sequencia.frames,
     definirSequencia,
     modoAoVivo,
