@@ -208,8 +208,12 @@ type RespostaApi = { content?: BlocoTexto[] };
  * Assim a chave tambem nao depende de qual computador roda o servidor.
  */
 const CHAVE_NO_COFRE = 'jovi-flow.chave-anthropic';
+/** Chave criada no nivel da organizacao nao diz a qual workspace pertence, e a
+ *  API exige o id dele em todo pedido. Guardado do lado da chave. */
+const WORKSPACE_NO_COFRE = 'jovi-flow.workspace-anthropic';
 
 let chaveGuardada: string | null = null;
+let workspaceGuardado: string | null = null;
 
 async function cofreDisponivel(): Promise<boolean> {
   try {
@@ -249,6 +253,13 @@ export async function carregarChaveGuardada(): Promise<boolean> {
       const limpa = valor === null ? '' : limparChave(valor);
       chaveGuardada = limpa.length > 0 ? limpa : null;
       if (valor !== null) registrarChave('do cofre', valor, limpa);
+
+      const ws = await SecureStore.getItemAsync(WORKSPACE_NO_COFRE);
+      const wsLimpo = ws === null ? '' : limparChave(ws);
+      workspaceGuardado = wsLimpo.length > 0 ? wsLimpo : null;
+      if (workspaceGuardado !== null) {
+        console.log(`[JOVI Flow] workspace do cofre: ${workspaceGuardado}`);
+      }
     }
   } catch (erro) {
     console.log('[JOVI Flow] nao deu para ler a chave do cofre:', erro);
@@ -272,10 +283,41 @@ export async function guardarChave(valor: string): Promise<'cofre' | 'memoria'> 
   return 'memoria';
 }
 
+/** O id do workspace que vai no cabecalho, quando existe. */
+export function workspaceAtual(): string | null {
+  return workspaceGuardado;
+}
+
+/**
+ * Guarda o id do workspace. Texto vazio apaga: chave criada dentro de um
+ * workspace nao precisa dele, e mandar um id errado faz a API recusar.
+ */
+export async function guardarWorkspace(valor: string): Promise<void> {
+  const limpo = limparChave(valor);
+  workspaceGuardado = limpo.length > 0 ? limpo : null;
+  console.log(
+    workspaceGuardado === null
+      ? '[JOVI Flow] workspace apagado'
+      : `[JOVI Flow] workspace guardado: ${workspaceGuardado}`
+  );
+  try {
+    if (await cofreDisponivel()) {
+      if (workspaceGuardado === null) await SecureStore.deleteItemAsync(WORKSPACE_NO_COFRE);
+      else await SecureStore.setItemAsync(WORKSPACE_NO_COFRE, workspaceGuardado);
+    }
+  } catch (erro) {
+    console.log('[JOVI Flow] nao deu para gravar o workspace no cofre:', erro);
+  }
+}
+
 export async function esquecerChave(): Promise<void> {
   chaveGuardada = null;
+  workspaceGuardado = null;
   try {
-    if (await cofreDisponivel()) await SecureStore.deleteItemAsync(CHAVE_NO_COFRE);
+    if (await cofreDisponivel()) {
+      await SecureStore.deleteItemAsync(CHAVE_NO_COFRE);
+      await SecureStore.deleteItemAsync(WORKSPACE_NO_COFRE);
+    }
   } catch (erro) {
     console.log('[JOVI Flow] nao deu para apagar a chave do cofre:', erro);
   }
@@ -323,11 +365,7 @@ export async function verificarChave(): Promise<Verificacao> {
     const r = await fetch(ENDPOINT, {
       method: 'POST',
       signal: controlador.signal,
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': chave,
-        'anthropic-version': VERSAO_API,
-      },
+      headers: cabecalhos(chave),
       body: JSON.stringify({
         model: MODELO,
         max_tokens: 1,
@@ -417,6 +455,18 @@ export function motivoDaFalha(r: Resultado<unknown>): string {
   return r.estado;
 }
 
+/** Os cabecalhos das chamadas. O do workspace so vai quando ha um guardado:
+ *  chave criada dentro de um workspace nao precisa dele. */
+function cabecalhos(chave: string): Record<string, string> {
+  const h: Record<string, string> = {
+    'content-type': 'application/json',
+    'x-api-key': chave,
+    'anthropic-version': VERSAO_API,
+  };
+  if (workspaceGuardado !== null) h['anthropic-workspace-id'] = workspaceGuardado;
+  return h;
+}
+
 /** Uma tentativa de chamada. O retry fica na camada de cima. */
 async function chamarUmaVez(
   b64: string,
@@ -436,11 +486,7 @@ async function chamarUmaVez(
     const r = await fetch(ENDPOINT, {
       method: 'POST',
       signal: controlador.signal,
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': chave,
-        'anthropic-version': VERSAO_API,
-      },
+      headers: cabecalhos(chave),
       body: JSON.stringify({
         model: MODELO,
         max_tokens: maxTokens,

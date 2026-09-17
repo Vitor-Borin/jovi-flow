@@ -25,7 +25,7 @@ import type { QualidadeDaVoz, VozDaLeitura } from '../hooks/useLeitura';
 import { melhorVoz, useLeitura } from '../hooks/useLeitura';
 import type { RootStackParamList } from '../navigation/types';
 import type { Verificacao } from '../services/analiseAoVivo';
-import { verificarChave } from '../services/analiseAoVivo';
+import { guardarWorkspace, verificarChave, workspaceAtual } from '../services/analiseAoVivo';
 import { useAcervo } from '../store/AcervoContext';
 import { useFlow } from '../store/FlowContext';
 import { TOQUE_MIN, colors, font, fontDado, fontMono, radius, spacing } from '../theme';
@@ -67,6 +67,7 @@ export function SettingsScreen() {
   const [ondeFicou, setOndeFicou] = useState<'cofre' | 'memoria' | null>(null);
   const [verificacao, setVerificacao] = useState<Verificacao | 'verificando' | null>(null);
   const [reiniciado, setReiniciado] = useState(false);
+  const [workspace, setWorkspace] = useState(workspaceAtual() ?? '');
   const { falando, alternar } = useLeitura();
   const [voz, setVoz] = useState<VozDaLeitura | null | 'procurando'>('procurando');
 
@@ -261,6 +262,32 @@ export function SettingsScreen() {
                     ? 'Conferindo a chave com a Anthropic…'
                     : TEXTO_VERIFICACAO[verificacao]}
                 </Text>
+              ) : null}
+
+              {/* So aparece quando faz falta: chave criada dentro de um
+                  workspace nao precisa do id, e a tela nao mostra campo inutil. */}
+              {verificacao === 'sem-workspace' || workspaceAtual() !== null ? (
+                <>
+                  <Text style={styles.rotuloWorkspace}>ID do workspace</Text>
+                  <TextInput
+                    value={workspace}
+                    onChangeText={setWorkspace}
+                    placeholder="wrkspc_..."
+                    placeholderTextColor={colors.textFaint}
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    style={styles.campoChave}
+                    accessibilityLabel="ID do workspace da Anthropic"
+                  />
+                  <GhostButton
+                    label="Guardar o workspace e testar"
+                    variant="outline"
+                    onPress={() => {
+                      void guardarWorkspace(workspace).then(testar);
+                    }}
+                    style={styles.botaoGuardar}
+                  />
+                </>
               ) : null}
 
               <View style={styles.acoesChave}>
@@ -487,6 +514,12 @@ const styles = StyleSheet.create({
   },
   acaoChave: {
     flex: 1,
+  },
+  rotuloWorkspace: {
+    ...font.small,
+    color: colors.textDim,
+    marginTop: spacing(4),
+    marginBottom: spacing(1.5),
   },
   campoChave: {
     backgroundColor: colors.bg,
