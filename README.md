@@ -242,7 +242,7 @@ Sobre acessibilidade: área tocável de no mínimo 44×44 pt, `accessibilityRole
 
 ## Roteiro dos 5 minutos
 
-Um minuto de fala e quatro com o protótipo na mão, para quatro avaliadores da JOVI. O celular não passa de mão em mão: o iPhone vai direto no projetor por um adaptador USB-C para HDMI, que espelha a tela sem aplicativo e sem internet (iPhone 15 em diante, exceto os modelos "e").
+Um minuto de fala e quatro com o protótipo na mão, para quatro avaliadores da JOVI. O celular não passa de mão em mão: o notebook ligado no projetor abre uma reunião do Google Meet, e o iPhone entra nela e compartilha a tela (Mais → Compartilhar tela → Iniciar transmissão). Um adaptador USB-C para HDMI no iPhone seria mais estável, mas não houve tempo de comprar.
 
  A versão completa, com o texto de cada fala, o que fazer se algo falhar, as perguntas prováveis da banca e um cronômetro de ensaio, está na página do pitch (link no `CLAUDE.md`). Papéis: um narrador, um operador com o iPhone e um apoio com a lousa e o tempo.
 
@@ -259,7 +259,7 @@ A lousa da demonstração é uma folha A3 escrita com Flexbox, presa sobre um fu
 
 ## Antes de apresentar
 
-- [ ] Adaptador USB-C para HDMI testado com o iPhone numa TV ou monitor, e o som do Ouvir testado com ele ligado (o som passa a sair pelo HDMI)
+- [ ] Teste do Meet: o notebook cria a reunião com conta pessoal, o iPhone compartilha a tela e a câmera do app aparece no notebook; microfone e som do notebook desligados, para o Ouvir não voltar em eco
 - [ ] Desligar atualização automática de apps no iPhone, senão o Expo Go atualiza e o app não abre
 - [ ] Vincular o projeto à conta Expo (`npx eas-cli@latest init`), para as aulas e a chave valerem em qualquer computador
 - [ ] Ajustes → Análise por IA: guardar a chave nova e tocar em Testar a chave, com a rede do local

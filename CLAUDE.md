@@ -163,11 +163,11 @@ comporta igual ao aparelho).
        antes e depois saiu. Sobrou um ponto menor, na seção "Encenado" abaixo.
 6. [x] **Roteiro da apresentação**, montado em 17/09: página do pitch (ver
        "Onde está o resto") e resumo no README. São quatro avaliadores da JOVI
-       e um celular só: o iPhone vai no projetor por um adaptador USB-C para
-       HDMI (a sala liga o projetor por HDMI no notebook). Falta comprar e
-       testar o adaptador, inclusive o som do Ouvir com ele ligado, levar a
-       lousa de Flexbox sobre fundo escuro e ensaiar três vezes com o
-       cronômetro da página.
+       e um celular só, e a sala liga o projetor por HDMI no notebook. Sem tempo
+       de comprar adaptador, o iPhone compartilha a tela numa reunião do Google
+       Meet aberta no notebook. Falta testar isso com conta pessoal, levar a
+       lousa de Flexbox sobre fundo escuro, gravar o vídeo de reserva e ensaiar
+       três vezes com o cronômetro da página.
 
 ## O que falta
 
